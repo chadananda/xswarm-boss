@@ -189,7 +189,12 @@ async fn init_ai_backend() -> AIBackend {
 ```rust
 async fn voice_interaction() {
   let audio = capture_audio();
-  let response = ai_backend.process(audio).await?;
+  let theme = get_active_theme();
+  let response = ai_backend.process_with_personality(
+    audio,
+    &theme.personality,
+    &theme.voice_print  // TBD: Implementation depends on chosen voice system
+  ).await?;
   play_audio(response);
 }
 ```
@@ -201,12 +206,14 @@ async fn voice_interaction() {
 **Theme Structure:**
 ```
 themes/hal/
-├── theme.yaml          # Colors, voice params
-├── personality.md      # Character guide
-├── responses.yaml      # Template phrases
+├── theme.yaml              # Colors, voice params, voice print config
+├── personality.md          # Character guide for LLM behavior
+├── response-examples.md    # Example responses (not fixed templates)
+├── toolbar-animation.apng  # Animated icon for toolbar/waybar
 └── sounds/
     ├── notify.wav
-    └── startup.wav
+    ├── startup.wav
+    └── voice-print.json    # Voice characteristics (TBD: format depends on voice system)
 ```
 
 **Easy Theme Contribution:**
@@ -400,6 +407,22 @@ exec-once = [workspace 9 silent] xswarm dashboard
 windowrulev2 = workspace 9, class:(xswarm)
 bind = SUPER, 9, workspace, 9
 ```
+
+**Waybar/Toolbar Integration:**
+```json
+// ~/.config/waybar/config
+{
+  "custom/xswarm": {
+    "exec": "xswarm status --format waybar",
+    "return-type": "json",
+    "interval": 1,
+    "format": "<span font='14'>{icon}</span> {text}",
+    "on-click": "xswarm dashboard",
+    "tooltip": true
+  }
+}
+```
+Note: The animated APNG icon from the active theme is displayed in the toolbar.
 
 ### ⚔️ F5: Vassal Orchestration
 
@@ -706,10 +729,12 @@ git push origin add-awesomebot-theme
 ```
 
 **Theme PR Checklist:**
-- [ ] `theme.yaml` complete
-- [ ] `personality.md` describes character
-- [ ] `responses.yaml` has 10+ phrases
-- [ ] Sounds included (or uses defaults)
+- [ ] `theme.yaml` complete with colors and voice config
+- [ ] `personality.md` describes character behavior for LLM
+- [ ] `response-examples.md` has 10+ example responses
+- [ ] `toolbar-animation.apng` animated icon provided
+- [ ] `voice-print.json` voice characteristics defined (optional)
+- [ ] Sound effects included (or specify to use defaults)
 - [ ] Screenshot/demo included
 - [ ] Works with `xswarm theme set`
 
