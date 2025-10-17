@@ -51,6 +51,128 @@ xSwarm-boss is built as a distributed system with three main components:
 
 ---
 
+## 🤖 AI Agent Coordination Architecture
+
+### Purpose
+
+xSwarm-boss is an **AI orchestration layer** that manages multiple AI coding assistants (Claude Code, Cursor, Aider) working across different projects on different machines.
+
+### Agent Management System
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Overlord (xSwarm-boss)                                  │
+│                                                            │
+│  ┌────────────────────────────────────────────────────┐  │
+│  │  Agent Orchestrator                                 │  │
+│  │                                                      │  │
+│  │  • Project dependency graph                         │  │
+│  │  • Agent lifecycle management                       │  │
+│  │  • Resource allocation                              │  │
+│  │  • Cross-project coordination                       │  │
+│  └────────────────────────────────────────────────────┘  │
+│           │            │            │                      │
+│           ▼            ▼            ▼                      │
+└───────────┬────────────┬────────────┬──────────────────────┘
+            │            │            │
+    ┌───────▼────┐ ┌────▼─────┐ ┌───▼───────┐
+    │  Brawny    │ │  Speedy  │ │  Brainy   │
+    │            │ │           │ │            │
+    │ Claude Code│ │  Aider   │ │ Claude Code│
+    │ (api-gtw)  │ │ (user-svc)│ │ (auth-lib) │
+    └────────────┘ └───────────┘ └───────────┘
+```
+
+### Cross-Project Dependency Tracking
+
+```rust
+pub struct ProjectGraph {
+    projects: HashMap<ProjectId, Project>,
+    dependencies: HashMap<ProjectId, Vec<ProjectId>>,
+}
+
+impl ProjectGraph {
+    /// Find all projects that depend on a given project
+    fn find_dependents(&self, project_id: ProjectId) -> Vec<ProjectId>;
+
+    /// Coordinate updates across dependency chain
+    async fn update_dependency_chain(&self, updated: ProjectId) -> Result<UpdatePlan>;
+
+    /// Compute parallel update waves (topological sort)
+    fn compute_update_waves(&self, projects: Vec<ProjectId>) -> Vec<Vec<ProjectId>>;
+}
+```
+
+**Example Dependency Chain:**
+```
+auth-service (library)
+    ├── api-gateway (depends on auth-service)
+    ├── user-service (depends on auth-service)
+    └── admin-dashboard (depends on api-gateway)
+
+Update Flow:
+Wave 1: auth-service (root)
+Wave 2: api-gateway, user-service (parallel)
+Wave 3: admin-dashboard (after api-gateway)
+```
+
+### Agent Lifecycle
+
+```rust
+pub enum AgentStatus {
+    Spawning,
+    Running { progress: f32, current_file: String },
+    Testing { tests_passed: u32, tests_failed: u32 },
+    Completed { files_changed: Vec<String> },
+    Failed { error: String },
+}
+
+pub struct AgentInstance {
+    id: AgentId,
+    agent_type: AgentType,  // ClaudeCode, Cursor, Aider
+    project: ProjectId,
+    machine: VassalId,
+    status: AgentStatus,
+}
+```
+
+### Resource Allocation Algorithm
+
+```rust
+async fn assign_agent_to_machine(&self, task: AgentTask) -> Result<VassalId> {
+    let candidates = self.pool.find_available_vassals(&task.requirements);
+
+    // Score based on:
+    // - Current CPU/GPU load
+    // - Memory availability
+    // - Project locality (prefer machine that already has project checked out)
+    // - Network latency
+    let best_machine = candidates
+        .iter()
+        .map(|v| (v, self.score_machine(v, &task)))
+        .max_by_key(|(_, score)| *score)
+        .map(|(v, _)| v.id)?;
+
+    Ok(best_machine)
+}
+```
+
+### Security Isolation
+
+**Between Projects:**
+- Each agent operates in isolated project context
+- Memory purged when switching projects
+- Rules prevent secrets from leaking between projects
+
+**Between Agents:**
+- No direct agent-to-agent communication
+- All coordination via xSwarm orchestrator
+- Resource contention managed by xSwarm
+
+See **[AGENTS.md](AGENTS.md)** for detailed agent integration guide.
+
+---
+
 ## 🛡️ Three-Tier Security Model
 
 ### Tier 1: Overlord (Mildly Secure)

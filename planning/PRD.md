@@ -13,17 +13,22 @@
 
 ## Product Vision
 
-**xSwarm-boss** is a local, voice-first personal assistant for developers that orchestrates distributed computing tasks across multiple Linux machines.
+**xSwarm-boss** is an AI orchestration layer that coordinates multiple AI-assisted development projects across your Linux machines through natural voice commands.
+
+**The Core Problem:**
+Modern AI coding assistants (Claude Code, Cursor, Aider) enable developers to manage 10+ complex projects simultaneously. But this creates a coordination nightmare: dependency hell, context fragmentation, resource competition, and security risks. **You need a "manager AI" that coordinates all your other AIs** - like a CTO coordinating development teams.
 
 **Key Differentiators:**
-- 🏠 **Runs Locally** - No cloud dependency, full privacy
-- 🗣️ **Voice-First** - Natural conversation interface
-- 👨‍💻 **Developer-Focused** - Built for software engineering workflows
-- 🔒 **Secure by Design** - Secrets isolation, PII filtering
-- 🎨 **Themeable** - Fantasy AI personalities (HAL, JARVIS, etc.)
+- 🤖 **AI Agent Coordination** - Manages multiple AI coding assistants across projects and machines
+- 🕸️ **Cross-Project Intelligence** - Tracks dependencies, coordinates updates, maintains unified knowledge
+- 🗣️ **Voice-First Orchestration** - Give strategic commands, let xSwarm handle tactical execution
+- 🧠 **System-Wide Knowledge** - Semantic search across ALL projects, docs, and code on your system
+- 🔒 **Rules-Based Security** - Secret filtering, constant memory purging, prevents data leakage
+- 🎨 **Unnecessary Personality** - Fantasy AI themes (HAL, JARVIS, Sauron, DALEK, etc.)
+- 🏠 **Completely Local** - Code, conversations, and coordination never leave your network
 - 🐧 **Linux Native** - Omarchy-first, works on all distros
 
-Think JARVIS meets your homelab - an AI that coordinates your development machines through natural voice commands.
+**xSwarm is JARVIS for your development empire** - one AI that knows all your projects, coordinates all your AI tools, and speaks to you like a seasoned engineering manager.
 
 ## 💻 Hardware Requirements
 
@@ -78,8 +83,7 @@ Think JARVIS meets your homelab - an AI that coordinates your development machin
 - **D-Bus** - Notification system
 
 ### 📦 Monorepo Management
-- **PNPM** - Package manager + workspace
-- **Turborepo** - Build orchestration
+- **PNPM** - Package manager + workspace + build scripts
 - **Astro** - Documentation site
 - **GitHub Actions** - CI/CD
 
@@ -159,6 +163,91 @@ Think JARVIS meets your homelab - an AI that coordinates your development machin
 
 ## ✨ Core Features
 
+### 🤖 F0: AI Agent Coordination
+
+**The Primary Purpose:** xSwarm orchestrates multiple AI coding assistants (Claude Code, Cursor, Aider, etc.) working across different projects on different machines.
+
+**Agent Lifecycle Management:**
+```rust
+pub struct AgentManager {
+    active_agents: HashMap<ProjectId, AgentInstance>,
+    machine_pool: VassalPool,
+}
+
+impl AgentManager {
+    async fn spawn_agent(&mut self, project: &Project, machine: VassalId) -> Result<AgentInstance> {
+        // Spawn Claude Code, Cursor, or other AI coding assistant
+        let agent = match project.preferred_agent {
+            AgentType::ClaudeCode => self.spawn_claude_code(project, machine).await?,
+            AgentType::Cursor => self.spawn_cursor(project, machine).await?,
+            AgentType::Aider => self.spawn_aider(project, machine).await?,
+        };
+
+        self.active_agents.insert(project.id, agent);
+        Ok(agent)
+    }
+}
+```
+
+**Cross-Project Dependency Graph:**
+```rust
+pub struct ProjectGraph {
+    projects: HashMap<ProjectId, Project>,
+    dependencies: HashMap<ProjectId, Vec<ProjectId>>,
+}
+
+impl ProjectGraph {
+    /// Find all projects that depend on a given project
+    fn find_dependents(&self, project_id: ProjectId) -> Vec<ProjectId> {
+        // Returns: [api-gateway, user-service, admin-dashboard]
+    }
+
+    /// Coordinate updates across dependency chain
+    async fn update_dependency_chain(&self, updated_project: ProjectId) -> Result<UpdatePlan> {
+        let dependents = self.find_dependents(updated_project);
+        let update_order = self.topological_sort(dependents);
+        Ok(UpdatePlan { projects: update_order })
+    }
+}
+```
+
+**High-Level Command Processing:**
+```
+User: "Update the auth library in project-a, then update all dependent projects"
+
+xSwarm Processing:
+1. Identify project-a dependencies → [project-b, project-c, project-d]
+2. Spawn agent on available machine for project-a
+3. Monitor progress, collect changes
+4. Upon completion, validate tests
+5. Spawn agents for project-b, project-c, project-d in parallel
+6. Coordinate updates based on breaking changes from project-a
+7. Validate entire dependency chain
+8. Report completion status
+```
+
+**Agent Integration Points:**
+- **Claude Code** - Via API or local subprocess
+- **Cursor** - Via CLI or API (TBD: investigate Cursor's automation capabilities)
+- **Aider** - Via CLI subprocess
+- **Custom Agents** - Plugin system for future extensibility
+
+**Resource Allocation:**
+```rust
+async fn assign_agent_to_machine(&self, task: AgentTask) -> Result<VassalId> {
+    // Consider: CPU/GPU availability, current workload, project locality
+    let candidates = self.pool.find_available_vassals(&task.requirements);
+    let best_machine = self.score_candidates(candidates, &task);
+    Ok(best_machine)
+}
+```
+
+**Security Isolation:**
+- Each agent operates in project-specific context
+- Rules prevent secrets from leaking between projects
+- Memory purged of sensitive data before cross-project operations
+- PII filtering on all external communications
+
 ### 🎤 F1: Voice Interface
 
 **AI Backend (Auto-configured):**
@@ -231,18 +320,39 @@ git commit -m "Add SkyNet theme"
 
 ### 🔎 F2: System-Wide Semantic Search
 
+**Purpose:** Unified search across ALL projects, documentation, and code on your system. Critical for cross-project coordination and knowledge management.
+
+**Cross-Project Search Capabilities:**
+```
+User: "Which projects use the old Redis client?"
+xSwarm: Searches across all project codebases, dependencies, and docs
+Result: [api-gateway, worker-service, cache-layer, session-manager, analytics-api, background-jobs]
+
+User: "Show me all authentication-related docs"
+xSwarm: Searches ~/Documents, ~/Dropbox, all project README files
+Result: Auth_Patterns.pdf, oauth2-implementation.md, security-audit-2024.pdf
+```
+
 **Automatic Indexing:**
 ```rust
-// Filesystem watcher
+// Filesystem watcher - monitors EVERYTHING
 async fn watch_filesystem() {
-  let watcher = Watcher::new(["~/Documents", "~/Dropbox"]);
+  let watcher = Watcher::new([
+    "~/Documents",      // Your docs
+    "~/Dropbox",        // Synced files
+    "~/projects",       // All code projects
+    "~/.config",        // Config files
+  ]);
   watcher.on_change(|path| {
-    if is_document(path) {
-      let md = docling_parse(path)?;
+    if is_indexable(path) {  // Code, docs, configs
+      let md = docling_parse(path)?;  // PDF/DOCX → Markdown
       let embedding = openai_embed(&md)?;
       meilisearch.index(Document {
         id: hash(path),
-        path, content: md, embedding
+        path,
+        content: md,
+        embedding,
+        project: extract_project(path),  // Track which project
       }).await?;
     }
   });
@@ -251,17 +361,19 @@ async fn watch_filesystem() {
 
 **Query Interface:**
 ```bash
-# Voice
-"Hey Overlord, find documents about quantum computing"
+# Voice - Cross-project queries
+"Hey HAL, which projects import the auth library?"
+"Find all TODOs across my Python projects"
 
 # CLI
-xswarm search "quantum computing" --limit 10
+xswarm search "Redis" --scope=projects
+xswarm search "authentication" --scope=docs
 
 # Programmatic (MCP)
 {
   "action": "search",
-  "query": "quantum computing",
-  "filters": {"type": "pdf", "date": "last_month"}
+  "query": "authentication patterns",
+  "filters": {"project": "api-gateway", "type": "code"}
 }
 ```
 
@@ -1001,7 +1113,6 @@ git push origin add-awesomebot-theme
 - [ ] Project Setup
   - [ ] Cargo workspace structure
   - [ ] PNPM monorepo configuration
-  - [ ] Turborepo setup
   - [ ] Git repository initialization
   - [ ] GitHub Actions workflows skeleton
 - [ ] Core Rust Binary

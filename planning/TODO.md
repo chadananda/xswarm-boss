@@ -33,8 +33,7 @@ This document tracks all development tasks for xSwarm-boss. See [PRD.md](PRD.md)
 - [ ] PNPM workspace configuration
   - [ ] pnpm-workspace.yaml
   - [ ] Root package.json
-- [ ] Turborepo setup
-  - [ ] turbo.json with build pipeline
+  - [ ] Package scripts for build/test/lint
 - [ ] GitHub Actions skeleton
   - [ ] Build workflow
   - [ ] Test workflow
@@ -149,7 +148,47 @@ This document tracks all development tasks for xSwarm-boss. See [PRD.md](PRD.md)
 
 ## Phase 2: Intelligence (Q1 2026)
 
-### Milestone 2.1: Theme System
+### Milestone 2.1: AI Agent Integration
+
+**Priority:** CRITICAL
+**Depends on:** 1.5
+
+**Purpose:** xSwarm's core functionality - coordinating AI coding assistants across projects.
+
+- [ ] Project graph system
+  - [ ] Project discovery and parsing
+  - [ ] Dependency detection (package.json, Cargo.toml, etc.)
+  - [ ] Dependency graph construction
+  - [ ] Topological sort for update ordering
+- [ ] Agent manager core
+  - [ ] Agent type enum (ClaudeCode, Cursor, Aider)
+  - [ ] Agent lifecycle (spawn, monitor, terminate)
+  - [ ] Agent pool management
+  - [ ] Resource allocation algorithm
+- [ ] Claude Code integration
+  - [ ] API client (when available)
+  - [ ] CLI subprocess fallback
+  - [ ] Progress monitoring
+  - [ ] Result collection
+- [ ] Aider integration
+  - [ ] CLI subprocess spawning
+  - [ ] Task specification format
+  - [ ] Output parsing
+- [ ] Cursor integration (TBD)
+  - [ ] Research automation capabilities
+  - [ ] Determine integration approach
+- [ ] Cross-project coordination
+  - [ ] Multi-project status queries
+  - [ ] Dependency chain updates
+  - [ ] Parallel agent execution
+  - [ ] Wave-based updates
+- [ ] Agent monitoring dashboard
+  - [ ] Active agents display
+  - [ ] Progress indicators
+  - [ ] Resource usage per agent
+  - [ ] Project status overview
+
+### Milestone 2.2: Theme System
 
 **Priority:** HIGH
 **Depends on:** 1.3

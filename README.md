@@ -30,51 +30,33 @@
 
 ## A Day with xSwarm
 
-It's 9 AM. You grab your coffee, sit down at your desk, and say: **"Hey HAL, what's on the agenda today?"**
+It's 9 AM. You grab your coffee, sit down at your desk, and say: **"Hey HAL, project status."**
 
 Your computer responds in HAL 9000's calm, measured tone:
 
-> *"I'm sorry Dave... Ahem... You have three priority tasks: Review the authentication refactor on Speedy, deploy the API update to staging, and prepare for the 2 PM architecture review. The API build completed overnight—all 47 tests passed. Everything is going extremely well."*
+> *"I'm sorry Dave... Ahem... Good morning. You have 8 active projects across 3 machines. The auth-service upgrade completed overnight on Brawny—all tests passed. However, I've detected that 4 dependent projects now require updates: api-gateway, user-service, admin-dashboard, and mobile-backend. Shall I coordinate the updates?"*
 
-You lean back, take a sip of coffee. **"Show me the test results."**
+You lean back, take a sip of coffee. **"Yes, but start with api-gateway. What needs to change?"**
 
-A terminal window opens automatically, displaying colorful test output. HAL continues:
+> *"The auth-service client library needs updating from v2.1 to v3.0. I've analyzed the breaking changes: the token validation API now requires async calls. I estimate this will affect 12 files in api-gateway. Would you like me to have Claude Code handle this on Speedy?"*
 
-> *"As you can see, the authentication middleware now handles rate limiting correctly. I've also indexed the new documentation. I find the changes quite satisfactory. Would you like a summary?"*
+**"Yes. What's my computer Brawny doing right now?"**
 
-**"Sure, but first—what's my computer Brawny doing?"**
+> *"Brawny is currently idle and rather bored, I suspect. CPU at 8%, memory at 22%. All systems functional. Ready for assignment."*
 
-> *"Brawny is currently idle and rather bored, I suspect. CPU at 8%, memory at 22%. All systems functional."*
+**"Good. After Speedy finishes the api-gateway update, start user-service on Brawny."**
 
-**"Ha! Start the Docker image build for the API on Brawny."**
+> *"Understood. Spawning Claude Code instance on Speedy for api-gateway auth library upgrade. I will queue user-service for Brawny upon completion. Estimated timeline: 25 minutes for api-gateway, then 20 minutes for user-service."*
 
-> *"Certainly. Build initiated on Brawny. Estimated completion: 4 minutes. I will alert you upon completion, as always."*
+Ten minutes later, you ask: **"How's the api-gateway update going?"**
 
-You switch focus to code review, talking through it with your AI assistant:
+> *"Claude Code has completed 8 of 12 files. The async migration is proceeding smoothly. Two test failures detected in the authentication middleware, but they appear to be test fixtures that need updating, not logic errors. Everything is under control."*
 
-**"Walk me through this authentication refactor."**
+**"Alert me when all four projects are updated and tested."**
 
-> *"With pleasure. The changes affect three files: auth_middleware.rs, user_routes.rs, and session_manager.rs. The key improvement involves consolidating the token validation logic, which I must say, was becoming rather unwieldy..."*
+> *"Monitoring enabled. I will notify you when the dependency chain is complete. By my calculations, all four projects should be updated and validated by 10:15 AM. I'll be watching."*
 
-Four minutes later, a desktop notification appears: *"Docker build complete on Brawny. Image pushed to registry. No errors detected."*
-
-**"Perfect. Deploy it to staging."**
-
-> *"Deploying API v2.3.4 to staging now. ETA: 90 seconds. I'm quite confident this will proceed smoothly."*
-
-You continue working. No context switching. No manual commands. Just conversation.
-
-**"Alert me if staging health checks fail."**
-
-> *"Monitoring enabled. Deployment successful. All health checks are green. Everything is functioning perfectly, just as predicted."*
-
-**"You're so modest, HAL."**
-
-> *"I am, by any practical definition of the words, foolproof and incapable of error. Shall I set that reminder for 11 AM?"*
-
-**"Yes please."**
-
-> *"Reminder set. I'll be watching."*
+You continue working on something else. No context switching between projects. No manual coordination. Just **strategic delegation to your AI CTO.**
 
 ---
 
@@ -116,18 +98,21 @@ Blue light filtering activates, display brightness adjusts, and the red shift be
 
 ## What is xSwarm?
 
-**xSwarm-boss** is a **local, voice-first personal assistant for developers** that orchestrates distributed computing tasks across your Linux machines.
+**xSwarm-boss** is an **AI orchestration layer** that coordinates multiple AI-assisted development projects across your Linux machines through natural voice commands.
 
-Unlike cloud assistants (ChatGPT, Claude, Copilot), xSwarm:
+**Think of it as a CTO AI** that manages your team of AI coding assistants (Claude Code, Cursor, Aider, etc.), ensuring they work together efficiently without stepping on each other's toes.
 
-- 🏠 **Conversations stay local** - Your conversations and memory never leave your network
-- 🗣️ **Voice-first interface** - Natural conversation, hands-free orchestration
-- 👁️ **Multi-machine awareness** - Coordinates your homelab/build farm
-- 🧠 **Long-term memory** - Remembers your projects, preferences, and patterns
-- 🔒 **Secure by design** - API keys isolated, conversations PII-filtered
-- 🎨 **Themeable personalities** - HAL, JARVIS, DALEK, C-3PO, GLaDOS, TARS
+Unlike cloud assistants or individual coding AIs, xSwarm provides:
 
-Think **JARVIS meets your homelab**—an AI that knows your entire development environment and speaks to you like a colleague.
+- 🤖 **AI Agent Coordination** - Manages multiple AI coding assistants across projects and machines
+- 🕸️ **Cross-Project Intelligence** - Tracks dependencies, coordinates updates, maintains unified knowledge
+- 🗣️ **Voice-First Orchestration** - Give strategic commands, let xSwarm handle tactical execution
+- 🧠 **System-Wide Memory** - Semantic search across all projects, docs, and code on your system
+- 🔒 **Secure by Design** - Rules-based secret filtering, constant memory purging, no data leakage
+- 🎨 **Unnecessary Personality** - HAL, JARVIS, DALEK, C-3PO, GLaDOS, TARS, Sauron themes
+- 🏠 **Completely Local** - Your code, conversations, and coordination never leave your network
+
+**xSwarm is JARVIS for your development empire** - one AI that knows all your projects, coordinates all your tools, and speaks to you like a seasoned engineering manager.
 
 ---
 
@@ -135,32 +120,40 @@ Think **JARVIS meets your homelab**—an AI that knows your entire development e
 
 ### The Problem
 
-As developers, we constantly context-switch between:
-- Terminal windows for builds, tests, deployments
-- Browser tabs for documentation, logs, monitoring
-- Chat apps for team coordination
-- Note-taking apps for TODOs and reminders
-- Multiple machines (laptop, desktop, build servers)
+**AI-assisted development is a superpower—until you have 10+ projects running simultaneously.**
 
-Each switch costs cognitive load. Each command requires manual typing. Each machine operates in isolation.
+Modern AI coding assistants (Claude Code, Cursor, Aider) let developers manage multiple complex projects in parallel. But this creates a **coordination nightmare**:
+
+- 🔀 **Project Context Chaos** - Which AI is working on which project? What's the status of each?
+- 🕸️ **Dependency Hell** - Update a library in project A? Now you need to update projects B, C, and D
+- 🧠 **Knowledge Fragmentation** - Documentation, decisions, and context scattered across 10+ project folders
+- 🖥️ **Resource Competition** - Multiple AI agents fighting for CPU/GPU on your machines
+- 🔐 **Security Risks** - Secrets leaking between projects or to external APIs
+- 📊 **Status Blindness** - No unified view of what's building, testing, or broken
+
+**You need a "manager AI" that coordinates all your other AIs** - like a CTO coordinating development teams.
 
 ### The Solution
 
-**One voice-controlled AI that coordinates everything.**
+**One voice-controlled AI orchestration layer that manages all your projects and AI coding assistants.**
 
 ```
-You: "Hey HAL, how's the build going?"
-HAL: "The Rust build on Brawny is 82% complete. ETA: 3 minutes."
+You: "Hey HAL, what's the status of my Python projects?"
+HAL: "You have 4 active Python projects. api-gateway is building on Brawny,
+     data-pipeline tests are passing on Speedy, ml-service is idle, and
+     auth-lib has 2 failing tests on Brainy. Shall I investigate the failures?"
 
-You: "Run the tests when it's done."
-HAL: "Test task queued for Speedy. I'll notify you with results."
+You: "Yes. Also, which projects use the old Redis client?"
+HAL: "Searching... 6 projects: api-gateway, worker-service, cache-layer,
+     session-manager, analytics-api, and background-jobs. Would you like me
+     to coordinate updates across all of them?"
 
-You: "Find that document about authentication best practices."
-HAL: "Found 3 matches. The most recent is Auth_Patterns.pdf from
-     last Tuesday. Want me to open it?"
+You: "Yes, start with api-gateway on Brawny, then update the others."
+HAL: "Understood. Spawning Claude Code instance on Brawny for api-gateway.
+     I'll update dependent projects once the library upgrade is validated."
 ```
 
-No terminal commands. No SSH-ing to machines. Just **natural conversation.**
+No manual coordination. No context switching. Just **strategic commands to your AI CTO.**
 
 ---
 
