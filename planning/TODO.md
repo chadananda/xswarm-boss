@@ -144,6 +144,43 @@ This document tracks all development tasks for xSwarm-boss. See [PRD.md](PRD.md)
   - [ ] Log aggregation
   - [ ] Metrics collection
 
+### Milestone 1.6: Security Foundation
+
+**Priority:** CRITICAL
+**Depends on:** 1.2
+
+**Purpose:** Core security infrastructure - secret detection, memory purging, proactive warnings.
+
+- [ ] Secret detection engine
+  - [ ] Pattern database (API keys, tokens, passwords)
+  - [ ] Regex matching engine
+  - [ ] Entropy analysis for unknown secrets
+  - [ ] Severity classification (Critical/High/Medium/Low)
+- [ ] Memory purging system
+  - [ ] Time-based purging (every 60s)
+  - [ ] Size-based purging (>20 messages)
+  - [ ] On-demand purge command
+  - [ ] Cross-project context switching purge
+- [ ] File monitoring
+  - [ ] Git-aware file watcher
+  - [ ] Public location detection
+  - [ ] Real-time secret scanning on file write
+- [ ] Warning system
+  - [ ] Terminal warnings (color-coded by severity)
+  - [ ] Desktop notifications
+  - [ ] Interactive resolution prompts
+  - [ ] Pre-commit git hook
+- [ ] Audit logging
+  - [ ] Append-only security event log
+  - [ ] Tamper detection (hash chain)
+  - [ ] Log rotation
+  - [ ] Integrity verification
+- [ ] Security CLI commands
+  - [ ] `xswarm security scan <file>`
+  - [ ] `xswarm security purge-memory`
+  - [ ] `xswarm security status`
+  - [ ] `xswarm security install-hooks`
+
 ---
 
 ## Phase 2: Intelligence (Q1 2026)

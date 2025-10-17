@@ -71,10 +71,15 @@ Modern AI coding assistants (Claude Code, Cursor, Aider) enable developers to ma
 - **Filesystem watcher** - Auto-indexing
 
 ### 🔒 Security
-- **MCP** - Model Context Protocol (isolated API servers)
-- **Unix sockets** - MCP communication (no network)
-- **PII filter** - Regex-based secret detection
-- **mTLS** - Vassal communication
+- **Secret Detection** - Pattern-based + entropy analysis for API keys, passwords, tokens
+- **Proactive Warnings** - Alert user immediately if secrets detected in public/versioned files
+- **Memory Purging** - Constant scrubbing of working memory (every 60s + on-demand)
+- **File Monitoring** - Git-aware monitoring blocks commits containing secrets
+- **MCP Isolation** - Model Context Protocol keeps API keys in isolated processes
+- **mTLS** - Mutual TLS for vassal communication
+- **Audit Logging** - Tamper-proof append-only security event log
+
+See **[SECURITY.md](planning/SECURITY.md)** for complete security policy and implementation details.
 
 ### 🖥️ Desktop Integration (DE-Agnostic)
 - **Hyprland** - Primary WM (Omarchy)
