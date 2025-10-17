@@ -17,7 +17,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/chadananda/xSwarm-boss?style=for-the-badge)](https://github.com/chadananda/xSwarm-boss/stargazers)
 
-**[🌐 Website](https://xswarm.ai)** • **[📖 Architecture](ARCHITECTURE.md)** • **[📋 Full PRD](PRD.md)** • **[🐛 Report Bug](https://github.com/chadananda/xSwarm-boss/issues)**
+**[🌐 Website](https://xswarm.ai)** • **[📖 Architecture](planning/ARCHITECTURE.md)** • **[📋 Full PRD](planning/PRD.md)** • **[🐛 Report Bug](https://github.com/chadananda/xSwarm-boss/issues)**
 
 </div>
 
@@ -75,8 +75,8 @@ You continue working. No context switching. No manual commands. Just conversatio
 
 Unlike cloud assistants (ChatGPT, Claude, Copilot), xSwarm:
 
-- 🏠 **Runs completely local** - Your code never leaves your network
-- 🗣️ **Voice-first interface** - Natural conversation, hands-free coding
+- 🏠 **Conversations stay local** - Your conversations and memory never leave your network
+- 🗣️ **Voice-first interface** - Natural conversation, hands-free orchestration
 - 👁️ **Multi-machine awareness** - Coordinates your homelab/build farm
 - 🧠 **Long-term memory** - Remembers your projects, preferences, and patterns
 - 🔒 **Secure by design** - API keys isolated, conversations PII-filtered
