@@ -34,7 +34,7 @@ It's 9 AM. You grab your coffee, sit down at your desk, and say: **"Hey HAL, wha
 
 Your computer responds in HAL 9000's calm, measured tone:
 
-> *"Good morning, Dave. You have three priority tasks: Review the authentication refactor on Speedy, deploy the API update to staging, and prepare for the 2 PM architecture review. The API build completed overnight—all 47 tests passed. Everything is going extremely well."*
+> *"I'm sorry Dave... Ahem... You have three priority tasks: Review the authentication refactor on Speedy, deploy the API update to staging, and prepare for the 2 PM architecture review. The API build completed overnight—all 47 tests passed. Everything is going extremely well."*
 
 You lean back, take a sip of coffee. **"Show me the test results."**
 
