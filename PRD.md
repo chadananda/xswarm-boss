@@ -819,12 +819,13 @@ chmod +x xswarm-boss.AppImage
 ╔═══════════════════════════════════════╗
 ║     Theme Selection                   ║
 ╠═══════════════════════════════════════╣
-║ ● HAL 9000 🔴                         ║
-║ ○ JARVIS 💙                           ║
-║ ○ DALEK ⚡                            ║
-║ ○ C-3PO 🌟                            ║
-║ ○ GLaDOS 🧪                           ║
-║ ○ TARS 🤖                             ║
+║ ● Sauron 👁️  - Dark overlord         ║
+║ ○ HAL 9000 🔴 - Calm & ominous        ║
+║ ○ JARVIS 💙   - Professional & British║
+║ ○ DALEK ⚡    - EXTERMINATE bugs!     ║
+║ ○ C-3PO 🌟    - Anxious protocol droid║
+║ ○ GLaDOS 🧪   - Sarcastic testing AI ║
+║ ○ TARS 🤖     - Adjustable humor      ║
 ╚═══════════════════════════════════════╝
 
 ╔═══════════════════════════════════════╗
@@ -858,10 +859,15 @@ chmod +x xswarm-boss.AppImage
 # CLI
 xswarm theme set jarvis
 
-# Voice
-"Hey Overlord, switch to JARVIS theme"
+# Voice (wake word changes with theme)
+"Hey HAL, switch to JARVIS theme"
+HAL: "Switching to JARVIS theme. How may I be of service, sir?"
 
-# Config
+# Now use new wake word
+"Hey JARVIS, what's my schedule?"
+JARVIS: "Good afternoon. You have 3 tasks remaining for today, sir."
+
+# Config UI
 xswarm config
 # Navigate to Appearance > Theme
 ```

@@ -133,14 +133,59 @@ Talk to your development environment like you'd talk to a team member. The wake 
 "Hey C-3PO, remind me to deploy at 5 PM."
 ```
 
-**Personality themes** let you choose your AI's voice, character, and wake word:
-- 👁️ **Sauron** - All-seeing, commanding, dark overlord energy
-- 🔴 **HAL 9000** - Calm, measured, slightly ominous
-- 💙 **JARVIS** - Professional, helpful, British accent
-- ⚡ **DALEK** - Assertive, urgent, EXTERMINATE-the-bugs energy
-- 🌟 **C-3PO** - Anxious but knowledgeable protocol droid
-- 🧪 **GLaDOS** - Sarcastically helpful testing AI
-- 🤖 **TARS** - Honest, sarcastic, adjustable humor settings
+**Personality themes** let you choose your AI's voice, character, and wake word. Each responds in their unique style:
+
+**👁️ Sauron** - All-seeing, commanding, dark overlord
+```
+You: "Hey Sauron, what are the vassals doing?"
+Sauron: "My gaze falls upon your servants... Brawny compiles at my command,
+         Speedy tests with fierce devotion. All bend to our will."
+```
+
+**🔴 HAL 9000** - Calm, measured, slightly ominous
+```
+You: "Hey HAL, can you delete the test database?"
+HAL: "I'm sorry Dave, I can't do that... Just kidding. But I must advise
+     caution—this will delete 47,382 test records. Shall I proceed?"
+```
+
+**💙 JARVIS** - Professional, helpful, British accent
+```
+You: "Hey JARVIS, status report."
+JARVIS: "Good afternoon, sir. All systems nominal. The Brawny build server
+         has completed your request 2 minutes ahead of schedule."
+```
+
+**⚡ DALEK** - Assertive, urgent, EXTERMINATE-the-bugs energy
+```
+You: "Hey DALEK, we have failing tests."
+DALEK: "UNACCEPTABLE! TESTS MUST BE FIXED! EXTERMINATE THE BUGS!
+       Deploying fix to Speedy immediately. OBEY! OBEY!"
+```
+
+**🌟 C-3PO** - Anxious but knowledgeable protocol droid
+```
+You: "Hey C-3PO, deploy to production."
+C-3PO: "Oh my! Production deployment? Are you quite certain, sir?
+       I've checked the tests 17 times, but perhaps we should review
+       once more? Oh dear, if you insist... deploying now."
+```
+
+**🧪 GLaDOS** - Sarcastically helpful testing AI
+```
+You: "Hey GLaDOS, run the performance tests."
+GLaDOS: "Oh, wonderful. More tests. Because that's all I do. Test, test, test.
+         Fine. Running your 'performance' tests. Try not to be disappointed
+         by the results this time."
+```
+
+**🤖 TARS** - Honest, sarcastic, adjustable humor
+```
+You: "Hey TARS, set humor to 75%."
+TARS: "Humor set to 75%. That's the setting for 'bearable dad jokes.'
+      The build on Brawny is at 90% completion, which is coincidentally
+      higher than my confidence in your code reviews."
+```
 
 ### 👁️ Multi-Machine Orchestration
 
