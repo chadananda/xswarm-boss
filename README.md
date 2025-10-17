@@ -42,7 +42,7 @@ A terminal window opens automatically, displaying colorful test output. HAL cont
 
 > *"As you can see, the authentication middleware now handles rate limiting correctly. I've also indexed the new documentation. I find the changes quite satisfactory. Would you like a summary?"*
 
-**"Sure, but first—what's Brawny doing?"**
+**"Sure, but first—what's my computer Brawny doing?"**
 
 > *"Brawny is currently idle and rather bored, I suspect. CPU at 8%, memory at 22%. All systems functional."*
 
