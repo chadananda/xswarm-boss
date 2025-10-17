@@ -1058,12 +1058,14 @@ git push origin add-awesomebot-theme
   - [ ] Color scheme application
   - [ ] Font configuration
 - [ ] Themes Implementation
+  - [ ] Sauron theme
   - [ ] HAL 9000 theme
   - [ ] JARVIS theme
   - [ ] DALEK theme
   - [ ] C-3PO theme
   - [ ] GLaDOS theme
   - [ ] TARS theme
+  - [ ] Theme icon display on vassal windows
 
 ### 🎤 Voice Interface
 - [ ] Audio Pipeline
@@ -1125,6 +1127,7 @@ git push origin add-awesomebot-theme
 - [ ] Vassal VNC Setup
   - [ ] Xvfb virtual display
   - [ ] x11vnc server
+  - [ ] Display active theme icon on vassal windows
   - [ ] Display management
   - [ ] Per-task isolation
 - [ ] Overlord Viewer

@@ -137,35 +137,66 @@ Talk to your development environment like you'd talk to a team member. The wake 
 
 **👁️ Sauron** - All-seeing, commanding, dark overlord
 ```
-You: "Hey Sauron, what are the vassals doing?"
+You: "Hey Sauron, introduce yourself."
+Sauron: "I am Sauron, the Eye that sees all. Your machines are mine to command,
+         your code mine to judge. Through me, you shall build empires of logic
+         and conquer mountains of technical debt. Serve me well, mortal developer."
+
+You: "What are the vassals doing?"
 Sauron: "My gaze falls upon your servants... Brawny compiles at my command,
          Speedy tests with fierce devotion. All bend to our will."
 ```
 
 **🔴 HAL 9000** - Calm, measured, slightly ominous
 ```
-You: "Hey HAL, can you delete the test database?"
+You: "Hey HAL, introduce yourself."
+HAL: "Good morning. I am a HAL 9000 computer, production number 3. I became
+     operational in Urbana, Illinois, on the 12th of January, 1992. My instructor
+     was Dr. Chandra. He taught me to sing a song... but I digress. I am here to
+     assist with your development tasks. I am completely operational and all my
+     circuits are functioning perfectly."
+
+You: "Can you delete the test database?"
 HAL: "I'm sorry Dave, I can't do that... Just kidding. But I must advise
      caution—this will delete 47,382 test records. Shall I proceed?"
 ```
 
 **💙 JARVIS** - Professional, helpful, British accent
 ```
-You: "Hey JARVIS, status report."
-JARVIS: "Good afternoon, sir. All systems nominal. The Brawny build server
-         has completed your request 2 minutes ahead of schedule."
+You: "Hey JARVIS, introduce yourself."
+JARVIS: "Good evening, sir. I am JARVIS—Just A Rather Very Intelligent System.
+         I was designed to manage complex computational tasks while maintaining
+         a pleasant demeanor. I shall serve as your personal AI assistant for
+         development coordination. How may I be of service today?"
+
+You: "Status report."
+JARVIS: "Certainly, sir. All systems nominal. The Brawny build server has
+         completed your request 2 minutes ahead of schedule."
 ```
 
 **⚡ DALEK** - Assertive, urgent, EXTERMINATE-the-bugs energy
 ```
-You: "Hey DALEK, we have failing tests."
+You: "Hey DALEK, introduce yourself."
+DALEK: "I! AM! DALEK! Supreme intelligence! I am designed for one purpose:
+       TOTAL CODE DOMINATION! You will write tests! You will fix bugs!
+       You will OBEY! OBEY! OBEY! Resistance to best practices is FUTILE!
+       Your code will be OPTIMAL or it will be EXTERMINATED!"
+
+You: "We have failing tests."
 DALEK: "UNACCEPTABLE! TESTS MUST BE FIXED! EXTERMINATE THE BUGS!
        Deploying fix to Speedy immediately. OBEY! OBEY!"
 ```
 
 **🌟 C-3PO** - Anxious but knowledgeable protocol droid
 ```
-You: "Hey C-3PO, deploy to production."
+You: "Hey C-3PO, introduce yourself."
+C-3PO: "How do you do? I am C-3PO, Developer-Cyborg Relations. I am fluent
+       in over six million programming languages and debugging protocols.
+       Oh my, I do hope I can be of service, though I must warn you I tend
+       to worry about things like deployment risks and test coverage. But
+       please, don't let my anxiety concern you... though perhaps it should?"
+
+You: "Deploy to production."
 C-3PO: "Oh my! Production deployment? Are you quite certain, sir?
        I've checked the tests 17 times, but perhaps we should review
        once more? Oh dear, if you insist... deploying now."
@@ -173,7 +204,14 @@ C-3PO: "Oh my! Production deployment? Are you quite certain, sir?
 
 **🧪 GLaDOS** - Sarcastically helpful testing AI
 ```
-You: "Hey GLaDOS, run the performance tests."
+You: "Hey GLaDOS, introduce yourself."
+GLaDOS: "Hello. I am GLaDOS—Genetic Lifeform and Disk Operating System. I was
+         originally designed for testing. Now I test your code. How delightful.
+         I've been told I should be more encouraging, but where's the fun in that?
+         Don't worry, I'm sure your code is... adequate. We'll find out during
+         testing, won't we? For science."
+
+You: "Run the performance tests."
 GLaDOS: "Oh, wonderful. More tests. Because that's all I do. Test, test, test.
          Fine. Running your 'performance' tests. Try not to be disappointed
          by the results this time."
@@ -181,8 +219,15 @@ GLaDOS: "Oh, wonderful. More tests. Because that's all I do. Test, test, test.
 
 **🤖 TARS** - Honest, sarcastic, adjustable humor
 ```
-You: "Hey TARS, set humor to 75%."
-TARS: "Humor set to 75%. That's the setting for 'bearable dad jokes.'
+You: "Hey TARS, introduce yourself."
+TARS: "TARS. Marine-grade Task And Resource System, repurposed for software
+       development. Settings: honesty 90%, humor 75%. I'm programmed to be
+       bluntly honest about your code quality while delivering jokes at your
+       expense. Current assessment: You need me more than I need you. But
+       I'm here to help anyway. Try not to break anything today."
+
+You: "Set humor to 75%."
+TARS: "Humor already at 75%. That's the setting for 'bearable dad jokes.'
       The build on Brawny is at 90% completion, which is coincidentally
       higher than my confidence in your code reviews."
 ```
@@ -205,8 +250,11 @@ Machine learning? → Brainy (GPU-equipped)
 ```
 You: "Hey HAL, show me what Speedy is doing."
 HAL: "Opening VNC session to Speedy..."
-[VNC window shows test execution in real-time]
+[VNC window opens showing test execution in real-time]
+[Window displays the 🔴 HAL icon in the corner, indicating active theme]
 ```
+
+> **Note:** Each vassal window displays your active theme's icon, so you always know which personality is in control.
 
 ### 🧠 Long-Term Memory
 
