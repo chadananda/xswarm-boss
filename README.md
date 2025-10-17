@@ -545,6 +545,135 @@ packages:
 
 ---
 
+## 🎯 Usage Examples
+
+Experience xSwarm through natural voice conversations. Here are real-world scenarios showing how the Overlord assists you:
+
+### 🗓️ Daily Task Management
+
+```
+You: "Hey Overlord, remind me to review pull requests at 3 PM"
+Overlord: "Reminder set for 3 PM today. I'll notify you via desktop and WhatsApp."
+
+You: "What's on my schedule today?"
+Overlord: "You have 3 reminders: Pull request review at 3 PM, team standup at 4 PM,
+         and deploy to staging at 5:30 PM."
+```
+
+### 👨‍💻 Development Project Monitoring
+
+```
+You: "How's the build going on the API server?"
+Overlord: "The build on Brawny completed 2 minutes ago. All 47 tests passed.
+         Docker image pushed to registry."
+
+You: "Any failing tests in the frontend?"
+Overlord: "Yes, 3 tests failing on Speedy. All related to the new authentication flow.
+         Shall I show you the error logs?"
+```
+
+### 💡 Project Creation & Discussion
+
+```
+You: "I want to build a command-line tool for managing Docker containers"
+Overlord: "Interesting. What language are you considering? Rust for performance,
+         Go for ease of deployment, or Python for rapid development?"
+
+You: "Let's go with Rust. What structure would you suggest?"
+Overlord: "I'd recommend a CLI framework like clap, async runtime with tokio,
+         and bollard for Docker API access. Want me to scaffold the project?"
+```
+
+### 🔍 Online Research
+
+```
+You: "Research the latest approaches to vector database optimization"
+Overlord: "I'll search recent papers and documentation. Give me 30 seconds..."
+Overlord: "Found 12 relevant sources. Key trends: HNSW graph improvements,
+         quantization techniques, and GPU acceleration. Want a detailed summary?"
+
+You: "Find the installation docs for Meilisearch on Arch Linux"
+Overlord: "Found it. Available via AUR package 'meilisearch-bin'.
+         Shall I install it on this machine?"
+```
+
+### 👁️ Vassal Monitoring & Management
+
+```
+You: "What are my vassals doing right now?"
+Overlord: "Brawny is compiling Rust code (82% CPU), Speedy is running tests (45% CPU),
+         and Brainy is idle and ready for work."
+
+You: "Why is Brawny using so much memory?"
+Overlord: "Brawny is running a full release build with debug symbols.
+         It's using 28GB of RAM for LLVM optimization passes."
+
+You: "Show me what's happening on Speedy"
+Overlord: "Opening VNC session to Speedy's virtual display..."
+         [VNC window opens showing test execution]
+```
+
+### ⚡ Task Assignment
+
+```
+You: "Run the integration tests on whichever vassal is free"
+Overlord: "Assigning to Brainy - it's completely idle. Tests starting now."
+
+You: "Build the Docker images on the most powerful machine"
+Overlord: "That's Brawny with 16 cores. Starting multi-stage build..."
+
+You: "Stop whatever Speedy is doing and run the database migration"
+Overlord: "Stopping current task on Speedy. Migration started.
+         This usually takes 2-3 minutes."
+```
+
+### ⚙️ System Configuration
+
+```
+You: "Switch my desktop theme to Nord"
+Overlord: "Changing Omarchy theme to Nord. Applying to Hyprland, Waybar,
+         and terminal. Done."
+
+You: "Change your personality to JARVIS"
+Overlord: "Switching to JARVIS theme. How may I be of service, sir?"
+
+You: "Set voice volume to 80 percent"
+JARVIS: "Audio output adjusted to 80%. Is this level satisfactory?"
+```
+
+### 📞 Notifications & Alerts
+
+```
+You: "Call me on WhatsApp when the deployment finishes"
+Overlord: "I'll send you a WhatsApp message at +1-555-0123 when deployment completes."
+
+You: "Alert me if any vassal goes offline"
+Overlord: "Monitoring enabled. I'll notify you immediately if any vassal disconnects."
+
+You: "Let me know if Brawny's CPU stays above 90% for more than 5 minutes"
+Overlord: "Alert configured. I'll message you if sustained high CPU is detected."
+
+[Later...]
+Overlord: [WhatsApp message] "🚨 Brawny's CPU at 95% for 6 minutes.
+         Currently running cargo build. Should I investigate?"
+```
+
+### 🔗 Chained Workflows
+
+```
+You: "When the API tests pass, deploy to staging and then run the smoke tests"
+Overlord: "Workflow configured: API tests → staging deployment → smoke tests.
+         I'll notify you at each stage."
+
+[30 minutes later...]
+Overlord: "API tests passed on Speedy. Deploying to staging now..."
+Overlord: "Staging deployment complete. Starting smoke tests on Brainy..."
+Overlord: "All smoke tests passed. Staging environment is healthy.
+         Ready for production deployment?"
+```
+
+---
+
 ## 🚀 Installation & Setup
 
 ### 📥 Install (Fast & Easy)
