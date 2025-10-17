@@ -1,3 +1,7 @@
+<div align="center">
+
+<img src="assets/hal-eye.svg" width="120" alt="HAL 9000 Eye" />
+
 ```
 ██╗  ██╗███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
 ╚██╗██╔╝██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
@@ -5,10 +9,11 @@
  ██╔██╗ ╚════██║██║███╗██║██╔══██║██╔══██╗██║╚██╔╝██║
 ██╔╝ ██╗███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
 ╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
-                    ━━━━━━━━━━━━━━━━━━━━━━━
-           🗣️ Local Voice-First Personal Assistant
-                     for Developers 👨‍💻
 ```
+
+### 🗣️ Local Voice-First Personal Assistant for Developers 👨‍💻
+
+</div>
 
 <div align="center">
 
@@ -468,6 +473,9 @@ The fantasy terminology makes distributed computing feel less corporate and more
 ## License
 
 MIT © [Chad Jones](https://github.com/chadananda)
+
+**Image Attribution:**
+HAL 9000 eye image by [Cryteria](https://commons.wikimedia.org/wiki/File:HAL9000.svg), licensed under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)
 
 **Built with ❤️ for the Linux Developer Community**
 

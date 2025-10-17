@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:pixabay.com)",
+      "WebFetch(domain:publicdomainvectors.org)",
+      "WebFetch(domain:commons.wikimedia.org)"
     ],
     "deny": [],
     "ask": []
