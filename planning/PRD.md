@@ -1237,7 +1237,6 @@ git push origin add-awesomebot-theme
   - [ ] GitHub Discussions
   - [ ] Issue templates
   - [ ] PR templates
-  - [ ] Discord server (optional)
 
 ### ✅ Testing & Quality
 - [ ] Unit Tests

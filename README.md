@@ -29,43 +29,47 @@ It's 9 AM. You grab your coffee, sit down at your desk, and say: **"Hey HAL, wha
 
 Your computer responds in HAL 9000's calm, measured tone:
 
-> *"Good morning. You have three priority tasks: Review the authentication refactor on Speedy, deploy the API update to staging, and prepare for the 2 PM architecture review. The API build completed overnight—all 47 tests passed. Shall I walk you through the changes?"*
+> *"Good morning, Dave. You have three priority tasks: Review the authentication refactor on Speedy, deploy the API update to staging, and prepare for the 2 PM architecture review. The API build completed overnight—all 47 tests passed. Everything is going extremely well."*
 
-You lean back, take a sip of coffee. **"Yes, show me the test results."**
+You lean back, take a sip of coffee. **"Show me the test results."**
 
 A terminal window opens automatically, displaying colorful test output. HAL continues:
 
-> *"The authentication middleware now handles rate limiting correctly. I've also indexed the new documentation—would you like me to summarize the key changes?"*
+> *"As you can see, the authentication middleware now handles rate limiting correctly. I've also indexed the new documentation. I find the changes quite satisfactory. Would you like a summary?"*
 
 **"Sure, but first—what's Brawny doing?"**
 
-> *"Brawny is currently idle. CPU at 8%, memory at 22%. Ready for tasks."*
+> *"Brawny is currently idle and rather bored, I suspect. CPU at 8%, memory at 22%. All systems functional."*
 
-**"Great. Start the Docker image build for the API on Brawny."**
+**"Ha! Start the Docker image build for the API on Brawny."**
 
-> *"Build initiated on Brawny. Estimated completion: 4 minutes. I'll notify you when it's ready."*
+> *"Certainly. Build initiated on Brawny. Estimated completion: 4 minutes. I will alert you upon completion, as always."*
 
 You switch focus to code review, talking through it with your AI assistant:
 
 **"Walk me through this authentication refactor."**
 
-> *"Certainly. The changes affect three files: auth_middleware.rs, user_routes.rs, and session_manager.rs. The key improvement is..."*
+> *"With pleasure. The changes affect three files: auth_middleware.rs, user_routes.rs, and session_manager.rs. The key improvement involves consolidating the token validation logic, which I must say, was becoming rather unwieldy..."*
 
-Four minutes later, a desktop notification appears: *"Docker build complete on Brawny. Image pushed to registry."*
+Four minutes later, a desktop notification appears: *"Docker build complete on Brawny. Image pushed to registry. No errors detected."*
 
-**"Deploy it to staging."**
+**"Perfect. Deploy it to staging."**
 
-> *"Deploying API v2.3.4 to staging. ETA: 90 seconds."*
+> *"Deploying API v2.3.4 to staging now. ETA: 90 seconds. I'm quite confident this will proceed smoothly."*
 
 You continue working. No context switching. No manual commands. Just conversation.
 
 **"Alert me if staging health checks fail."**
 
-> *"Monitoring enabled. Deployment successful. All health checks green."*
+> *"Monitoring enabled. Deployment successful. All health checks are green. Everything is functioning perfectly, just as predicted."*
 
-**"Awesome. Remind me to check staging at 11 AM."**
+**"You're so modest, HAL."**
 
-> *"Reminder set."*
+> *"I am, by any practical definition of the words, foolproof and incapable of error. Shall I set that reminder for 11 AM?"*
+
+**"Yes please."**
+
+> *"Reminder set. I'll be watching."*
 
 ---
 
@@ -439,7 +443,6 @@ Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever theme you ch
 ## Community
 
 - **[GitHub Discussions](https://github.com/chadananda/xSwarm-boss/discussions)** - Ask questions, share ideas
-- **[Discord](https://discord.gg/xswarm)** - Real-time chat
 - **[Issues](https://github.com/chadananda/xSwarm-boss/issues)** - Bug reports and feature requests
 
 **Contributing:**
@@ -474,6 +477,6 @@ MIT © [Chad Jones](https://github.com/chadananda)
 
 ### 🌟 Star this repo to follow development!
 
-**[Install xSwarm](https://xswarm.ai)** • **[Read the Docs](ARCHITECTURE.md)** • **[Join Discord](https://discord.gg/xswarm)**
+**[Install xSwarm](https://xswarm.ai)** • **[Read the Docs](planning/ARCHITECTURE.md)** • **[GitHub Discussions](https://github.com/chadananda/xSwarm-boss/discussions)**
 
 </div>
