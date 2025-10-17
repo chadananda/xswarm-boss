@@ -25,7 +25,7 @@
 
 ## A Day with xSwarm
 
-It's 9 AM. You grab your coffee, sit down at your desk, and say: **"Hey Overlord, what's on the agenda today?"**
+It's 9 AM. You grab your coffee, sit down at your desk, and say: **"Hey HAL, what's on the agenda today?"**
 
 Your computer responds in HAL 9000's calm, measured tone:
 
@@ -104,15 +104,15 @@ Each switch costs cognitive load. Each command requires manual typing. Each mach
 **One voice-controlled AI that coordinates everything.**
 
 ```
-You: "How's the build going?"
-Overlord: "The Rust build on Brawny is 82% complete. ETA: 3 minutes."
+You: "Hey HAL, how's the build going?"
+HAL: "The Rust build on Brawny is 82% complete. ETA: 3 minutes."
 
 You: "Run the tests when it's done."
-Overlord: "Test task queued for Speedy. I'll notify you with results."
+HAL: "Test task queued for Speedy. I'll notify you with results."
 
 You: "Find that document about authentication best practices."
-Overlord: "Found 3 matches. The most recent is Auth_Patterns.pdf from
-         last Tuesday. Want me to open it?"
+HAL: "Found 3 matches. The most recent is Auth_Patterns.pdf from
+     last Tuesday. Want me to open it?"
 ```
 
 No terminal commands. No SSH-ing to machines. Just **natural conversation.**
@@ -123,17 +123,18 @@ No terminal commands. No SSH-ing to machines. Just **natural conversation.**
 
 ### 🗣️ Voice-First Interface
 
-Talk to your development environment like you'd talk to a team member.
+Talk to your development environment like you'd talk to a team member. The wake word changes with your chosen theme:
 
 ```
-"Hey Overlord, what are my vassals doing?"
-"Start a release build on the most powerful machine."
-"Alert me if CPU usage stays above 90% for 5 minutes."
-"Switch your personality to JARVIS."
-"Remind me to deploy at 5 PM."
+"Hey HAL, what are my vassals doing?"
+"Hey JARVIS, start a release build on the most powerful machine."
+"Hey GLaDOS, alert me if CPU usage stays above 90% for 5 minutes."
+"Hey TARS, set your humor to 75%."
+"Hey C-3PO, remind me to deploy at 5 PM."
 ```
 
-**Personality themes** let you choose your AI's voice and character:
+**Personality themes** let you choose your AI's voice, character, and wake word:
+- 👁️ **Sauron** - All-seeing, commanding, dark overlord energy
 - 🔴 **HAL 9000** - Calm, measured, slightly ominous
 - 💙 **JARVIS** - Professional, helpful, British accent
 - ⚡ **DALEK** - Assertive, urgent, EXTERMINATE-the-bugs energy
@@ -157,8 +158,8 @@ Machine learning? → Brainy (GPU-equipped)
 
 **Real-time monitoring:**
 ```
-You: "Show me what Speedy is doing."
-Overlord: "Opening VNC session to Speedy..."
+You: "Hey HAL, show me what Speedy is doing."
+HAL: "Opening VNC session to Speedy..."
 [VNC window shows test execution in real-time]
 ```
 
@@ -172,10 +173,10 @@ xSwarm remembers your:
 
 **Memory is contextual:**
 ```
-You: "What do you remember about Project Phoenix?"
-Overlord: "You started it 6 weeks ago, it's a Rust CLI tool for Docker
-         management. Currently 67% complete with 12 failing tests on
-         Speedy. Last activity: yesterday at 4 PM."
+You: "Hey HAL, what do you remember about Project Phoenix?"
+HAL: "You started it 6 weeks ago, it's a Rust CLI tool for Docker
+     management. Currently 67% complete with 12 failing tests on
+     Speedy. Last activity: yesterday at 4 PM."
 ```
 
 ### 🔍 System-Wide Semantic Search
@@ -188,11 +189,11 @@ xSwarm automatically indexes all your documents:
 
 **Voice search:**
 ```
-You: "Find docs about vector database optimization."
-Overlord: "Found 12 matches. Top 3:
-         1. Vector_DB_Performance.pdf (last month)
-         2. Notes_Meilisearch_Setup.md (last week)
-         3. HNSW_Algorithm_Paper.pdf (yesterday)"
+You: "Hey HAL, find docs about vector database optimization."
+HAL: "Found 12 matches. Top 3:
+     1. Vector_DB_Performance.pdf (last month)
+     2. Notes_Meilisearch_Setup.md (last week)
+     3. HNSW_Algorithm_Paper.pdf (yesterday)"
 ```
 
 ### 🔒 Security by Design
@@ -255,7 +256,7 @@ The setup wizard guides you through:
 3. **Configure vassals:** Add worker machines on your LAN
 4. **Optional API keys:** For remote AI fallback (cloud LLMs)
 
-Takes ~5 minutes. Then just say: **"Hey Overlord, hello!"**
+Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever theme you chose)
 
 ---
 
