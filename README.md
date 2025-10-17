@@ -11,7 +11,7 @@
 
 <img src="assets/hal-eye.svg" width="120" alt="HAL 9000 Eye" />
 
-🗣️ **Local Voice-First Personal Assistant for Developers** 👨‍💻
+🗣️ **Local Voice-First Personal Assistant for Developers — with Unnecessary Personality** 👨‍💻
 
 </div>
 
