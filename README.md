@@ -78,6 +78,42 @@ You continue working. No context switching. No manual commands. Just conversatio
 
 ---
 
+### Switching Personalities
+
+Later that afternoon, you feel like something different...
+
+**"Hey HAL, switch to Sauron theme."**
+
+> *"Acknowledged. Activating Sauron personality profile."*
+
+The HAL eye icon fades, replaced by a flaming Eye of Sauron. A deep, commanding voice responds:
+
+> *"I am Sauron, the Eye that sees all. Your machines are mine to command, your code mine to judge. Through me, you shall build empires of logic and conquer mountains of technical debt. What is thy bidding, mortal developer?"*
+
+**"Hey Sauron, what are my orc regiments doing?"**
+
+> *"The wretched legion on Brawny stands idle, awaiting my command. Speedy's miserable cohort completed the test suite—57 tests passed, as expected under my gaze. Brainy's servants await orders. All bow before the Eye."*
+
+---
+
+### System Integration
+
+xSwarm integrates deeply with your system, not just your code:
+
+**"Hey Sauron, switch my desktop to the dark Dracula theme."**
+
+> *"Your desktop descends into darkness. As it should be."*
+
+The Hyprland desktop smoothly transitions to the Dracula color scheme—terminal, browser, IDE, all coordinated.
+
+**"Set my displays to night mode."**
+
+> *"The harsh light retreats. Your eyes are spared... for now."*
+
+Blue light filtering activates, display brightness adjusts, and the red shift begins.
+
+---
+
 ## What is xSwarm?
 
 **xSwarm-boss** is a **local, voice-first personal assistant for developers** that orchestrates distributed computing tasks across your Linux machines.
