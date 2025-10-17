@@ -1,17 +1,45 @@
-# xSwarm-boss PRD
+```
+██╗  ██╗███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
+╚██╗██╔╝██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
+ ╚███╔╝ ███████╗██║ █╗ ██║███████║██████╔╝██╔████╔██║
+ ██╔██╗ ╚════██║██║███╗██║██╔══██║██╔══██╗██║╚██╔╝██║
+██╔╝ ██╗███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
+                    ━━━━━━━━━━━━━━━━━━━━━━━
+             👑 Voice-Controlled AI Orchestrator 🤖
+```
 
-**Project:** xSwarm-boss  
-**Owner:** Chad Jones (@chadananda)  
-**Repository:** github.com/chadananda/xSwarm-boss  
-**Domain:** xswarm.ai  
-**Platform:** Linux (Omarchy-first, multi-distro)  
-**Core:** Rust binary  
-**Version:** 1.0  
-**Date:** October 17, 2025
+<div align="center">
 
-## Hardware Requirements
+[![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://www.linux.org/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![GitHub Stars](https://img.shields.io/github/stars/chadananda/xSwarm-boss?style=for-the-badge)](https://github.com/chadananda/xSwarm-boss/stargazers)
 
-### Overlord Machine
+**[🌐 Website](https://xswarm.ai)** • **[📖 Docs](https://docs.xswarm.ai)** • **[💬 Discord](https://discord.gg/xswarm)** • **[🐛 Report Bug](https://github.com/chadananda/xSwarm-boss/issues)**
+
+</div>
+
+---
+
+## 🎯 What is xSwarm?
+
+**xSwarm-boss** is a fantasy-themed, voice-controlled AI orchestration system for coordinating distributed computing tasks across multiple Linux machines. Think JARVIS meets your homelab.
+
+🗣️ **Voice-First** • 🔒 **Secure by Design** • 🎨 **Themeable** • 🐧 **Linux Native**
+
+**Project Details:**
+- **Owner:** Chad Jones ([@chadananda](https://github.com/chadananda))
+- **Repository:** [github.com/chadananda/xSwarm-boss](https://github.com/chadananda/xSwarm-boss)
+- **Domain:** [xswarm.ai](https://xswarm.ai)
+- **Platform:** Linux (Arch/Omarchy-first, multi-distro)
+- **Core:** Rust binary
+- **Version:** 1.0.0
+- **Status:** 🚧 Active Development
+
+## 💻 Hardware Requirements
+
+### 👑 Overlord Machine
 - **GPU**: 8GB+ VRAM recommended for local AI
   - Works with Nvidia, AMD, or Intel GPUs
   - CPU-only mode available (slower, needs 32GB+ RAM)
@@ -19,7 +47,7 @@
 - **Storage**: 500GB+ SSD
 - **Network**: Gigabit LAN
 
-### Vassal Machines
+### ⚔️ Vassal Machines
 - **No GPU required**
 - **RAM**: 16GB+ (depending on tasks)
 - **Storage**: 256GB+ SSD
@@ -27,9 +55,9 @@
 
 ---
 
-## Technology Stack
+## ⚙️ Technology Stack
 
-### Core
+### 🦀 Core
 - **Rust** - Main orchestrator binary
 - **Ratatui** - Terminal UI
 - **tokio** - Async runtime
@@ -37,46 +65,46 @@
 - **libsql** - Semantic memory (PII-filtered)
 - **serde** - YAML/JSON serialization
 
-### AI Inference (GPU Required)
+### 🧠 AI Inference (GPU Required)
 - **Local LLM** - Implementation flexible (llama.cpp, vLLM, or similar)
 - **Remote APIs** - Optional fallback (Anthropic, OpenAI, Groq)
 - **Embeddings** - Local or remote models for semantic search
 - **GPU**: 8GB+ VRAM recommended (Nvidia/AMD/Intel)
 - **CPU Fallback**: Slow but functional with 32GB+ RAM
 
-### Semantic Search (System-Wide)
+### 🔍 Semantic Search (System-Wide)
 - **Meilisearch** - Full-text + vector search
 - **Docling** - Document parser (PDF/DOCX → Markdown)
 - **Filesystem watcher** - Auto-indexing
 
-### Security
+### 🔒 Security
 - **MCP** - Model Context Protocol (isolated API servers)
 - **Unix sockets** - MCP communication (no network)
 - **PII filter** - Regex-based secret detection
 - **mTLS** - Vassal communication
 
-### Desktop Integration (DE-Agnostic)
+### 🖥️ Desktop Integration (DE-Agnostic)
 - **Hyprland** - Primary WM (Omarchy)
 - **systemd** - Service management
 - **XDG Desktop Entry** - Universal launcher
 - **D-Bus** - Notification system
 
-### Monorepo Management
+### 📦 Monorepo Management
 - **PNPM** - Package manager + workspace
 - **Turborepo** - Build orchestration
 - **Astro** - Documentation site
 - **GitHub Actions** - CI/CD
 
-### Distribution
+### 📥 Distribution
 - **Pacman (AUR)** - Primary
 - **.deb** - Debian/Ubuntu
 - **AppImage** - Universal fallback
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
-### Three-Tier Security Model
+### 🛡️ Three-Tier Security Model
 
 ```
 ┌─────────────────────────────────────┐
@@ -112,7 +140,7 @@
 └─────────────────────────────────────┘
 ```
 
-### System-Wide Semantic Indexer
+### 📚 System-Wide Semantic Indexer
 
 ```
 ┌─────────────────────────────────────┐
@@ -141,9 +169,9 @@
 
 ---
 
-## Core Features
+## ✨ Core Features
 
-### F1: Voice Interface
+### 🎤 F1: Voice Interface
 
 **AI Backend (Auto-configured):**
 ```rust
@@ -192,7 +220,7 @@ git commit -m "Add SkyNet theme"
 # Submit PR
 ```
 
-### F2: System-Wide Semantic Search
+### 🔎 F2: System-Wide Semantic Search
 
 **Automatic Indexing:**
 ```rust
@@ -251,7 +279,7 @@ indexes:
         dimensions: 1536
 ```
 
-### F3: Security: Secrets Isolation
+### 🔐 F3: Security: Secrets Isolation
 
 **MCP Server (Isolated Process):**
 ```rust
@@ -318,7 +346,7 @@ async fn audit_secret_access(key_name: &str, action: &str) {
 }
 ```
 
-### F4: Desktop Integration (DE-Agnostic)
+### 🖥️ F4: Desktop Integration (DE-Agnostic)
 
 **XDG Desktop Entry:**
 ```ini
@@ -373,7 +401,7 @@ windowrulev2 = workspace 9, class:(xswarm)
 bind = SUPER, 9, workspace, 9
 ```
 
-### F5: Vassal Orchestration
+### ⚔️ F5: Vassal Orchestration
 
 **Task Routing:**
 ```rust
@@ -408,7 +436,7 @@ max_cpu = 16
 max_ram_gb = 64
 ```
 
-### F6: Monorepo Structure (PNPM)
+### 📁 F6: Monorepo Structure (PNPM)
 
 ```
 xSwarm-boss/
@@ -494,31 +522,31 @@ packages:
 
 ---
 
-## Installation & Setup
+## 🚀 Installation & Setup
 
-### Install (Fast & Easy)
+### 📥 Install (Fast & Easy)
 
-**Arch/Omarchy:**
+**🐧 Arch/Omarchy:**
 ```bash
 yay -S xswarm-boss
 xswarm setup
 ```
 
-**Ubuntu/Debian:**
+**🟠 Ubuntu/Debian:**
 ```bash
 wget https://xswarm.ai/latest.deb
 sudo dpkg -i xswarm-boss_*.deb
 xswarm setup
 ```
 
-**Universal (AppImage):**
+**📦 Universal (AppImage):**
 ```bash
 wget https://xswarm.ai/xswarm-boss.AppImage
 chmod +x xswarm-boss.AppImage
 ./xswarm-boss.AppImage setup
 ```
 
-### Setup Wizard
+### 🧙 Setup Wizard
 
 ```
 ╔═══════════════════════════════════════╗
@@ -566,7 +594,7 @@ chmod +x xswarm-boss.AppImage
 ╚═══════════════════════════════════════╝
 ```
 
-### Theme Switching (Live)
+### 🎨 Theme Switching (Live)
 
 ```bash
 # CLI
@@ -582,9 +610,9 @@ xswarm config
 
 ---
 
-## Development Workflow
+## 🛠️ Development Workflow
 
-### Quick Start
+### ⚡ Quick Start
 
 ```bash
 # Clone
@@ -604,7 +632,7 @@ pnpm test
 pnpm dev
 ```
 
-### GitHub Actions (Automated)
+### 🤖 GitHub Actions (Automated)
 
 **build.yml:**
 ```yaml
@@ -654,7 +682,7 @@ jobs:
       - uses: peaceiris/actions-gh-pages@v3
 ```
 
-### Contributing Themes
+### 🎨 Contributing Themes
 
 ```bash
 # 1. Fork repo
@@ -687,9 +715,9 @@ git push origin add-awesomebot-theme
 
 ---
 
-## Implementation Plan
+## 📋 Implementation Plan
 
-### Core Infrastructure
+### 🏗️ Core Infrastructure
 - [ ] Project Setup
   - [ ] Cargo workspace structure
   - [ ] PNPM monorepo configuration
@@ -708,7 +736,7 @@ git push origin add-awesomebot-theme
   - [ ] Connection pooling
   - [ ] Heartbeat system
 
-### Orchestration
+### 🎯 Orchestration
 - [ ] Task Management
   - [ ] Task definition types
   - [ ] Task queue implementation
@@ -729,7 +757,7 @@ git push origin add-awesomebot-theme
   - [ ] Conditional automation rules
   - [ ] Task retry logic
 
-### Security Layer
+### 🛡️ Security Layer
 - [ ] MCP Server
   - [ ] Separate Rust binary
   - [ ] Unix socket listener
@@ -747,7 +775,7 @@ git push origin add-awesomebot-theme
   - [ ] Certificate rotation
   - [ ] Firewall integration
 
-### User Interface
+### 🖼️ User Interface
 - [ ] Ratatui Dashboard
   - [ ] Main layout engine
   - [ ] Hexagonal worker grid widget
@@ -771,7 +799,7 @@ git push origin add-awesomebot-theme
   - [ ] GLaDOS theme
   - [ ] TARS theme
 
-### Voice Interface
+### 🎤 Voice Interface
 - [ ] Audio Pipeline
   - [ ] WebRTC audio capture
   - [ ] Opus codec integration
@@ -787,7 +815,7 @@ git push origin add-awesomebot-theme
   - [ ] Activation logic
   - [ ] False positive filtering
 
-### Semantic Search
+### 🔍 Semantic Search
 - [ ] Meilisearch Integration
   - [ ] Server management
   - [ ] Index creation
@@ -812,7 +840,7 @@ git push origin add-awesomebot-theme
   - [ ] Embedding storage
   - [ ] Vector search
 
-### Memory System
+### 🧠 Memory System
 - [ ] LibSQL Integration
   - [ ] Database initialization
   - [ ] Schema creation
@@ -827,7 +855,7 @@ git push origin add-awesomebot-theme
   - [ ] Summary generation
   - [ ] Archive system
 
-### VNC Integration
+### 🖥️ VNC Integration
 - [ ] Vassal VNC Setup
   - [ ] Xvfb virtual display
   - [ ] x11vnc server
@@ -839,7 +867,7 @@ git push origin add-awesomebot-theme
   - [ ] Fullscreen mode
   - [ ] View-only enforcement
 
-### Desktop Integration
+### 💻 Desktop Integration
 - [ ] Universal Support
   - [ ] XDG Desktop Entry
   - [ ] systemd user service
@@ -853,7 +881,7 @@ git push origin add-awesomebot-theme
   - [ ] Waybar module
   - [ ] Auto-start setup
 
-### Multi-Modal Interaction
+### 📱 Multi-Modal Interaction
 - [ ] WhatsApp Integration
   - [ ] Webhook server
   - [ ] Message parsing
@@ -866,7 +894,7 @@ git push origin add-awesomebot-theme
   - [ ] Alert notifications
   - [ ] Template system
 
-### Packaging & Distribution
+### 📦 Packaging & Distribution
 - [ ] AUR Package
   - [ ] PKGBUILD
   - [ ] .SRCINFO
@@ -891,7 +919,7 @@ git push origin add-awesomebot-theme
   - [ ] Release workflow
   - [ ] Docs deployment
 
-### Documentation
+### 📖 Documentation
 - [ ] Astro Site
   - [ ] Project setup
   - [ ] Landing page
@@ -909,7 +937,7 @@ git push origin add-awesomebot-theme
   - [ ] Architecture diagrams
   - [ ] Development guide
 
-### Marketing & Community
+### 📢 Marketing & Community
 - [ ] Marketing Assets
   - [ ] Brand guidelines
   - [ ] Logo/icon design
@@ -928,7 +956,7 @@ git push origin add-awesomebot-theme
   - [ ] PR templates
   - [ ] Discord server (optional)
 
-### Testing & Quality
+### ✅ Testing & Quality
 - [ ] Unit Tests
   - [ ] Core orchestration
   - [ ] Task routing
@@ -952,32 +980,62 @@ git push origin add-awesomebot-theme
 
 ---
 
-## Success Metrics
+## 📊 Success Metrics
 
-**Performance:**
+**⚡ Performance:**
 - Install time: <2 minutes
 - Setup wizard: <5 minutes
 - Voice latency: <1s
 - Search results: <100ms
 - Dashboard: 60fps
 
-**Security:**
+**🔒 Security:**
 - Zero secret leaks
 - 100% MCP isolation
 - PII filter >99% effective
 - All secret access logged
 
-**Usability:**
+**👥 Usability:**
 - Theme switch: instant
 - Voice accuracy: >90%
 - DE compatibility: 100%
 - PR theme approval: <24h
 
-**Community:**
+**🌟 Community:**
 - 100 GitHub stars (6 months)
 - 10 community themes (1 year)
 - 500 active installs (1 year)
 
 ---
 
-**END PRD**
+<div align="center">
+
+## 🤝 Contributing
+
+We welcome contributions! Whether it's a new theme, bug fix, or feature enhancement.
+
+**[📖 Contributing Guide](CONTRIBUTING.md)** • **[💬 Discussions](https://github.com/chadananda/xSwarm-boss/discussions)** • **[🐛 Issues](https://github.com/chadananda/xSwarm-boss/issues)**
+
+</div>
+
+---
+
+<div align="center">
+
+## 📜 License
+
+MIT © [Chad Jones](https://github.com/chadananda)
+
+**Built with ❤️ for the Linux Community**
+
+</div>
+
+---
+
+<div align="center">
+
+### 🌟 Star this repo if you find it interesting!
+
+[![Star History Chart](https://api.star-history.com/svg?repos=chadananda/xSwarm-boss&type=Date)](https://star-history.com/#chadananda/xSwarm-boss&Date)
+
+</div>
