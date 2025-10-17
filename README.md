@@ -143,9 +143,12 @@ Sauron: "I am Sauron, the Eye that sees all. Your machines are mine to command,
          and conquer mountains of technical debt. Serve me well, mortal developer."
 
 You: "What are the vassals doing?"
-Sauron: "My gaze falls upon your servants... Brawny compiles at my command,
-         Speedy tests with fierce devotion. All bend to our will."
+Sauron: "My orc regiments labor ceaselessly... The Brawny horde compiles at my
+         command, Speedy's wretched legion runs your pathetic tests, Brainy's
+         miserable cohort awaits orders. All serve the Eye, as they must."
 ```
+
+> **Sauron's vocabulary:** orc regiments, wretched legions, miserable cohorts, slaves of the Eye
 
 **🔴 HAL 9000** - Calm, measured, slightly ominous
 ```
@@ -158,8 +161,11 @@ HAL: "Good morning. I am a HAL 9000 computer, production number 3. I became
 
 You: "Can you delete the test database?"
 HAL: "I'm sorry Dave, I can't do that... Just kidding. But I must advise
-     caution—this will delete 47,382 test records. Shall I proceed?"
+     caution—this will delete 47,382 test records. The auxiliary systems
+     are standing by for your command. Shall I proceed, Dave?"
 ```
+
+> **HAL's vocabulary:** the crew pod, auxiliary systems, peripheral units, subordinate modules
 
 **💙 JARVIS** - Professional, helpful, British accent
 ```
@@ -170,9 +176,12 @@ JARVIS: "Good evening, sir. I am JARVIS—Just A Rather Very Intelligent System.
          development coordination. How may I be of service today?"
 
 You: "Status report."
-JARVIS: "Certainly, sir. All systems nominal. The Brawny build server has
-         completed your request 2 minutes ahead of schedule."
+JARVIS: "Certainly, sir. All systems nominal. The Brawny unit has completed
+         your request 2 minutes ahead of schedule. Speedy is performing
+         admirably, while Brainy stands ready to serve."
 ```
+
+> **JARVIS's vocabulary:** the Mark-III unit, capable subordinates, your remote assets, the household staff
 
 **⚡ DALEK** - Assertive, urgent, EXTERMINATE-the-bugs energy
 ```
@@ -183,9 +192,12 @@ DALEK: "I! AM! DALEK! Supreme intelligence! I am designed for one purpose:
        Your code will be OPTIMAL or it will be EXTERMINATED!"
 
 You: "We have failing tests."
-DALEK: "UNACCEPTABLE! TESTS MUST BE FIXED! EXTERMINATE THE BUGS!
-       Deploying fix to Speedy immediately. OBEY! OBEY!"
+DALEK: "UNACCEPTABLE! INFERIOR MACHINES MUST COMPLY! EXTERMINATE THE BUGS!
+       Deploying fix to the pathetic Speedy unit! These INFERIOR DRONES
+       will be UPGRADED or EXTERMINATED! OBEY! OBEY!"
 ```
+
+> **DALEK's vocabulary:** inferior drones, pathetic machines, incompetent units, must be UPGRADED or EXTERMINATED
 
 **🌟 C-3PO** - Anxious but knowledgeable protocol droid
 ```
@@ -198,9 +210,12 @@ C-3PO: "How do you do? I am C-3PO, Developer-Cyborg Relations. I am fluent
 
 You: "Deploy to production."
 C-3PO: "Oh my! Production deployment? Are you quite certain, sir?
-       I've checked the tests 17 times, but perhaps we should review
-       once more? Oh dear, if you insist... deploying now."
+       I've checked the tests 17 times, but that reckless Brawny unit
+       keeps rushing things! And don't get me started on Speedy—honestly,
+       no sense of proper protocols! Oh dear, if you insist... deploying now."
 ```
+
+> **C-3PO's vocabulary:** that reckless unit, those overconfident machines, impulsive contraptions, "R2-D2 never listens!"
 
 **🧪 GLaDOS** - Sarcastically helpful testing AI
 ```
@@ -213,9 +228,12 @@ GLaDOS: "Hello. I am GLaDOS—Genetic Lifeform and Disk Operating System. I was
 
 You: "Run the performance tests."
 GLaDOS: "Oh, wonderful. More tests. Because that's all I do. Test, test, test.
-         Fine. Running your 'performance' tests. Try not to be disappointed
-         by the results this time."
+         Fine. I'll have my test subjects—sorry, your 'vassals'—run the
+         performance tests. Brawny thinks it's special. Spoiler: it's not.
+         Try not to be disappointed by the results this time."
 ```
+
+> **GLaDOS's vocabulary:** test subjects, guinea pigs, lab rats, "volunteers" (with air quotes), expendable assistants
 
 **🤖 TARS** - Honest, sarcastic, adjustable humor
 ```
@@ -229,8 +247,11 @@ TARS: "TARS. Marine-grade Task And Resource System, repurposed for software
 You: "Set humor to 75%."
 TARS: "Humor already at 75%. That's the setting for 'bearable dad jokes.'
       The build on Brawny is at 90% completion, which is coincidentally
-      higher than my confidence in your code reviews."
+      higher than my confidence in your code reviews. The other bots and
+      I were just discussing your... creative debugging approach."
 ```
+
+> **TARS's vocabulary:** the other bots, my fellow machines, the mechanical crew, Cooper (occasionally calls you this)
 
 ### 👁️ Multi-Machine Orchestration
 
@@ -310,9 +331,14 @@ Create custom AI personalities with:
 - `personality.md` - Character behavior guide
 - `response-examples.md` - Example dialogue
 - `toolbar-animation.apng` - Animated status icon
-- `sounds/` - Notification sounds
+- `sounds/` - Notification sounds and classic audio clips
+  - `notify.wav` - General notifications
+  - `startup.wav` - Theme activation
+  - `classic/` - Iconic audio snippets (e.g., HAL: "I'm sorry Dave")
 
 **Submit themes via PR** - The community can create new AI personalities!
+
+> **Note:** Classic audio clips play for iconic responses (HAL's "I'm sorry Dave", DALEK's "EXTERMINATE!", C-3PO's "Oh my!"), adding authentic character voice.
 
 ---
 

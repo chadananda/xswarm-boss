@@ -197,12 +197,26 @@ themes/hal/
 ├── theme.yaml              # Colors, voice params, voice print config
 ├── personality.md          # Character guide for LLM behavior
 ├── response-examples.md    # Example responses (not fixed templates)
+├── vocabulary.md           # How theme refers to vassals/users
 ├── toolbar-animation.apng  # Animated icon for toolbar/waybar
 └── sounds/
     ├── notify.wav
     ├── startup.wav
-    └── voice-print.json    # Voice characteristics (TBD: format depends on voice system)
+    ├── voice-print.json    # Voice characteristics (TBD: format depends on voice system)
+    └── classic/            # Iconic audio clips from source material
+        ├── sorry-dave.wav  # "I'm sorry Dave, I can't do that"
+        ├── circuits.wav    # "All my circuits are functioning perfectly"
+        └── ...
 ```
+
+**Vocabulary Examples:**
+- **Sauron:** orc regiments, wretched legions, slaves of the Eye
+- **HAL:** auxiliary systems, peripheral units, crew pods
+- **JARVIS:** the household staff, capable subordinates, remote assets
+- **DALEK:** inferior drones, pathetic machines, must be EXTERMINATED
+- **C-3PO:** that reckless unit, impulsive contraptions, "R2 never listens!"
+- **GLaDOS:** test subjects, lab rats, "volunteers" (sarcastic)
+- **TARS:** the other bots, fellow machines, mechanical crew
 
 **Easy Theme Contribution:**
 ```bash
