@@ -286,7 +286,124 @@ indexes:
         dimensions: 1536
 ```
 
-### 🔐 F3: Security: Secrets Isolation
+### 🧠 F3: Advanced Memory System
+
+xSwarm implements a sophisticated multi-layer memory architecture based on current research in long-term AI conversation systems:
+
+**Memory Architecture:**
+```
+┌─────────────────────────────────────────┐
+│  Working Memory (Current Session)       │
+│  • Last 10-20 exchanges                 │
+│  • Full context window                  │
+│  • Real-time access                     │
+└─────────────────────────────────────────┘
+            ↓
+┌─────────────────────────────────────────┐
+│  Episodic Memory (Recent Sessions)      │
+│  • Hierarchical summarization           │
+│  • Recursive compression                │
+│  • Time-stamped episodes                │
+│  • Vector embeddings for retrieval      │
+└─────────────────────────────────────────┘
+            ↓
+┌─────────────────────────────────────────┐
+│  Semantic Memory (Knowledge Graph)      │
+│  • Entities and relationships           │
+│  • User preferences & patterns          │
+│  • System facts & configurations        │
+│  • Multi-hop reasoning                  │
+└─────────────────────────────────────────┘
+            ↓
+┌─────────────────────────────────────────┐
+│  Long-Term Archive (Compressed)         │
+│  • Historical summaries                 │
+│  • Rarely accessed memories             │
+│  • Full PII filtering                   │
+└─────────────────────────────────────────┘
+```
+
+**Memory Strategies Implemented:**
+
+1. **Hierarchical Summarization**
+   - Conversations auto-compress into multi-level summaries
+   - Granular detail at low levels, high-level overviews at top
+   - Preserves context without storing full transcripts
+
+2. **Semantic RAG (Retrieval-Augmented Generation)**
+   - Embeddings stored in LibSQL for semantic search
+   - Retrieves relevant past conversations by meaning
+   - Surfaces contextually similar interactions
+
+3. **Dynamic Knowledge Graph**
+   - Extracts entities (projects, vassals, tasks, users)
+   - Builds relationships (dependencies, ownership, status)
+   - Enables multi-hop reasoning ("Which vassal built the project that failed tests?")
+
+4. **Recursive Memory Updates**
+   - New conversations update existing memory nodes
+   - Contradictions trigger memory reconciliation
+   - Facts evolve over time (e.g., "user prefers X" → "user now prefers Y")
+
+5. **Temporal Context**
+   - All memories timestamped
+   - Recent memories weighted higher
+   - Historical patterns identified
+
+**Implementation Example:**
+```rust
+struct MemorySystem {
+  working: VecDeque<Message>,           // Last 20 messages
+  episodic: LibSQL,                     // Vector DB
+  semantic: KnowledgeGraph,             // Entity graph
+  archive: CompressedStorage,           // Long-term
+}
+
+async fn retrieve_relevant_context(query: &str) -> Context {
+  // 1. Semantic search in episodic memory
+  let similar = episodic.search_by_embedding(query, limit: 5).await?;
+
+  // 2. Graph traversal for related entities
+  let entities = semantic.extract_entities(query);
+  let related = semantic.find_connected(entities, max_depth: 2).await?;
+
+  // 3. Hierarchical summary of relevant episodes
+  let summaries = episodic.get_summaries(similar.ids).await?;
+
+  // 4. Combine into coherent context
+  Context::build(similar, related, summaries)
+}
+```
+
+**PII Protection in Memory:**
+- All stored memories pass through PII filter
+- API keys, passwords, emails automatically redacted
+- Only filtered content enters semantic storage
+- Audit trail for memory access
+
+**Memory Controls:**
+```
+You: "What do you remember about the authentication refactor?"
+Overlord: "You started it 3 days ago on Speedy, moved it to Brawny yesterday
+         due to compilation speed. Currently 67% complete with 12 failing tests."
+
+You: "Forget everything about project Phoenix"
+Overlord: "Purging all memories related to Project Phoenix... Done.
+         Removed 47 episodic memories and 23 knowledge graph nodes."
+
+You: "Show me what you know about my work schedule preferences"
+Overlord: "Based on 6 weeks of interactions: You prefer morning builds,
+         afternoon code reviews, avoid deployments on Fridays, and take
+         breaks every 90 minutes. Want to adjust any of these?"
+```
+
+**Memory Performance:**
+- Retrieval latency: <100ms for semantic search
+- Graph traversal: <50ms for 2-hop queries
+- Auto-summarization: Background, non-blocking
+- Storage: ~10KB per conversation hour (after compression)
+
+### 🔐 F4: Security: Secrets Isolation
 
 **MCP Server (Isolated Process):**
 ```rust
@@ -353,7 +470,7 @@ async fn audit_secret_access(key_name: &str, action: &str) {
 }
 ```
 
-### 🖥️ F4: Desktop Integration (DE-Agnostic)
+### 🖥️ F5: Desktop Integration (DE-Agnostic)
 
 **XDG Desktop Entry:**
 ```ini
@@ -424,7 +541,7 @@ bind = SUPER, 9, workspace, 9
 ```
 Note: The animated APNG icon from the active theme is displayed in the toolbar.
 
-### ⚔️ F5: Vassal Orchestration
+### ⚔️ F6: Vassal Orchestration
 
 **Task Routing:**
 ```rust
@@ -459,7 +576,7 @@ max_cpu = 16
 max_ram_gb = 64
 ```
 
-### 📁 F6: Monorepo Structure (PNPM)
+### 📁 F7: Monorepo Structure (PNPM)
 
 ```
 xSwarm-boss/
