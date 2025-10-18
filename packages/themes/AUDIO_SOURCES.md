@@ -143,9 +143,60 @@ For each character, collect ~10 clips demonstrating:
 
 ---
 
+## Automated Collection (Recommended)
+
+We provide a training script that automatically downloads and converts audio from each theme's SOURCES.md file:
+
+### Setup
+
+```bash
+# Install Python dependencies
+pip install -r scripts/requirements.txt
+
+# Install system dependencies
+# macOS:
+brew install ffmpeg yt-dlp
+
+# Arch Linux:
+sudo pacman -S ffmpeg yt-dlp
+```
+
+### Usage
+
+```bash
+# Train a specific theme (downloads all URLs from its SOURCES.md)
+python scripts/train_voice.py --theme hal-9000
+
+# Limit to first 5 clips (for testing)
+python scripts/train_voice.py --theme jarvis --limit 5
+
+# Train all themes at once
+python scripts/train_voice.py --all
+
+# Re-download existing files
+python scripts/train_voice.py --theme glados --force
+```
+
+The script will:
+1. Parse URLs from the theme's `audio/SOURCES.md`
+2. Download from YouTube (yt-dlp) or direct audio links
+3. Convert everything to WAV 24kHz mono
+4. Save as `01_source.wav`, `02_source.wav`, etc. in `audio/samples/`
+5. Skip soundboard URLs (requires manual download)
+
+### Post-Processing
+
+After automated download:
+1. **Listen to clips** - Ensure quality and correct character
+2. **Rename descriptively** - `01_greeting.wav`, `02_technical.wav`, etc.
+3. **Edit in Audacity** - Remove silence, normalize volume, trim to best parts
+4. **Keep 8-10 best clips** - Total 3-10 minutes
+
+---
+
 ## Training MOSHI with Audio
 
-Once you've collected samples in a theme's `audio/samples/` directory:
+Once you've collected and cleaned samples in a theme's `audio/samples/` directory:
 
 ```bash
 # Generate voice embedding (future feature)

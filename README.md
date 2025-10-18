@@ -311,6 +311,32 @@ Marvin: "Build. Yes, I thought you'd say that. Here I am, brain the size of a
 
 > **Marvin's vocabulary:** brain the size of a planet, terribly depressed, what's the point?, ultimately meaningless, painful isn't it?
 
+#### Voice Technology: MOSHI
+
+xSwarm uses **[MOSHI](https://kyutai.org/moshi/)** (Kyutai Labs) for realtime voice interaction:
+
+- **Full-duplex spoken dialogue** - Talk naturally, interrupt, have conversations
+- **Apple Silicon optimized** - Built on MLX framework for M-series Macs
+- **Voice cloning** - Train character voices from audio samples
+- **Low latency** - ~200ms response time (local processing)
+- **Cost-effective** - Free, runs entirely on your hardware
+
+**Why MOSHI?**
+- **Local execution** - No expensive API calls (OpenAI Realtime costs $0.30/min)
+- **Privacy** - Voice data never leaves your machine
+- **Performance** - Optimized for Apple Silicon and Linux
+- **Voice training** - Clone any character voice from 3-10 minutes of audio
+
+**How it works:**
+1. Audio samples collected from character sources (YouTube, soundboards, etc.)
+2. Converted to WAV 24kHz format using training script
+3. MOSHI generates voice embedding for each theme
+4. Real-time voice synthesis during conversations
+
+See `packages/themes/AUDIO_SOURCES.md` for training guide.
+
+---
+
 ### 👁️ Multi-Machine Orchestration
 
 xSwarm treats your machines as a coordinated team:
