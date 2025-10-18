@@ -1,101 +1,133 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
-  <title>GLaDOS</title>
+  <title>GLaDOS Core</title>
 
   <defs>
-    <!-- Main eye glow gradient -->
-    <radialGradient id="gladosGlow">
-      <stop offset="0%" stop-color="#fff4cc"/>
+    <!-- White shell gradient -->
+    <radialGradient id="shellGrad">
+      <stop offset="0%" stop-color="#f5f5f5"/>
+      <stop offset="60%" stop-color="#e0e0e0"/>
+      <stop offset="100%" stop-color="#c0c0c0"/>
+    </radialGradient>
+
+    <!-- Yellow core glow -->
+    <radialGradient id="coreGlow">
+      <stop offset="0%" stop-color="#fffacd"/>
       <stop offset="30%" stop-color="#FFD700"/>
-      <stop offset="60%" stop-color="#ff9500"/>
-      <stop offset="85%" stop-color="#ff6B00"/>
+      <stop offset="60%" stop-color="#FFA500"/>
+      <stop offset="100%" stop-color="#FF8C00"/>
+    </radialGradient>
+
+    <!-- Eye aperture gradient -->
+    <radialGradient id="apertureGrad">
+      <stop offset="0%" stop-color="#FFD700"/>
+      <stop offset="50%" stop-color="#cc9900"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </radialGradient>
+
+    <!-- Dark gradient for panels -->
+    <linearGradient id="darkPanel" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#404040"/>
+      <stop offset="50%" stop-color="#2a2a2a"/>
       <stop offset="100%" stop-color="#1a1a1a"/>
-    </radialGradient>
+    </linearGradient>
 
-    <!-- Inner iris gradient -->
-    <radialGradient id="irisGradient">
-      <stop offset="0%" stop-color="#ffe066"/>
-      <stop offset="50%" stop-color="#FFD700"/>
-      <stop offset="80%" stop-color="#cc9900"/>
-      <stop offset="100%" stop-color="#996600"/>
-    </radialGradient>
-
-    <!-- Pupil gradient for depth -->
-    <radialGradient id="pupilGradient">
-      <stop offset="0%" stop-color="#000000"/>
-      <stop offset="80%" stop-color="#0a0a0a"/>
-      <stop offset="100%" stop-color="#1a1a1a"/>
-    </radialGradient>
-
-    <!-- Ring gradient -->
-    <radialGradient id="ringGradient">
-      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.6"/>
-      <stop offset="50%" stop-color="#ff9500" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#ff6B00" stop-opacity="0"/>
-    </radialGradient>
-
-    <!-- Filters for depth -->
     <filter id="glow">
       <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
-    </filter>
-    <filter id="innerGlow">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
     </filter>
   </defs>
 
   <!-- Background -->
-  <rect width="256" height="256" fill="#1a1a1a"/>
+  <rect width="256" height="256" fill="#0a0a0a"/>
 
-  <!-- Outer glow aura (largest layer) -->
-  <circle cx="128" cy="128" r="100" fill="url(#ringGradient)" opacity="0.3" filter="url(#glow)">
-    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" repeatCount="indefinite"/>
+  <!-- Outer glow aura -->
+  <circle cx="128" cy="140" r="95" fill="url(#coreGlow)" opacity="0.2" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.15;0.3;0.15" dur="3s" repeatCount="indefinite"/>
   </circle>
 
-  <!-- Secondary ring -->
-  <circle cx="128" cy="128" r="85" fill="none" stroke="#FFD700" stroke-width="2" opacity="0.25">
-    <animate attributeName="r" values="85;88;85" dur="3s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="0.25;0.45;0.25" dur="3s" repeatCount="indefinite"/>
-  </circle>
+  <!-- Main core body (white shell - spherical) -->
+  <circle cx="128" cy="140" r="70" fill="url(#shellGrad)"/>
 
-  <!-- Eye glow base -->
-  <circle cx="128" cy="128" r="75" fill="url(#gladosGlow)" opacity="0.7">
+  <!-- Shell panel lines (giving it segmented look) -->
+  <g opacity="0.3" stroke="#a0a0a0" stroke-width="2" fill="none">
+    <path d="M 78 100 Q 128 85 178 100"/>
+    <path d="M 78 180 Q 128 195 178 180"/>
+    <circle cx="128" cy="140" r="68"/>
+    <circle cx="128" cy="140" r="60"/>
+  </g>
+
+  <!-- Top mounting arm/bracket -->
+  <rect x="120" y="40" width="16" height="35" fill="url(#darkPanel)" rx="3"/>
+  <rect x="116" y="38" width="24" height="8" fill="#606060" rx="2"/>
+
+  <!-- Dark aperture housing (front panel) -->
+  <ellipse cx="128" cy="140" rx="48" ry="50" fill="#1a1a1a"/>
+  <ellipse cx="128" cy="140" rx="45" ry="47" fill="#0a0a0a"/>
+
+  <!-- Aperture rim (metal ring) -->
+  <circle cx="128" cy="140" r="46" fill="none" stroke="#808080" stroke-width="2" opacity="0.6"/>
+
+  <!-- Yellow glowing core (visible through aperture) -->
+  <circle cx="128" cy="140" r="42" fill="url(#coreGlow)" opacity="0.8">
     <animate attributeName="opacity" values="0.7;0.95;0.7" dur="3s" repeatCount="indefinite"/>
   </circle>
 
-  <!-- Main iris -->
-  <circle cx="128" cy="128" r="60" fill="url(#irisGradient)">
-    <animate attributeName="r" values="60;62;60" dur="3s" repeatCount="indefinite"/>
+  <!-- Inner bright core -->
+  <circle cx="128" cy="140" r="32" fill="#FFD700">
+    <animate attributeName="r" values="32;34;32" dur="3s" repeatCount="indefinite"/>
   </circle>
 
-  <!-- Inner iris detail ring -->
-  <circle cx="128" cy="128" r="50" fill="none" stroke="#cc9900" stroke-width="2" opacity="0.4"/>
-
-  <!-- Pupil with depth -->
-  <ellipse cx="128" cy="128" rx="16" ry="40" fill="url(#pupilGradient)">
-    <animate attributeName="ry" values="40;36;40" dur="3s" repeatCount="indefinite"/>
-  </ellipse>
-
-  <!-- Primary highlight (top-left) -->
-  <ellipse cx="118" cy="110" rx="12" ry="20" fill="#ffffff" opacity="0.5">
-    <animate attributeName="opacity" values="0.5;0.7;0.5" dur="3s" repeatCount="indefinite"/>
-  </ellipse>
-
-  <!-- Secondary highlight (smaller) -->
-  <ellipse cx="115" cy="105" rx="6" ry="10" fill="#fff4cc" opacity="0.6"/>
-
-  <!-- Tertiary highlight dot -->
-  <circle cx="140" cy="120" r="4" fill="#ffffff" opacity="0.4"/>
-
-  <!-- Outer containment ring -->
-  <circle cx="128" cy="128" r="95" fill="none" stroke="#FFD700" stroke-width="3" opacity="0.2">
-    <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite"/>
+  <!-- Core bright center -->
+  <circle cx="128" cy="140" r="20" fill="#fffacd" opacity="0.95">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="3s" repeatCount="indefinite"/>
   </circle>
 
-  <!-- Aperture detail lines -->
-  <g opacity="0.15" stroke="#996600" stroke-width="1.5" fill="none">
-    <line x1="128" y1="68" x2="128" y2="85"/>
-    <line x1="128" y1="171" x2="128" y2="188"/>
-    <line x1="68" y1="128" x2="85" y2="128"/>
-    <line x1="171" y1="128" x2="188" y2="128"/>
+  <!-- Aperture blades (triangular segments - Portal style) -->
+  <g opacity="0.4" fill="#1a1a1a">
+    <!-- Top blade -->
+    <path d="M 128,100 L 110,120 L 146,120 Z"/>
+    <!-- Right blade -->
+    <path d="M 168,140 L 148,122 L 148,158 Z"/>
+    <!-- Bottom blade -->
+    <path d="M 128,180 L 146,160 L 110,160 Z"/>
+    <!-- Left blade -->
+    <path d="M 88,140 L 108,158 L 108,122 Z"/>
   </g>
+
+  <!-- Aperture blade details (highlights) -->
+  <g opacity="0.2" fill="#808080">
+    <path d="M 128,105 L 115,120 L 141,120 Z"/>
+    <path d="M 163,140 L 148,127 L 148,153 Z"/>
+    <path d="M 128,175 L 141,160 L 115,160 Z"/>
+    <path d="M 93,140 L 108,153 L 108,127 Z"/>
+  </g>
+
+  <!-- Core reflection highlight -->
+  <ellipse cx="118" cy="128" rx="15" ry="18" fill="#ffffff" opacity="0.4">
+    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" repeatCount="indefinite"/>
+  </ellipse>
+
+  <!-- Side panels/wings (shell segments) -->
+  <g opacity="0.8">
+    <ellipse cx="70" cy="140" rx="12" ry="35" fill="url(#shellGrad)"/>
+    <ellipse cx="186" cy="140" rx="12" ry="35" fill="url(#shellGrad)"/>
+  </g>
+
+  <!-- Panel detail lines on wings -->
+  <g opacity="0.3" stroke="#a0a0a0" stroke-width="1.5" fill="none">
+    <line x1="70" y1="110" x2="70" y2="170"/>
+    <line x1="186" y1="110" x2="186" y2="170"/>
+  </g>
+
+  <!-- Bottom cable/connector -->
+  <rect x="124" y="205" width="8" height="20" fill="#606060" rx="2"/>
+  <ellipse cx="128" cy="208" rx="6" ry="4" fill="#808080"/>
+
+  <!-- Outer shell highlights (realistic shine) -->
+  <ellipse cx="128" cy="110" rx="40" ry="20" fill="#ffffff" opacity="0.2"/>
+  <ellipse cx="95" cy="130" rx="10" ry="25" fill="#ffffff" opacity="0.15"/>
+
+  <!-- Warning label (small detail) -->
+  <rect x="110" y="195" width="36" height="8" fill="#cc0000" opacity="0.6" rx="1"/>
+  <rect x="112" y="197" width="32" height="4" fill="#000000" opacity="0.3" rx="0.5"/>
 </svg>

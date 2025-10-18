@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![hal-9000 Icon](icon.svg)
+![hal-9000 Icon](icon-animated.svg)
 
 **"I'm sorry Dave, I'm afraid I can't do that... Ahem. Actually, I can help with that."**
 
