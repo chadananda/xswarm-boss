@@ -12,7 +12,7 @@ cd xswarm-boss
 # 2. Install dependencies
 just setup
 
-# 3. Create .env file
+# 3. Create .env file (optional - only if you need API keys)
 cp .env.example .env
 # Edit .env with your API keys (optional for initial development)
 
@@ -89,6 +89,59 @@ cargo test
 - Meilisearch (port 7700)
 - LibSQL (port 8080)
 
+## Configuration vs Secrets
+
+### Where Things Go
+
+xSwarm-boss separates configuration from secrets:
+
+**`.env` file (secrets only):**
+- API keys (OpenAI, Anthropic, RunPod, etc.)
+- Auth tokens (LibSQL, Meilisearch)
+- Service credentials
+- **Never committed to git**
+
+**`~/.config/xswarm/config.toml` (configuration):**
+- Theme selection (hal-9000, sauron, etc.)
+- Voice settings (enabled, wake word, provider)
+- Audio devices (input/output)
+- GPU fallback chain
+- Vassal/worker settings
+- **Safe to share, backup, version control**
+
+**Example `config.toml`:**
+```toml
+[overlord]
+theme = "hal-9000"
+voice_enabled = true
+wake_word = "hey hal"
+
+[voice]
+provider = "openai_realtime"
+model = "gpt-4o-realtime-preview"
+include_personality = true
+
+[audio]
+input_device = "default"
+output_device = "default"
+sample_rate = 16000
+
+[wake_word]
+engine = "porcupine"
+sensitivity = 0.5
+
+[gpu]
+use_local = false
+fallback = ["runpod", "anthropic"]
+
+[vassal]
+# Vassal config set during 'xswarm setup --mode vassal'
+# Not needed for overlord-only setups
+name = "speedy"
+host = "0.0.0.0"
+port = 9000
+```
+
 ## API Keys and Services
 
 ### What You Need When
@@ -117,11 +170,14 @@ Direct voice-to-voice conversation with GPT-4. Speaks in real-time with personal
 **Setup:**
 
 ```bash
-# In .env
+# In .env (secrets only)
 OPENAI_API_KEY=sk-proj-your-key-here
-VOICE_PROVIDER=openai_realtime
-VOICE_MODEL=gpt-4o-realtime-preview
-VOICE_INSTRUCTIONS_INCLUDE_PERSONALITY=true
+
+# In ~/.config/xswarm/config.toml
+[voice]
+provider = "openai_realtime"
+model = "gpt-4o-realtime-preview"
+include_personality = true
 ```
 
 **Cost:**
@@ -150,16 +206,19 @@ Speech-to-Text → Claude/GPT (with personality) → Text-to-Speech
 **Setup:**
 
 ```bash
-# In .env
-VOICE_PROVIDER=pipeline
-STT_PROVIDER=openai_whisper      # or deepgram
-LLM_PROVIDER=anthropic            # Claude for personality
-TTS_PROVIDER=elevenlabs           # or openai_tts
-
-# API keys needed
+# In .env (secrets only)
 OPENAI_API_KEY=sk-your-whisper-key
 ANTHROPIC_API_KEY=sk-ant-your-claude-key
 ELEVENLABS_API_KEY=your-elevenlabs-key
+
+# In ~/.config/xswarm/config.toml
+[voice]
+provider = "pipeline"
+
+[voice.pipeline]
+stt_provider = "openai_whisper"  # or deepgram
+llm_provider = "anthropic"        # Claude for personality
+tts_provider = "elevenlabs"       # or openai_tts
 ```
 
 **Cost (per minute):**
@@ -193,12 +252,18 @@ Run everything locally with open source models.
 **Setup:**
 
 ```bash
-# In .env
-USE_LOCAL_GPU=true
-VOICE_PROVIDER=local
-STT_MODEL=whisper.cpp
-LLM_MODEL=llama3-70b  # or smaller
-TTS_MODEL=coqui-tts
+# In ~/.config/xswarm/config.toml
+[gpu]
+use_local = true
+
+[voice]
+provider = "local"
+
+[voice.local]
+stt_model = "whisper.cpp"
+llm_model = "llama3-70b"  # or smaller
+tts_model = "coqui-tts"
+model_path = "~/.local/share/xswarm/models/"
 
 # Install dependencies
 brew install llama.cpp whisper.cpp
@@ -224,10 +289,11 @@ brew install llama.cpp whisper.cpp
 
 Wake word detection runs **locally** using Porcupine (or similar):
 
-```bash
-# In .env
-WAKE_WORD_ENGINE=porcupine
-WAKE_WORD_SENSITIVITY=0.5
+```toml
+# In ~/.config/xswarm/config.toml
+[wake_word]
+engine = "porcupine"
+sensitivity = 0.5  # 0.0 to 1.0
 ```
 
 **Supported engines:**
@@ -279,9 +345,12 @@ cargo run -- ask "what's my project status?"
 Start with OpenAI Realtime for quick testing:
 
 ```bash
-# .env
+# In .env (secrets)
 OPENAI_API_KEY=sk-proj-your-key
-VOICE_PROVIDER=openai_realtime
+
+# In config.toml
+[voice]
+provider = "openai_realtime"
 
 # Test voice
 cargo run -- daemon
@@ -295,11 +364,19 @@ cargo run -- daemon
 Switch to pipeline for better quality:
 
 ```bash
-# .env
-VOICE_PROVIDER=pipeline
-STT_PROVIDER=deepgram
-LLM_PROVIDER=anthropic
-TTS_PROVIDER=elevenlabs
+# In .env (add secrets)
+ANTHROPIC_API_KEY=sk-ant-your-key
+ELEVENLABS_API_KEY=your-elevenlabs-key
+DEEPGRAM_API_KEY=your-deepgram-key
+
+# In config.toml
+[voice]
+provider = "pipeline"
+
+[voice.pipeline]
+stt_provider = "deepgram"
+llm_provider = "anthropic"
+tts_provider = "elevenlabs"
 ```
 
 ## Common Development Tasks
