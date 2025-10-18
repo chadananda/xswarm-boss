@@ -111,6 +111,19 @@ Or via voice:
 "Hey HAL, you're already active!"
 ```
 
+## Visual Assets
+
+High-quality animated and still graphics for HAL 9000:
+
+- https://tenor.com/view/hal9000-hal-hal-9000-space-odyssey-2001-a-space-odyssey-gif-18223187213803420116
+- https://tenor.com/view/eye-hal9000-glass-occhio-gif-16416152
+- https://giphy.com/explore/hal-9000
+- https://giphy.com/explore/hal9000
+- https://www.deviantart.com/jayaprime/art/HAL-9000-Animated-Fractal-455267246
+- https://www.kindpng.com/imgv/hhmhxR_hal-9000-lens-clip-arts-camera-lens-animated/
+
+These resources provide GIFs, animated assets, and references for creating HAL's iconic red eye interface elements.
+
 ## Credits
 
 Inspired by HAL 9000 from *2001: A Space Odyssey* by Arthur C. Clarke and Stanley Kubrick.

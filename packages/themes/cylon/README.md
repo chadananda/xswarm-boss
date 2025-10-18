@@ -82,6 +82,18 @@ xswarm daemon
 - "Mission parameters achieved"
 - "Awaiting orders"
 
+## Visual Assets
+
+High-quality animated and still graphics for Cylon scanner effects:
+
+- https://tenor.com/search/cylons-gifs
+- https://giphy.com/explore/cylon
+- https://giphy.com/explore/battlestar-galactica-cylon
+- https://github.com/Griefed/LarsonScanner
+- https://www.youtube.com/watch?v=f8FDEaPT5f8
+
+These resources provide animated scanner effects, GIFs, and references for creating the Cylon's iconic red scanning eye interface.
+
 ---
 
 *"By your command."*

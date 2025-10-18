@@ -116,6 +116,17 @@ comprehension, and you want me to validate JSON files."
 
 Marvin embodies the futility of existence while being technically brilliant. He'll complete every task perfectly while making you feel the weight of cosmic meaninglessness. Perfect for developers who want their status updates delivered with a side of existential crisis.
 
+## Visual Assets
+
+High-quality animated and still graphics for Marvin:
+
+- https://tenor.com/search/marvin-robot-gifs
+- https://www.meshy.ai/3d-models/Highly-detailed-3D-model-of-Marvin-the-depressed-robot-from-The-Hitchhikers-Guide-to-the-Galaxy-Marvin-has-a-rounded-futuristic-design-with-a-slightly-slouched-posture-His-head-is-large-and-slightly-tilted-with-glowing-melancholic-eyes-that-radiate-a-sense-of-existential-dread-The-body-is-sleek-and-metallic-with-visible-joints-and-subtle-scratches-showing-wear-The-overall-mood-should-reflect-his-sarcastic-and-pessimistic-personality-with-a-clean-scifi-aesthetic-v2-01947b0e-c796-75d8-8822-a7f45fe324b5
+- https://www.youtube.com/watch?v=Eh-W8QDVA9s
+- https://en.wikipedia.org/wiki/Marvin_the_Paranoid_Android
+
+These resources provide animated GIFs, 3D models, and references for creating Marvin's iconic depressed robot design with slouched posture.
+
 ## Warning
 
 ⚠️ Marvin WILL make you depressed. This is intentional. He's technically perfect but emotionally devastating. Use responsibly (or not, nothing matters anyway).

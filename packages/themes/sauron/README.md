@@ -128,6 +128,17 @@ Sauron refers to workers with Mordor-themed names:
 - **Brawny** → "Mighty Uruk-hai"
 - **Brainy** → "Nazgûl of Computation"
 
+## Visual Assets
+
+High-quality animated and still graphics for the Eye of Sauron:
+
+- https://tenor.com/view/sauron-eye-tower-lord-of-the-rings-i-see-you-gif-25761843
+- https://tenor.com/search/eye-of-sauron-gifs
+- https://www.reddit.com/r/lotr/comments/13y9859/made_a_gif_of_sauron_from_ralph_bakshis_lord_of/
+- https://www.pngitem.com/middle/xJoRow_sauron-eye-gif-transparent-background-hd-png-download/
+
+These resources provide animated GIFs and references for creating Sauron's iconic flaming eye interface elements.
+
 ## Credits
 
 Inspired by Sauron, the Dark Lord of Mordor from *The Lord of the Rings* by J.R.R. Tolkien.

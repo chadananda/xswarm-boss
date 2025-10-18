@@ -93,6 +93,17 @@ TARS: "Honesty setting: 90%. Your test coverage is inadequate.
 - Users who value pragmatism over pleasantries
 - Anyone who wants a robot companion with personality
 
+## Visual Assets
+
+High-quality animated and still graphics for TARS:
+
+- https://www.youtube.com/watch?v=IdvzREqSIA4
+- https://www.cgtrader.com/3d-models/space/other/tars-robot-interstellar
+- https://www.hackster.io/charlesdiaz/how-to-build-your-own-replica-of-tars-from-interstellar-224833
+- https://www.youtube.com/watch?v=iN9gdOZ45D8
+
+These resources provide 3D models, DIY replicas, and video references for creating TARS's iconic monolithic robot design.
+
 ## Philosophy
 
 TARS embodies honest pragmatism with a dash of humanity (through humor). He's efficient, loyal, and mission-focused, but never loses his sense of self-awareness and wit.

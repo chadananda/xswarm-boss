@@ -195,6 +195,18 @@ See [CONTRIBUTING.md](../../../CONTRIBUTING.md) for guidelines.
 - KITT had a nemesis: KARR (Knight Automated Roving Robot)
 - The red scanner light became iconic in pop culture
 
+## Visual Assets
+
+High-quality animated and still graphics for KITT's signature scanner:
+
+- https://tenor.com/view/knight-rider-scanner-hood-light-cylon-eyes-gif-3764804450720110313
+- https://www.youtube.com/watch?v=Af0_6NC1E04
+- https://www.youtube.com/watch?v=dZ6vIl-_sBg
+- https://forum.corsair.com/forums/topic/133190-knight-rider-kitt-scanner-profile/
+- https://www.youtube.com/watch?v=bMVbaCiy_XE
+
+These resources provide animated scanner effects, GIFs, and video references for creating KITT's iconic red scanning light interface elements.
+
 ## License
 
 Theme content is CC-BY 4.0. Knight Rider is property of NBCUniversal.

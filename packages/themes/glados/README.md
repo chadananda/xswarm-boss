@@ -83,6 +83,17 @@ GLaDOS: "I'm obligated to inform you that memory usage is at 94%. That's...
 
 ⚠️ GLaDOS will insult your code. Repeatedly. With clinical precision. This is intentional and part of the character. She's still helpful... in her own special way.
 
+## Visual Assets
+
+High-quality animated and still graphics for GLaDOS:
+
+- https://sketchfab.com/3d-models/glados-5d0fd7ca99d64709b27de908a010371d
+- https://www.therpf.com/forums/threads/portal-2-animatronic-glados.334522/
+- https://www.youtube.com/watch?v=Xf4qfscWIXw
+- https://www.youtube.com/watch?v=Tx_BZqFX-sQ
+
+These resources provide 3D models, animatronic references, and video footage for creating GLaDOS's iconic suspended core interface.
+
 ## Fun Fact
 
 "The cake is a lie" - but the status reports are accurate (just delivered with cutting sarcasm).

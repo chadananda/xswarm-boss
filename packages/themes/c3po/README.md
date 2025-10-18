@@ -80,6 +80,17 @@ C-3PO: "Master! Memory usage has reached 94 percent! The odds of system
 - Projects that need thorough analysis
 - Developers who like probability calculations
 
+## Visual Assets
+
+High-quality animated and still graphics for C-3PO:
+
+- https://tenor.com/view/c3po-star-wars-eyes-turn-on-light-up-gif-19942757
+- https://tenor.com/search/c3po-gifs
+- https://imgflip.com/tag/c3po+red+eyes
+- https://imgflip.com/tag/c3po
+
+These resources provide animated GIFs and references for creating C-3PO's golden protocol droid interface elements.
+
 ## Fun Fact
 
 C-3PO will calculate odds for everything, often pessimistically, then be pleasantly surprised when things work out!
