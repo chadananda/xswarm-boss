@@ -1,0 +1,32 @@
+/* xSwarm-boss Custom Styles */
+
+:root {
+  --sl-color-accent: #dc143c;
+  --sl-color-accent-high: #ff6b6b;
+}
+
+/* Make code blocks stand out */
+pre {
+  border-left: 3px solid var(--sl-color-accent);
+}
+
+/* Style for voice command examples */
+.voice-command {
+  background: var(--sl-color-gray-6);
+  border-left: 4px solid var(--sl-color-accent);
+  padding: 1rem;
+  margin: 1rem 0;
+  font-style: italic;
+}
+
+/* Theme preview cards */
+.theme-preview {
+  border: 2px solid var(--sl-color-gray-5);
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.theme-preview h3 {
+  margin-top: 0;
+}

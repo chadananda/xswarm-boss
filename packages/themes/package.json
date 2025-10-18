@@ -1,0 +1,8 @@
+{
+  "name": "@xswarm/themes",
+  "version": "0.1.0",
+  "description": "Personality themes for xSwarm-boss",
+  "scripts": {},
+  "keywords": ["themes", "personalities", "xswarm"],
+  "license": "MIT"
+}

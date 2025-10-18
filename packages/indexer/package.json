@@ -1,0 +1,12 @@
+{
+  "name": "@xswarm/indexer",
+  "version": "0.1.0",
+  "description": "xSwarm semantic search indexer (Rust library)",
+  "scripts": {
+    "build": "cargo build",
+    "test": "cargo test",
+    "clean": "cargo clean"
+  },
+  "keywords": ["rust", "search", "meilisearch"],
+  "license": "MIT"
+}

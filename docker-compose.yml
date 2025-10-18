@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Arch Linux development container
+  archlinux-dev:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.arch
+    volumes:
+      - .:/workspace
+      - cargo-cache:/home/developer/.cargo
+      - cargo-git:/home/developer/.cargo/git
+      - cargo-registry:/home/developer/.cargo/registry
+    environment:
+      # GPU Provider APIs
+      - RUNPOD_API_KEY=${RUNPOD_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GPU_FALLBACK=${GPU_FALLBACK:-runpod,anthropic}
+      # Service URLs
+      - MEILISEARCH_URL=http://meilisearch:7700
+      - LIBSQL_URL=http://libsql:8080
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    depends_on:
+      - meilisearch
+      - libsql
+
+  # Meilisearch - Semantic search engine
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    ports:
+      - "7700:7700"
+    volumes:
+      - meilisearch-data:/meili_data
+    environment:
+      - MEILI_ENV=development
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-masterKey}
+    restart: unless-stopped
+
+  # LibSQL - Database server
+  libsql:
+    image: ghcr.io/tursodatabase/libsql-server:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - libsql-data:/var/lib/sqld
+    restart: unless-stopped
+
+volumes:
+  cargo-cache:
+  cargo-git:
+  cargo-registry:
+  meilisearch-data:
+  libsql-data:

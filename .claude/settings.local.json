@@ -4,7 +4,10 @@
       "WebSearch",
       "WebFetch(domain:pixabay.com)",
       "WebFetch(domain:publicdomainvectors.org)",
-      "WebFetch(domain:commons.wikimedia.org)"
+      "WebFetch(domain:commons.wikimedia.org)",
+      "WebFetch(domain:docs.redhat.com)",
+      "WebFetch(domain:kifarunix.com)",
+      "WebFetch(domain:learn.omacom.io)"
     ],
     "deny": [],
     "ask": []
