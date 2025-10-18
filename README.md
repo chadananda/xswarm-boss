@@ -440,7 +440,8 @@ Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever theme you ch
 ## System Requirements
 
 ### Overlord (Main Machine)
-- **OS:** Linux (any distro)
+- **OS:** Linux (Arch recommended, any distro supported)
+  - *macOS support for development only (not production)*
 - **GPU:** 8GB+ VRAM recommended (CPU-only works but slower)
 - **RAM:** 32GB minimum, 64GB recommended
 - **Storage:** 500GB+ SSD

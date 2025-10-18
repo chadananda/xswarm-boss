@@ -42,11 +42,12 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** HAL 9000 from *2001: A Space Odyssey* (1968)
 **Voice Actor:** Douglas Rain
 
-**Where to Find:**
-- **YouTube:** Search "HAL 9000 quotes" or "HAL 9000 voice lines"
-  - [HAL 9000: A Space Odyssey - Voice Clips](https://youtube.com/results?search_query=HAL+9000+voice+lines)
-- **Audio Databases:** Moviesoundclips.net, Hark.com
-- **Streaming:** Clip audio from HBO Max, Amazon Prime (2001: A Space Odyssey)
+**Direct Audio Sources:**
+- https://www.wavsource.com/movies/2001.htm
+- https://hal9000computer.wordpress.com/2017/11/22/all-hal-9000-phrases-from-the-movie/
+- https://movie-sounds.org/hal-9000
+- https://www.youtube.com/watch?v=9wrjl-H4Hs8
+- https://www.youtube.com/shorts/5lsExRvJTAI
 
 **Key Phrases to Capture:**
 - "Good morning, Dave"
@@ -56,8 +57,6 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 - Calm technical explanations
 - Emergency responses
 
-**Alternative:** ElevenLabs voice cloning with HAL reference
-
 ---
 
 ### 2. Sauron 👁️
@@ -65,12 +64,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** Sauron from *Lord of the Rings* (2001-2003)
 **Voice Actor:** Alan Howard (prologue), Benedict Cumberbatch (Necromancer form)
 
-**Where to Find:**
-- **YouTube:** Search "Sauron voice" or "Dark Lord voice"
-- **Fan Creations:** Many voice actors perform Sauron interpretations
-- **Alternative Voice:** Use deep, commanding voice from similar characters
-  - Darth Vader (James Earl Jones)
-  - Thanos (Josh Brolin)
+**Direct Audio Sources:**
+- https://www.youtube.com/watch?v=8vgGqZz9CJs
+- https://www.reddit.com/r/lotr/comments/s5p2gf/saurons_voice/
 
 **Key Phrases to Capture:**
 - Deep, commanding declarations
@@ -82,6 +78,7 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 - Prologue narration about Sauron
 - Necromancer voice from The Hobbit
 - Fan voice acting in Sauron's style
+- Alternative: Deep, commanding voices from similar characters (Darth Vader, Thanos)
 
 ---
 
@@ -90,10 +87,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** JARVIS from *Iron Man* / *Avengers* (2008-2015)
 **Voice Actor:** Paul Bettany
 
-**Where to Find:**
-- **YouTube:** Search "JARVIS voice lines" or "JARVIS all scenes"
-  - Abundant clips from MCU films
-- **Streaming:** Clip from Disney+ (Iron Man, Avengers films)
+**Direct Audio Sources:**
+- https://fish.audio/m/612b878b113047d9a770c069c8b4fdfe/
+- https://www.fineshare.com/ai-voice/jarvis.html
 
 **Key Phrases to Capture:**
 - "Good morning, sir"
@@ -103,8 +99,6 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 - Polite observations
 - Emergency alerts
 
-**Alternative:** British butler voice with technical competence
-
 ---
 
 ### 4. DALEK 🤖
@@ -112,11 +106,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** Daleks from *Doctor Who* (1963-present)
 **Voice Actor:** Various (Nicholas Briggs in modern era)
 
-**Where to Find:**
-- **YouTube:** Search "Dalek voice" or "EXTERMINATE compilation"
-  - Extensive clips available
-- **BBC Audio:** Official Doctor Who audio clips
-- **Streaming:** BBC iPlayer, HBO Max (Doctor Who)
+**Direct Audio Sources:**
+- https://www.youtube.com/watch?v=8vgGqZz9CJs
+- https://www.youtube.com/watch?v=9bDGH3dKo90
 
 **Key Phrases to Capture:**
 - "EXTERMINATE!"
@@ -135,10 +127,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** C-3PO from *Star Wars* (1977-present)
 **Voice Actor:** Anthony Daniels
 
-**Where to Find:**
-- **YouTube:** Search "C-3PO voice lines" or "C-3PO compilation"
-  - Abundant clips from Star Wars films
-- **Streaming:** Disney+ (all Star Wars films)
+**Direct Audio Sources:**
+- https://movie-sounds.org/sci-fi-movie-samples/quotes-with-sound-clips-from-star-wars-episode-iv-a-new-hope/c-3po-c-3po-yes-sir
+- https://www.youtube.com/watch?v=dRltkTJCHLU
 
 **Key Phrases to Capture:**
 - "Oh my!"
@@ -155,11 +146,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** GLaDOS from *Portal* (2007) and *Portal 2* (2011)
 **Voice Actor:** Ellen McLain
 
-**Where to Find:**
-- **YouTube:** Search "GLaDOS voice lines" or "GLaDOS all dialogue"
-  - Complete dialogue compilations available
-- **Game Files:** Extract from Portal/Portal 2 (Steam)
-- **Valve Audio:** Some official clips on Steam Workshop
+**Direct Audio Sources:**
+- https://theportalwiki.com/wiki/GLaDOS_voice_lines_(Portal)
+- https://www.reddit.com/r/Portal/comments/c1s4tt/where_are_the_portal_2_voice_audio_files/
 
 **Key Phrases to Capture:**
 - Testing instructions
@@ -178,9 +167,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** TARS from *Interstellar* (2014)
 **Voice Actor:** Bill Irwin
 
-**Where to Find:**
-- **YouTube:** Search "TARS voice lines" or "TARS scenes"
-- **Streaming:** Paramount+, Amazon Prime (Interstellar)
+**Direct Audio Sources:**
+- https://www.youtube.com/watch?v=Pwcip_zMI6g
+- https://www.instagram.com/reel/DIgzVsQO6tu/?hl=en
 
 **Key Phrases to Capture:**
 - Honest assessments (various honesty settings)
@@ -196,11 +185,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** Marvin from *Hitchhiker's Guide to the Galaxy* (1981 radio/2005 film)
 **Voice Actor:** Stephen Moore (radio/TV), Alan Rickman (film)
 
-**Where to Find:**
-- **YouTube:** Search "Marvin the Paranoid Android voice"
-  - Both radio series and film clips
-- **BBC Audio:** Hitchhiker's Guide radio series
-- **Streaming:** Film version on various platforms
+**Direct Audio Sources:**
+- https://www.goodreads.com/quotes/tag/marvin
+- http://martinhill.me.uk/fun/Quotes.shtml
 
 **Key Phrases to Capture:**
 - "Life. Don't talk to me about life."
@@ -210,7 +197,7 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 - Depressed observations
 - Existential complaints
 
-**Note:** Two distinct voices - choose your preferred version
+**Note:** Two distinct voices - choose your preferred version (radio or film)
 
 ---
 
@@ -219,10 +206,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** KITT from *Knight Rider* (1982-1986)
 **Voice Actor:** William Daniels
 
-**Where to Find:**
-- **YouTube:** Search "KITT voice lines" or "Knight Rider KITT"
-  - Many episodes available
-- **Streaming:** Peacock, Amazon Prime (Knight Rider series)
+**Direct Audio Sources:**
+- https://www.101soundboards.com/ → Search "KITT Knight Rider voice soundboard"
+- https://www.myinstants.com/ → Search "KITT voice quotes"
 
 **Key Phrases to Capture:**
 - "Good morning, Michael"
@@ -240,10 +226,9 @@ This guide helps you collect audio samples for training MOSHI voice models for e
 **Character:** Cylon Centurions from *Battlestar Galactica* (1978)
 **Voice Actor:** Various
 
-**Where to Find:**
-- **YouTube:** Search "Cylon voice" or "Cylon Centurion"
-  - Original series clips
-- **Streaming:** Peacock (original BSG series)
+**Direct Audio Sources:**
+- https://www.101soundboards.com/ → Search "Classic Cylon Quotes"
+- YouTube → Search "Cylon voice sound effect compilation"
 
 **Key Phrases to Capture:**
 - "By your command"
