@@ -77,7 +77,16 @@ config.toml  # User-specific config
 # Audio recordings (user data)
 recordings/
 *.wav
+*.mp3
+*.m4a
+*.flac
+*.ogg
+*.aac
 !tests/fixtures/**/*.wav  # Keep test audio
+
+# Voice training samples (copyrighted, keep local only)
+packages/themes/*/audio/samples/*
+!packages/themes/*/audio/samples/.gitkeep
 
 # Logs
 logs/
