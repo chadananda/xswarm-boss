@@ -3,112 +3,125 @@
   <title>Cylon Centurion</title>
 
   <defs>
-    <!-- Scanner gradient with more depth -->
-    <linearGradient id="cylonScan" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#330000" stop-opacity="0"/>
-      <stop offset="20%" stop-color="#ff0000" stop-opacity="0.3"/>
-      <stop offset="40%" stop-color="#ff3333" stop-opacity="0.7"/>
-      <stop offset="50%" stop-color="#ff0000" stop-opacity="1"/>
-      <stop offset="60%" stop-color="#ff3333" stop-opacity="0.7"/>
-      <stop offset="80%" stop-color="#ff0000" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#330000" stop-opacity="0"/>
+    <!-- Chrome helmet gradient (realistic metallic) -->
+    <radialGradient id="chromeHelmet">
+      <stop offset="0%" stop-color="#f0f0f0"/>
+      <stop offset="30%" stop-color="#c8c8c8"/>
+      <stop offset="60%" stop-color="#909090"/>
+      <stop offset="100%" stop-color="#606060"/>
+    </radialGradient>
+
+    <!-- Chrome reflection gradient -->
+    <linearGradient id="chromeReflection" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="15%" stop-color="#e8e8e8" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="#a0a0a0" stop-opacity="0.2"/>
+      <stop offset="70%" stop-color="#707070" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#505050" stop-opacity="0.5"/>
+    </linearGradient>
+
+    <!-- Scanner gradient -->
+    <linearGradient id="scanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#660000" stop-opacity="0"/>
+      <stop offset="25%" stop-color="#ff0000" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#ff3333" stop-opacity="1"/>
+      <stop offset="75%" stop-color="#ff0000" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#660000" stop-opacity="0"/>
     </linearGradient>
 
     <!-- Bright scanner core -->
     <linearGradient id="scanCore" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#660000" stop-opacity="0"/>
-      <stop offset="40%" stop-color="#ff9999" stop-opacity="0.6"/>
+      <stop offset="0%" stop-color="#990000" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#ff6666" stop-opacity="0.8"/>
       <stop offset="50%" stop-color="#ffcccc" stop-opacity="1"/>
-      <stop offset="60%" stop-color="#ff9999" stop-opacity="0.6"/>
-      <stop offset="100%" stop-color="#660000" stop-opacity="0"/>
+      <stop offset="60%" stop-color="#ff6666" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#990000" stop-opacity="0"/>
     </linearGradient>
 
-    <!-- Helmet metallic gradient -->
-    <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#d0d0d0"/>
-      <stop offset="20%" stop-color="#a8a8a8"/>
-      <stop offset="50%" stop-color="#808080"/>
-      <stop offset="80%" stop-color="#5a5a5a"/>
-      <stop offset="100%" stop-color="#404040"/>
-    </linearGradient>
-
-    <!-- Helmet shine gradient -->
-    <linearGradient id="helmetShine" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
-      <stop offset="40%" stop-color="#e0e0e0" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#808080" stop-opacity="0"/>
-    </linearGradient>
-
-    <!-- Scanner glow filter -->
-    <filter id="scanGlow">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    <!-- Filters -->
+    <filter id="glow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
     </filter>
-    <filter id="scanGlow2">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="5"/>
+    <filter id="strongGlow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
     </filter>
   </defs>
 
   <!-- Background -->
-  <rect width="256" height="256" fill="#2a2a2a"/>
+  <rect width="256" height="256" fill="#1a1a1a"/>
 
-  <!-- Back helmet layer (shadow) -->
-  <rect x="36" y="82" width="184" height="92" fill="#404040" rx="20" opacity="0.5"/>
+  <!-- Helmet shadow -->
+  <ellipse cx="130" cy="135" rx="90" ry="65" fill="#000000" opacity="0.4"/>
 
-  <!-- Main helmet base -->
-  <rect x="32" y="75" width="192" height="106" fill="url(#helmetGradient)" rx="18"/>
+  <!-- Main helmet dome (chrome, more rounded/realistic shape) -->
+  <path d="M 50 128 Q 50 75 128 65 Q 206 75 206 128 L 206 155 Q 206 175 128 180 Q 50 175 50 155 Z"
+        fill="url(#chromeHelmet)"/>
 
-  <!-- Helmet top shine -->
-  <rect x="36" y="78" width="184" height="45" fill="url(#helmetShine)" rx="16" opacity="0.4"/>
+  <!-- Chrome reflection highlight (top of helmet) -->
+  <ellipse cx="128" cy="95" rx="70" ry="25" fill="url(#chromeReflection)" opacity="0.6"/>
 
-  <!-- Scanner visor area (darker inset) -->
-  <rect x="40" y="115" width="176" height="50" fill="#1a1a1a" rx="8"/>
+  <!-- Bright chrome highlight stripe -->
+  <ellipse cx="128" cy="85" rx="60" ry="15" fill="#ffffff" opacity="0.4"/>
 
-  <!-- Visor inner shadow -->
-  <rect x="44" y="119" width="168" height="42" fill="#0f0f0f" rx="6"/>
+  <!-- Helmet curve detail (temple areas) -->
+  <path d="M 60 120 Q 70 100 85 95" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.3"/>
+  <path d="M 196 120 Q 186 100 171 95" fill="none" stroke="#ffffff" stroke-width="2" opacity="0.3"/>
 
-  <!-- Widest scanner glow (backdrop) -->
-  <ellipse cx="100" cy="140" rx="70" ry="30" fill="url(#cylonScan)" opacity="0.25" filter="url(#scanGlow2)">
-    <animate attributeName="cx" values="70;186;70" dur="1.2s" repeatCount="indefinite"/>
+  <!-- Dark visor slot area (horizontal band) -->
+  <rect x="48" y="125" width="160" height="18" fill="#0a0a0a" rx="3"/>
+  <rect x="50" y="126" width="156" height="16" fill="#050505" rx="2"/>
+
+  <!-- Visor chrome rim (top) -->
+  <rect x="48" y="124" width="160" height="2" fill="#c0c0c0" opacity="0.8"/>
+
+  <!-- Visor chrome rim (bottom) -->
+  <rect x="48" y="143" width="160" height="2" fill="#606060" opacity="0.6"/>
+
+  <!-- Scanner glow (widest layer) -->
+  <ellipse cx="90" cy="134" rx="60" ry="20" fill="url(#scanGrad)" opacity="0.3" filter="url(#strongGlow)">
+    <animate attributeName="cx" values="70;186;70" dur="1s" repeatCount="indefinite"/>
   </ellipse>
 
-  <!-- Middle scanner glow -->
-  <rect x="50" y="125" width="60" height="30" fill="url(#cylonScan)" opacity="0.5" rx="4" filter="url(#scanGlow)">
-    <animate attributeName="x" values="40;156;40" dur="1.2s" repeatCount="indefinite"/>
+  <!-- Scanner middle glow -->
+  <rect x="60" y="128" width="50" height="12" fill="url(#scanGrad)" opacity="0.6" rx="2" filter="url(#glow)">
+    <animate attributeName="x" values="50;156;50" dur="1s" repeatCount="indefinite"/>
   </rect>
 
-  <!-- Main scanner bar -->
-  <rect x="50" y="130" width="60" height="20" fill="url(#cylonScan)" rx="3">
-    <animate attributeName="x" values="40;156;40" dur="1.2s" repeatCount="indefinite"/>
+  <!-- Main scanner bar (bright) -->
+  <rect x="62" y="130" width="46" height="8" fill="url(#scanGrad)" rx="1">
+    <animate attributeName="x" values="52;158;52" dur="1s" repeatCount="indefinite"/>
   </rect>
 
-  <!-- Scanner bright core -->
-  <rect x="54" y="134" width="52" height="12" fill="url(#scanCore)" opacity="0.9" rx="2">
-    <animate attributeName="x" values="44;160;44" dur="1.2s" repeatCount="indefinite"/>
+  <!-- Brightest scanner core -->
+  <rect x="65" y="131" width="40" height="6" fill="url(#scanCore)" opacity="0.95" rx="1">
+    <animate attributeName="x" values="55;161;55" dur="1s" repeatCount="indefinite"/>
   </rect>
 
-  <!-- Scanner top highlight -->
-  <rect x="56" y="132" width="48" height="4" fill="#ffffff" opacity="0.4" rx="2">
-    <animate attributeName="x" values="46;162;46" dur="1.2s" repeatCount="indefinite"/>
-  </rect>
+  <!-- Lower helmet detail -->
+  <path d="M 55 155 Q 128 165 201 155" fill="none" stroke="#a0a0a0" stroke-width="2" opacity="0.4"/>
 
-  <!-- Helmet detail lines -->
-  <g opacity="0.15" stroke="#000000" stroke-width="2">
-    <line x1="64" y1="80" x2="64" y2="176"/>
-    <line x1="96" y1="80" x2="96" y2="176"/>
-    <line x1="128" y1="80" x2="128" y2="176"/>
-    <line x1="160" y1="80" x2="160" y2="176"/>
-    <line x1="192" y1="80" x2="192" y2="176"/>
+  <!-- Helmet jaw/chin plate -->
+  <ellipse cx="128" cy="170" rx="65" ry="18" fill="url(#chromeHelmet)"/>
+  <ellipse cx="128" cy="167" rx="60" ry="12" fill="#d0d0d0" opacity="0.5"/>
+
+  <!-- Side temple vents/details -->
+  <g opacity="0.6">
+    <rect x="52" y="115" width="6" height="35" fill="#404040" rx="1"/>
+    <rect x="198" y="115" width="6" height="35" fill="#404040" rx="1"/>
   </g>
 
-  <!-- Helmet panel edges -->
-  <g opacity="0.2" fill="none" stroke="#ffffff" stroke-width="1.5">
-    <rect x="34" y="77" width="188" height="102" rx="17"/>
-    <rect x="42" y="117" width="172" height="46" rx="7"/>
+  <!-- Chrome edge highlights -->
+  <g opacity="0.3" fill="#ffffff">
+    <ellipse cx="75" cy="110" rx="5" ry="25"/>
+    <ellipse cx="181" cy="110" rx="5" ry="25"/>
   </g>
 
-  <!-- Helmet side vents (detail) -->
-  <g opacity="0.3" fill="#1a1a1a">
-    <rect x="36" y="95" width="8" height="60" rx="2"/>
-    <rect x="212" y="95" width="8" height="60" rx="2"/>
+  <!-- Dark shadows for depth -->
+  <g opacity="0.2" fill="#000000">
+    <ellipse cx="70" cy="145" rx="8" ry="20"/>
+    <ellipse cx="186" cy="145" rx="8" ry="20"/>
   </g>
+
+  <!-- Helmet center seam detail -->
+  <line x1="128" y1="70" x2="128" y2="180" stroke="#808080" stroke-width="0.5" opacity="0.3"/>
 </svg>
