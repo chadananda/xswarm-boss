@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+
+# Stop and disable service before removal
+if [ -x /bin/systemctl ]; then
+    systemctl stop xswarm.service || true
+    systemctl disable xswarm.service || true
+fi
+
+exit 0

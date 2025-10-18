@@ -1,0 +1,15 @@
+[Unit]
+Description=xSwarm Socket Activation
+Documentation=https://xswarm.dev/docs
+
+[Socket]
+ListenStream=/run/xswarm/daemon.sock
+SocketMode=0660
+SocketUser=xswarm
+SocketGroup=xswarm
+
+# Accept connections from any user in the xswarm group
+Accept=no
+
+[Install]
+WantedBy=sockets.target

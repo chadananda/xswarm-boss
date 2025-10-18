@@ -2,7 +2,15 @@
   "name": "@xswarm/themes",
   "version": "0.1.0",
   "description": "Personality themes for xSwarm-boss",
+  "author": "xSwarm Contributors <hello@xswarm.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xswarm-dev/xswarm-boss.git",
+    "directory": "packages/themes"
+  },
+  "bugs": "https://github.com/xswarm-dev/xswarm-boss/issues",
+  "homepage": "https://xswarm.dev",
   "scripts": {},
-  "keywords": ["themes", "personalities", "xswarm"],
-  "license": "MIT"
+  "keywords": ["themes", "personalities", "xswarm"]
 }

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="console-application">
+  <id>org.xswarm.Boss</id>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <name>xSwarm Boss</name>
+  <summary>AI orchestration layer for multi-project development</summary>
+
+  <description>
+    <p>
+      xSwarm Boss is an AI orchestration layer that coordinates multiple
+      AI-assisted development projects across your Linux machines through
+      natural voice commands with personality themes.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Voice-first interface with wake word activation</li>
+      <li>Personality themes (HAL 9000, Sauron, and more)</li>
+      <li>Multi-machine orchestration across homelab</li>
+      <li>AI agent coordination (Claude Code, Cursor, Aider)</li>
+      <li>Project dependency tracking</li>
+      <li>Interactive TUI dashboard</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://xswarm.dev</url>
+  <url type="bugtracker">https://github.com/xswarm-dev/xswarm-boss/issues</url>
+  <url type="help">https://xswarm.dev/docs</url>
+
+  <developer_name>xSwarm Contributors</developer_name>
+
+  <launchable type="desktop-id">org.xswarm.Boss.desktop</launchable>
+
+  <provides>
+    <binary>xswarm</binary>
+  </provides>
+
+  <releases>
+    <release version="0.1.0" date="2025-01-15">
+      <description>
+        <p>Initial release with foundational features:</p>
+        <ul>
+          <li>Basic CLI and TUI structure</li>
+          <li>HAL 9000 and Sauron personality themes</li>
+          <li>Documentation site</li>
+          <li>Package distribution (.deb, AUR, Flatpak)</li>
+        </ul>
+      </description>
+    </release>
+  </releases>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>xSwarm Dashboard (Coming Soon)</caption>
+      <!-- <image>https://xswarm.dev/screenshots/dashboard.png</image> -->
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1" />
+</component>

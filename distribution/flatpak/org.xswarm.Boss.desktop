@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=xSwarm Boss
+GenericName=AI Development Orchestrator
+Comment=AI orchestration layer for multi-project development
+Icon=org.xswarm.Boss
+Exec=xswarm dashboard
+Terminal=true
+Categories=Development;IDE;
+Keywords=ai;orchestration;voice;development;rust;
+StartupNotify=false

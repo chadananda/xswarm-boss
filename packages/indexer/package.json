@@ -2,11 +2,19 @@
   "name": "@xswarm/indexer",
   "version": "0.1.0",
   "description": "xSwarm semantic search indexer (Rust library)",
+  "author": "xSwarm Contributors <hello@xswarm.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xswarm-dev/xswarm-boss.git",
+    "directory": "packages/indexer"
+  },
+  "bugs": "https://github.com/xswarm-dev/xswarm-boss/issues",
+  "homepage": "https://xswarm.dev",
   "scripts": {
     "build": "cargo build",
     "test": "cargo test",
     "clean": "cargo clean"
   },
-  "keywords": ["rust", "search", "meilisearch"],
-  "license": "MIT"
+  "keywords": ["rust", "search", "meilisearch"]
 }

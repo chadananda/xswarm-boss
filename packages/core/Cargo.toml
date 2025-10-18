@@ -32,3 +32,7 @@ directories = "5.0"
 
 # Networking
 tokio-tungstenite = "0.21"
+
+# Documentation indexing
+walkdir = "2.4"
+scraper = "0.18"

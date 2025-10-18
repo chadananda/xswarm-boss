@@ -26,3 +26,24 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 lto = true
 codegen-units = 1
 strip = true
+
+# Debian package metadata (for cargo-deb)
+[package.metadata.deb]
+maintainer = "xSwarm Contributors <hello@xswarm.dev>"
+copyright = "2025, xSwarm Contributors"
+license-file = ["LICENSE", "4"]
+extended-description = """\
+xSwarm-boss is an AI orchestration layer that coordinates multiple \
+AI-assisted development projects across your Linux machines through \
+natural voice commands with personality themes."""
+depends = "$auto, systemd"
+section = "devel"
+priority = "optional"
+assets = [
+    ["target/release/xswarm", "usr/bin/", "755"],
+    ["packages/docs/dist/**/*", "usr/share/xswarm/docs/", "644"],
+    ["distribution/systemd/xswarm.service", "lib/systemd/system/", "644"],
+    ["README.md", "usr/share/doc/xswarm/README", "644"],
+]
+maintainer-scripts = "distribution/debian/"
+systemd-units = { enable = true }

@@ -1,0 +1,83 @@
+app-id: org.xswarm.Boss
+runtime: org.freedesktop.Platform
+runtime-version: '23.08'
+sdk: org.freedesktop.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.node18
+
+command: xswarm
+
+finish-args:
+  # Network access (for remote GPU APIs, GitHub, etc.)
+  - --share=network
+
+  # Filesystem access
+  - --filesystem=home
+  - --filesystem=/tmp
+
+  # D-Bus access for systemd user service
+  - --socket=session-bus
+  - --socket=system-bus
+
+  # Audio for voice interface
+  - --socket=pulseaudio
+  - --device=all
+
+  # IPC for performance
+  - --share=ipc
+
+  # Environment variables
+  - --env=PATH=/app/bin:/usr/bin
+  - --env=XSWARM_DOCS_PATH=/app/share/xswarm/docs
+
+modules:
+  # Node.js and pnpm for building docs
+  - name: nodejs
+    buildsystem: simple
+    build-commands:
+      - /usr/lib/sdk/node18/enable.sh
+      - npm install -g pnpm@8
+    cleanup:
+      - /include
+      - /share/man
+
+  # Rust toolchain for building binary
+  - name: rust
+    buildsystem: simple
+    build-commands:
+      - /usr/lib/sdk/rust-stable/enable.sh
+    cleanup:
+      - '*'
+
+  # xSwarm-boss main application
+  - name: xswarm-boss
+    buildsystem: simple
+    sources:
+      - type: git
+        url: https://github.com/xswarm-dev/xswarm-boss.git
+        tag: v0.1.0
+        # commit: UPDATE_ON_RELEASE
+
+    build-commands:
+      # Build documentation
+      - cd packages/docs && pnpm install && pnpm build
+
+      # Build Rust binary
+      - cargo --offline build --release --workspace
+
+      # Install binary
+      - install -Dm755 target/release/xswarm /app/bin/xswarm
+
+      # Install documentation
+      - mkdir -p /app/share/xswarm
+      - cp -r packages/docs/dist /app/share/xswarm/docs
+
+      # Install metadata
+      - install -Dm644 distribution/flatpak/org.xswarm.Boss.desktop /app/share/applications/org.xswarm.Boss.desktop
+      - install -Dm644 distribution/flatpak/org.xswarm.Boss.metainfo.xml /app/share/metainfo/org.xswarm.Boss.metainfo.xml
+      # - install -Dm644 assets/icon.svg /app/share/icons/hicolor/scalable/apps/org.xswarm.Boss.svg
+
+      # Create state directories
+      - mkdir -p /app/var/lib/xswarm
+      - mkdir -p /app/var/log/xswarm

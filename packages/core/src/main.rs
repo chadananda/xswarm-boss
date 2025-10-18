@@ -1,3 +1,5 @@
+mod docs;
+
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use tracing::{info, Level};
@@ -85,6 +87,13 @@ async fn main() -> Result<()> {
         Commands::Daemon => {
             info!("Starting daemon...");
             println!("🤖 xSwarm Daemon");
+
+            // Index documentation on startup
+            info!("Indexing documentation...");
+            let mut indexer = docs::DocsIndexer::new()?;
+            indexer.index().await?;
+            info!("Documentation indexed: {} pages", indexer.pages().len());
+
             println!("Coming soon: Background orchestration service");
         }
         Commands::Setup => {

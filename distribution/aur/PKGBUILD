@@ -1,0 +1,96 @@
+# Maintainer: xSwarm Contributors <hello@xswarm.dev>
+pkgname=xswarm-boss
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="AI Orchestration Layer for Multi-Project Development"
+arch=('x86_64' 'aarch64')
+url="https://github.com/xswarm-dev/xswarm-boss"
+license=('MIT')
+depends=('systemd')
+makedepends=('rust' 'cargo' 'nodejs' 'pnpm')
+source=("$pkgname-$pkgver.tar.gz::https://github.com/xswarm-dev/xswarm-boss/archive/v$pkgver.tar.gz")
+sha256sums=('SKIP')  # Update with actual checksum on release
+backup=('etc/xswarm/config.toml')
+
+prepare() {
+    cd "$pkgname-$pkgver"
+
+    # Build documentation
+    cd packages/docs
+    pnpm install
+    pnpm build
+    cd ../..
+
+    # Prepare Rust build
+    export RUSTUP_TOOLCHAIN=stable
+    cargo fetch --locked --target "$CARCH-unknown-linux-gnu"
+}
+
+build() {
+    cd "$pkgname-$pkgver"
+
+    export RUSTUP_TOOLCHAIN=stable
+    export CARGO_TARGET_DIR=target
+
+    cargo build --frozen --release --workspace
+}
+
+check() {
+    cd "$pkgname-$pkgver"
+
+    export RUSTUP_TOOLCHAIN=stable
+    cargo test --frozen --workspace
+}
+
+package() {
+    cd "$pkgname-$pkgver"
+
+    # Install binary
+    install -Dm755 "target/release/xswarm" "$pkgdir/usr/bin/xswarm"
+
+    # Install documentation
+    mkdir -p "$pkgdir/usr/share/xswarm"
+    cp -r packages/docs/dist "$pkgdir/usr/share/xswarm/docs"
+
+    # Install systemd service files
+    install -Dm644 distribution/systemd/xswarm.service "$pkgdir/usr/lib/systemd/system/xswarm.service"
+    install -Dm644 distribution/systemd/xswarm.socket "$pkgdir/usr/lib/systemd/system/xswarm.socket"
+
+    # Install documentation files
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+
+    # Create state directories (will be owned by xswarm user)
+    install -dm755 "$pkgdir/var/lib/xswarm"
+    install -dm755 "$pkgdir/var/log/xswarm"
+}
+
+post_install() {
+    # Create xswarm user and group
+    getent group xswarm >/dev/null || groupadd -r xswarm
+    getent passwd xswarm >/dev/null || useradd -r -g xswarm -d /var/lib/xswarm -s /usr/bin/nologin xswarm
+
+    # Set ownership
+    chown -R xswarm:xswarm /var/lib/xswarm
+    chown -R xswarm:xswarm /var/log/xswarm
+
+    echo ""
+    echo "xSwarm installed successfully!"
+    echo ""
+    echo "To start the daemon:"
+    echo "  sudo systemctl start xswarm"
+    echo ""
+    echo "To enable on boot:"
+    echo "  sudo systemctl enable xswarm"
+    echo ""
+}
+
+post_upgrade() {
+    post_install
+}
+
+pre_remove() {
+    # Stop service before removal
+    systemctl stop xswarm.service || true
+    systemctl disable xswarm.service || true
+}

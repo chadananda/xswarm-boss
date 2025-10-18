@@ -1,0 +1,33 @@
+[Unit]
+Description=xSwarm AI Orchestration Daemon
+Documentation=https://xswarm.dev/docs
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/xswarm daemon
+Restart=on-failure
+RestartSec=5s
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/xswarm /var/log/xswarm
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=2G
+
+# User/Group (will be created during package installation)
+User=xswarm
+Group=xswarm
+
+# Environment
+Environment="XSWARM_LOG_LEVEL=info"
+Environment="XSWARM_DOCS_PATH=/usr/share/xswarm/docs"
+
+[Install]
+WantedBy=multi-user.target

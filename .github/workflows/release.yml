@@ -1,0 +1,191 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  # Build .deb package
+  build-deb:
+    name: Build Debian Package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install cargo-deb
+        run: cargo install cargo-deb
+
+      - name: Build documentation
+        run: |
+          cd packages/docs
+          pnpm install
+          pnpm build
+
+      - name: Build Rust binary
+        run: cargo build --release
+
+      - name: Create .deb package
+        run: cargo deb -p xswarm
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debian-package
+          path: target/debian/*.deb
+
+  # Build static binaries (musl)
+  build-static:
+    name: Build Static Binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-musl
+          - aarch64-unknown-linux-musl
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cross
+        run: cargo install cross
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Build documentation
+        run: |
+          cd packages/docs
+          pnpm install
+          pnpm build
+
+      - name: Build binary
+        run: cross build --release --target ${{ matrix.target }}
+
+      - name: Create tarball
+        run: |
+          mkdir -p dist
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../dist/xswarm-${{ matrix.target }}.tar.gz xswarm
+
+      - name: Upload static binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-${{ matrix.target }}
+          path: dist/*.tar.gz
+
+  # Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    needs: [build-deb, build-static]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/debian-package/*.deb
+            artifacts/static-*/*.tar.gz
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Publish to crates.io (optional)
+  publish-crates:
+    name: Publish to crates.io
+    needs: create-release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Publish indexer
+        run: cargo publish -p xswarm-indexer --token ${{ secrets.CARGO_TOKEN }}
+        continue-on-error: true
+
+      - name: Publish mcp-server
+        run: cargo publish -p xswarm-mcp-server --token ${{ secrets.CARGO_TOKEN }}
+        continue-on-error: true
+
+      - name: Publish core
+        run: cargo publish -p xswarm --token ${{ secrets.CARGO_TOKEN }}
+        continue-on-error: true
+
+  # Deploy documentation to GitHub Pages
+  deploy-docs:
+    name: Deploy Documentation
+    needs: create-release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Build docs
+        run: |
+          cd packages/docs
+          pnpm install
+          pnpm build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/docs/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

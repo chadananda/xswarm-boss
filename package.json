@@ -26,6 +26,15 @@
     "rust",
     "developer-tools"
   ],
-  "author": "xSwarm Contributors",
-  "license": "MIT"
+  "author": "xSwarm Contributors <hello@xswarm.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xswarm-dev/xswarm-boss.git"
+  },
+  "bugs": {
+    "url": "https://github.com/xswarm-dev/xswarm-boss/issues",
+    "email": "hello@xswarm.dev"
+  },
+  "homepage": "https://xswarm.dev"
 }

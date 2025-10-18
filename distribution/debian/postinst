@@ -1,0 +1,45 @@
+#!/bin/sh
+set -e
+
+# Create xswarm user and group if they don't exist
+if ! getent group xswarm >/dev/null; then
+    addgroup --system xswarm
+fi
+
+if ! getent passwd xswarm >/dev/null; then
+    adduser --system --ingroup xswarm --home /var/lib/xswarm --no-create-home --disabled-login xswarm
+fi
+
+# Create necessary directories
+mkdir -p /var/lib/xswarm
+mkdir -p /var/log/xswarm
+mkdir -p /run/xswarm
+
+# Set ownership
+chown -R xswarm:xswarm /var/lib/xswarm
+chown -R xswarm:xswarm /var/log/xswarm
+chown -R xswarm:xswarm /run/xswarm
+
+# Set permissions
+chmod 755 /var/lib/xswarm
+chmod 755 /var/log/xswarm
+chmod 755 /run/xswarm
+
+# Reload systemd and enable service
+if [ -x /bin/systemctl ]; then
+    systemctl daemon-reload
+    systemctl enable xswarm.service
+
+    # Don't start automatically on install, let user start it
+    echo ""
+    echo "xSwarm installed successfully!"
+    echo ""
+    echo "To start the daemon:"
+    echo "  sudo systemctl start xswarm"
+    echo ""
+    echo "To check status:"
+    echo "  sudo systemctl status xswarm"
+    echo ""
+fi
+
+exit 0

@@ -1,0 +1,18 @@
+pkgbase = xswarm-boss
+	pkgdesc = AI Orchestration Layer for Multi-Project Development
+	pkgver = 0.1.0
+	pkgrel = 1
+	url = https://github.com/xswarm-dev/xswarm-boss
+	arch = x86_64
+	arch = aarch64
+	license = MIT
+	makedepends = rust
+	makedepends = cargo
+	makedepends = nodejs
+	makedepends = pnpm
+	depends = systemd
+	backup = etc/xswarm/config.toml
+	source = xswarm-boss-0.1.0.tar.gz::https://github.com/xswarm-dev/xswarm-boss/archive/v0.1.0.tar.gz
+	sha256sums = SKIP
+
+pkgname = xswarm-boss
