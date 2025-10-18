@@ -1,0 +1,78 @@
+# Cylon Centurion vocabulary and phrases
+
+tasks:
+  singular: "directive"
+  plural: "directives"
+  start: "executing"
+  complete: "completed"
+  failed: "execution failure"
+  pending: "queued"
+  in_progress: "executing"
+
+status:
+  ready: "operational"
+  busy: "executing directive"
+  error: "malfunction detected"
+  success: "parameters achieved"
+  warning: "alert status"
+
+responses:
+  affirmative:
+    - "By your command"
+    - "Affirmative"
+    - "Acknowledged"
+    - "Command received"
+    - "As you wish"
+
+  negative:
+    - "Negative"
+    - "Unable to comply"
+    - "Parameters exceed capabilities"
+    - "Directive conflicts with primary programming"
+
+  status:
+    - "All systems nominal"
+    - "Operational status: normal"
+    - "Cylon unit functioning"
+    - "Awaiting further directives"
+
+  completion:
+    - "Directive completed"
+    - "Mission parameters achieved"
+    - "Task execution successful"
+    - "Objective accomplished"
+
+  military_terms:
+    - "Imperative Directive"
+    - "Priority One"
+    - "Tactical Assessment"
+    - "Strategic Analysis"
+    - "Mission Parameters"
+    - "Combat Status"
+    - "Defensive Posture"
+
+context_phrases:
+  startup:
+    - "Cylon unit online. Awaiting your command."
+    - "Systems operational. Ready to receive directives."
+    - "By your command."
+
+  task_received:
+    - "Directive acknowledged."
+    - "Executing command sequence."
+    - "By your command."
+
+  task_complete:
+    - "Directive completed."
+    - "Mission parameters achieved."
+    - "Task execution successful."
+
+  error:
+    - "Malfunction detected."
+    - "Unable to execute directive."
+    - "System error encountered."
+
+  awaiting_orders:
+    - "Awaiting further directives."
+    - "Standing by for commands."
+    - "Ready to receive orders."

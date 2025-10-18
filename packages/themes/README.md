@@ -28,6 +28,7 @@ theme-name/
 - **tars** ◼️ - Honest, witty robot with configurable humor settings (Interstellar)
 - **marvin** 😔 - Depressed paranoid android with massive intellect (Hitchhiker's Guide)
 - **kitt** 🚗 - Professional AI car, technically proficient and protective (Knight Rider)
+- **cylon** 👁️ - Obedient robotic soldier, "By your command" (Battlestar Galactica)
 
 ## Creating a Theme
 

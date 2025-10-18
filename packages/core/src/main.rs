@@ -116,6 +116,7 @@ async fn main() -> Result<()> {
                 println!("  - tars ◼️     (TARS - Honest, witty robot)");
                 println!("  - marvin 😔   (Marvin - Depressed paranoid android)");
                 println!("  - kitt 🚗     (KITT - Knight Industries AI car)");
+                println!("  - cylon 👁️    (Cylon - By your command)");
             }
             ThemeAction::Switch { name } => {
                 let mut config = Config::load()?;
