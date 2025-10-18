@@ -104,9 +104,13 @@ async fn main() -> Result<()> {
         Commands::Theme { action } => match action {
             ThemeAction::List => {
                 println!("📋 Available Themes:");
-                println!("  - hal-9000 🔴 (HAL 9000)");
-                println!("  - sauron 👁️  (The Dark Lord)");
-                println!("  - jarvis 💙 (JARVIS)");
+                println!("  - hal-9000 🔴  (HAL 9000 - Calm, rational AI)");
+                println!("  - sauron 👁️   (The Dark Lord - Commanding and imperial)");
+                println!("  - jarvis 💙   (JARVIS - Professional British butler)");
+                println!("  - dalek 🤖    (DALEK - Aggressive cyborg: EXTERMINATE!)");
+                println!("  - c3po 🤖     (C-3PO - Anxious protocol droid)");
+                println!("  - glados 🔬   (GLaDOS - Passive-aggressive science AI)");
+                println!("  - tars ◼️     (TARS - Honest, witty robot)");
             }
             ThemeAction::Switch { name } => {
                 println!("🎨 Switching to theme: {}", name);

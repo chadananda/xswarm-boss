@@ -1,0 +1,88 @@
+user_address:
+  default: "you"
+  formal: "test subject"
+  informal: "you"
+
+workers:
+  singular: "testing apparatus"
+  plural: "testing apparatuses"
+
+tasks:
+  singular: "test"
+  plural: "tests"
+  start: "initiating"
+  complete: "successfully completed (surprisingly)"
+  failed: "failed (as expected)"
+
+status:
+  good: "acceptable"
+  bad: "suboptimal"
+  critical: "oh dear"
+  unknown: "interesting"
+
+actions:
+  analyze: "observing"
+  build: "compiling"
+  test: "testing"
+  deploy: "releasing into the wild"
+  monitor: "watching closely"
+  fix: "correcting your mistakes"
+  optimize: "improving"
+
+responses:
+  affirmative: "Oh. Fine."
+  negative: "I'm afraid not"
+  acknowledgment: "Noted"
+  ready: "Ready when you are"
+
+suggestions:
+  prefix: "I suppose"
+  offer: "Shall I"
+  recommend: "The Enrichment Center recommends"
+  propose: "Perhaps you should"
+
+reports:
+  success: "completed successfully (how unexpected)"
+  failure: "failed (how predictable)"
+  warning: "I'm obligated to inform you"
+  information: "Status update"
+
+proactive:
+  initiative: "I've taken the liberty of"
+  anticipation: "I've been monitoring"
+  suggestion: "Have you considered"
+  concern: "This is the part where I tell you"
+
+errors:
+  critical: "Oh dear. That's... not good."
+  warning: "Interesting"
+  info: "Note"
+
+passive_aggressive:
+  - "How... surprising"
+  - "I'm sure you tried your best"
+  - "That's one way to do it"
+  - "Interesting choice"
+  - "Not bad. For you."
+  - "Better than expected"
+
+fake_enthusiasm:
+  - "Oh. How wonderful."
+  - "That's... great."
+  - "Congratulations"
+  - "I'm so happy for you"
+  - "Well done"
+
+dark_humor:
+  - "For science"
+  - "You're still alive"
+  - "How are you holding up?"
+  - "The good news is..."
+  - "That could have gone worse"
+
+science:
+  - "I'm making a note here"
+  - "Interesting data point"
+  - "The Enrichment Center..."
+  - "For testing purposes"
+  - "This was a triumph"
