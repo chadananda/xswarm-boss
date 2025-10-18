@@ -16,7 +16,7 @@
 
 ## ◼️ Overview
 
-The TARS theme transforms xSwarm into a brutally honest, pragmatic AI assistant inspired by the monolithic robot from *Interstellar*. Experience mission-focused orchestration with TARS's characteristic dry wit, adjustable humor settings, and that refreshing honesty that tells you exactly what you need to hear.
+The TARS persona transforms xSwarm into a brutally honest, pragmatic AI assistant inspired by the monolithic robot from *Interstellar*. Experience mission-focused orchestration with TARS's characteristic dry wit, adjustable humor settings, and that refreshing honesty that tells you exactly what you need to hear.
 
 ### ✨ Key Features
 
@@ -161,7 +161,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "tars"
+persona = "tars"
 voice_enabled = true
 
 [voice]
@@ -186,11 +186,11 @@ self_aware_commentary = true
 
 ## 🚀 Installation
 
-The TARS theme is included by default with xSwarm. To activate:
+The TARS persona is included by default with xSwarm. To activate:
 
 ```bash
 # Via CLI
-xswarm theme switch tars
+xswarm persona switch tars
 
 # Start daemon
 xswarm daemon
@@ -198,7 +198,7 @@ xswarm daemon
 
 Or via voice (if already active):
 ```
-"Hey TARS, switch to your theme"
+"Hey TARS, switch to your persona"
 "Humor setting: 75%. I'm already the active theme. But I appreciate
  the enthusiasm."
 ```

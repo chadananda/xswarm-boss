@@ -172,7 +172,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "sauron"
+persona = "sauron"
 voice_enabled = true
 
 [voice]
@@ -198,7 +198,7 @@ conquest_mode = true
 
 ```bash
 # Switch to Sauron theme
-xswarm theme switch sauron
+xswarm persona switch sauron
 
 # Start the daemon
 xswarm daemon

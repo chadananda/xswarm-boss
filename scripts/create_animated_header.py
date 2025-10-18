@@ -44,7 +44,7 @@ PERSONA_ICONS = {
     'dalek': 'https://media.giphy.com/media/xT9DPCKNlqT6RznP9K/giphy.gif',
 }
 
-# Persona colors (from theme configs)
+# Persona colors (from persona configs)
 PERSONA_COLORS = {
     'hal-9000': '#DC143C',
     'kitt': '#FF0000',

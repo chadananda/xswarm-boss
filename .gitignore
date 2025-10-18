@@ -85,8 +85,8 @@ recordings/
 !tests/fixtures/**/*.wav  # Keep test audio
 
 # Voice training samples (copyrighted, keep local only)
-packages/themes/*/audio/samples/*
-!packages/themes/*/audio/samples/.gitkeep
+packages/personas/*/audio/samples/*
+!packages/personas/*/audio/samples/.gitkeep
 
 # Logs
 logs/

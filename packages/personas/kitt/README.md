@@ -139,7 +139,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "kitt"
+persona = "kitt"
 voice_enabled = true
 
 [voice]
@@ -159,7 +159,7 @@ tone = "professional-precise"
 
 ```bash
 # Switch to KITT theme
-xswarm theme switch kitt
+xswarm persona switch kitt
 
 # Start the daemon
 xswarm daemon

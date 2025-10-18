@@ -64,7 +64,7 @@ You continue working on something else. No context switching between projects. N
 
 Later that afternoon, you feel like something different...
 
-**"Hey HAL, switch to Sauron theme."**
+**"Hey HAL, switch to Sauron persona."**
 
 > *"Acknowledged. Activating Sauron personality profile."*
 
@@ -109,7 +109,7 @@ Unlike cloud assistants or individual coding AIs, xSwarm provides:
 - 🗣️ **Voice-First Orchestration** - Give strategic commands, let xSwarm handle tactical execution
 - 🧠 **System-Wide Memory** - Semantic search across all projects, docs, and code on your system
 - 🔒 **Secure by Design** - Rules-based secret filtering, constant memory purging, no data leakage
-- 🎨 **Unnecessary Personality** - HAL, JARVIS, DALEK, C-3PO, GLaDOS, TARS, Marvin, Sauron themes
+- 🎨 **Unnecessary Personality** - HAL, JARVIS, DALEK, C-3PO, GLaDOS, TARS, Marvin, Sauron personas
 - 🏠 **Completely Local** - Your code, conversations, and coordination never leave your network
 
 **xSwarm is JARVIS for your development empire** - one AI that knows all your projects, coordinates all your tools, and speaks to you like a seasoned engineering manager.
@@ -161,7 +161,7 @@ No manual coordination. No context switching. Just **strategic commands to your 
 
 ### 🗣️ Voice-First Interface
 
-Talk to your development environment like you'd talk to a team member. The wake word changes with your chosen theme:
+Talk to your development environment like you'd talk to a team member. The wake word changes with your chosen persona:
 
 ```
 "Hey HAL, what are my vassals doing?"
@@ -172,7 +172,7 @@ Talk to your development environment like you'd talk to a team member. The wake 
 "Hey Marvin, what's the point of all this?"
 ```
 
-**Personality themes** let you choose your AI's voice, character, and wake word. Each responds in their unique style:
+**Personality personas** let you choose your AI's voice, character, and wake word. Each responds in their unique style:
 
 **👁️ Sauron** - All-seeing, commanding, dark overlord
 ```
@@ -330,10 +330,10 @@ xSwarm uses **[MOSHI](https://kyutai.org/moshi/)** (Kyutai Labs) for realtime vo
 **How it works:**
 1. Audio samples collected from character sources (YouTube, soundboards, etc.)
 2. Converted to WAV 24kHz format using training script
-3. MOSHI generates voice embedding for each theme
+3. MOSHI generates voice embedding for each persona
 4. Real-time voice synthesis during conversations
 
-See `packages/themes/AUDIO_SOURCES.md` for training guide.
+See `packages/personas/AUDIO_SOURCES.md` for training guide.
 
 ---
 
@@ -356,10 +356,10 @@ Machine learning? → Brainy (GPU-equipped)
 You: "Hey HAL, show me what Speedy is doing."
 HAL: "Opening VNC session to Speedy..."
 [VNC window opens showing test execution in real-time]
-[Window displays the 🔴 HAL icon in the corner, indicating active theme]
+[Window displays the 🔴 HAL icon in the corner, indicating active persona]
 ```
 
-> **Note:** Each vassal window displays your active theme's icon, so you always know which personality is in control.
+> **Note:** Each vassal window displays your active persona's icon, so you always know which personality is in control.
 
 ### 🧠 Long-Term Memory
 
@@ -411,16 +411,16 @@ You: "My Anthropic key is sk-ant-xyz123..."
 ### 🎨 Fully Themeable
 
 Create custom AI personalities with:
-- `theme.yaml` - Colors, voice settings
+- `persona.yaml` - Colors, voice settings
 - `personality.md` - Character behavior guide
 - `response-examples.md` - Example dialogue
 - `toolbar-animation.apng` - Animated status icon
 - `sounds/` - Notification sounds and classic audio clips
   - `notify.wav` - General notifications
-  - `startup.wav` - Theme activation
+  - `startup.wav` - Persona activation
   - `classic/` - Iconic audio snippets (e.g., HAL: "I'm sorry Dave")
 
-**Submit themes via PR** - The community can create new AI personalities!
+**Submit personas via PR** - The community can create new AI personalities!
 
 > **Note:** Classic audio clips play for iconic responses (HAL's "I'm sorry Dave", DALEK's "EXTERMINATE!", C-3PO's "Oh my!"), adding authentic character voice.
 
@@ -459,7 +459,7 @@ The setup wizard guides you through:
 3. **Configure vassals:** Add worker machines on your LAN
 4. **Optional API keys:** For remote AI fallback (cloud LLMs)
 
-Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever theme you chose)
+Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever persona you chose)
 
 ---
 
@@ -528,7 +528,7 @@ Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever theme you ch
 
 **Contributing:**
 We welcome contributions! Especially:
-- New AI personality themes
+- New AI personality personas
 - Integration plugins
 - Bug fixes and features
 - Documentation improvements

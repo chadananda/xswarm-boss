@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Voice Training Script for xSwarm Themes
+Voice Training Script for xSwarm Personas
 
-Downloads audio from URLs in a theme's audio/SOURCES.md file,
+Downloads audio from URLs in a persona's audio/SOURCES.md file,
 converts to WAV 24kHz format suitable for MOSHI voice training.
 
 Usage:
-    python scripts/train_voice.py --theme hal-9000
-    python scripts/train_voice.py --theme jarvis --limit 5
+    python scripts/train_voice.py --persona hal-9000
+    python scripts/train_voice.py --persona jarvis --limit 5
     python scripts/train_voice.py --all
 
 Requirements:
@@ -27,8 +27,8 @@ from pathlib import Path
 from urllib.parse import urlparse
 import requests
 
-# Theme base path
-THEMES_DIR = Path("packages/themes")
+# Persona base path
+PERSONAS_DIR = Path("packages/personas")
 
 def parse_sources_md(sources_file):
     """Extract URLs from a SOURCES.md file."""
@@ -140,18 +140,18 @@ def download_from_soundboard(url, output_path, clip_num):
     print(f"     → Use naming: {clip_num:02d}_greeting.wav, etc.")
     return False
 
-def train_theme(theme_name, limit=None, skip_existing=True):
-    """Download and convert audio for a specific theme."""
-    theme_path = THEMES_DIR / theme_name
-    sources_file = theme_path / "audio" / "SOURCES.md"
-    output_path = theme_path / "audio" / "samples"
+def train_persona(persona_name, limit=None, skip_existing=True):
+    """Download and convert audio for a specific persona."""
+    persona_path = PERSONAS_DIR / persona_name
+    sources_file = persona_path / "audio" / "SOURCES.md"
+    output_path = persona_path / "audio" / "samples"
 
-    if not theme_path.exists():
-        print(f"❌ Theme not found: {theme_name}")
+    if not persona_path.exists():
+        print(f"❌ Persona not found: {persona_name}")
         return False
 
     if not sources_file.exists():
-        print(f"❌ No SOURCES.md found for theme: {theme_name}")
+        print(f"❌ No SOURCES.md found for persona: {persona_name}")
         return False
 
     # Create output directory
@@ -164,7 +164,7 @@ def train_theme(theme_name, limit=None, skip_existing=True):
         print(f"⚠️  No audio URLs found in {sources_file}")
         return False
 
-    print(f"\n🎤 Training voice for theme: {theme_name}")
+    print(f"\n🎤 Training voice for persona: {persona_name}")
     print(f"   Found {len(urls)} source URLs")
 
     if limit:
@@ -200,7 +200,7 @@ def train_theme(theme_name, limit=None, skip_existing=True):
 
         clip_num += 1
 
-    print(f"\n✨ Training complete for {theme_name}!")
+    print(f"\n✨ Training complete for {persona_name}!")
     print(f"   Successfully downloaded: {successful}/{len(urls)} clips")
     print(f"   Saved to: {output_path}")
 
@@ -208,18 +208,18 @@ def train_theme(theme_name, limit=None, skip_existing=True):
         print(f"\n📝 Next steps:")
         print(f"   1. Listen to clips and rename descriptively (e.g., 01_greeting.wav)")
         print(f"   2. Edit in Audacity if needed (remove silence, normalize)")
-        print(f"   3. Run: xswarm voice train --theme {theme_name}")
+        print(f"   3. Run: xswarm voice train --persona {persona_name}")
 
     return successful > 0
 
-def train_all_themes(limit=None):
-    """Train voices for all available themes."""
-    themes = [d.name for d in THEMES_DIR.iterdir() if d.is_dir() and (d / "audio" / "SOURCES.md").exists()]
+def train_all_personas(limit=None):
+    """Train voices for all available personas."""
+    personas = [d.name for d in PERSONAS_DIR.iterdir() if d.is_dir() and (d / "audio" / "SOURCES.md").exists()]
 
-    print(f"🎤 Training voices for {len(themes)} themes\n")
+    print(f"🎤 Training voices for {len(personas)} personas\n")
 
-    for theme in sorted(themes):
-        train_theme(theme, limit=limit)
+    for persona in sorted(personas):
+        train_persona(persona, limit=limit)
         print("\n" + "="*60 + "\n")
 
 def check_dependencies():
@@ -252,10 +252,10 @@ def check_dependencies():
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Download and convert audio for xSwarm theme voice training'
+        description='Download and convert audio for xSwarm persona voice training'
     )
-    parser.add_argument('--theme', type=str, help='Theme name (e.g., hal-9000)')
-    parser.add_argument('--all', action='store_true', help='Train all themes')
+    parser.add_argument('--persona', type=str, help='Persona name (e.g., hal-9000)')
+    parser.add_argument('--all', action='store_true', help='Train all personas')
     parser.add_argument('--limit', type=int, help='Limit number of clips to download')
     parser.add_argument('--force', action='store_true', help='Re-download existing files')
 
@@ -267,14 +267,14 @@ def main():
 
     # Determine what to train
     if args.all:
-        train_all_themes(limit=args.limit)
-    elif args.theme:
-        train_theme(args.theme, limit=args.limit, skip_existing=not args.force)
+        train_all_personas(limit=args.limit)
+    elif args.persona:
+        train_persona(args.persona, limit=args.limit, skip_existing=not args.force)
     else:
         parser.print_help()
         print("\n💡 Examples:")
-        print("   python scripts/train_voice.py --theme hal-9000")
-        print("   python scripts/train_voice.py --theme jarvis --limit 3")
+        print("   python scripts/train_voice.py --persona hal-9000")
+        print("   python scripts/train_voice.py --persona jarvis --limit 3")
         print("   python scripts/train_voice.py --all")
 
 if __name__ == '__main__':

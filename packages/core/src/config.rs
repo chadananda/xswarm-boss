@@ -27,8 +27,8 @@ pub struct Config {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OverlordConfig {
-    #[serde(default = "default_theme")]
-    pub theme: String,
+    #[serde(default = "default_persona")]
+    pub persona: String,
 
     #[serde(default = "default_true")]
     pub voice_enabled: bool,
@@ -108,7 +108,7 @@ pub struct VassalConfig {
 }
 
 // Default value functions
-fn default_theme() -> String {
+fn default_persona() -> String {
     "hal-9000".to_string()
 }
 
@@ -148,7 +148,7 @@ fn default_fallback() -> Vec<String> {
 impl Default for OverlordConfig {
     fn default() -> Self {
         Self {
-            theme: default_theme(),
+            persona: default_persona(),
             voice_enabled: default_true(),
             wake_word: default_wake_word(),
         }
@@ -270,7 +270,7 @@ impl Config {
     /// Get a configuration value by key (dot notation)
     pub fn get(&self, key: &str) -> Option<String> {
         match key {
-            "overlord.theme" => Some(self.overlord.theme.clone()),
+            "overlord.persona" => Some(self.overlord.persona.clone()),
             "overlord.voice_enabled" => Some(self.overlord.voice_enabled.to_string()),
             "overlord.wake_word" => Some(self.overlord.wake_word.clone()),
             "voice.provider" => Some(self.voice.provider.clone()),
@@ -289,7 +289,7 @@ impl Config {
     /// Set a configuration value by key (dot notation)
     pub fn set(&mut self, key: &str, value: &str) -> Result<()> {
         match key {
-            "overlord.theme" => self.overlord.theme = value.to_string(),
+            "overlord.persona" => self.overlord.persona = value.to_string(),
             "overlord.voice_enabled" => {
                 self.overlord.voice_enabled = value.parse()
                     .context("Invalid boolean value")?;

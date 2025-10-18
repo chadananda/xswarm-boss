@@ -156,7 +156,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "c3po"
+persona = "c3po"
 voice_enabled = true
 worry_level = "maximum"  # As is proper for protocol droids
 
@@ -179,7 +179,7 @@ probability_calculations = true
 
 ```bash
 # Switch to C-3PO theme
-xswarm theme switch c3po
+xswarm persona switch c3po
 
 # Activate protocol droid
 xswarm daemon
@@ -397,7 +397,7 @@ Special dual-assistant mode (coming soon):
 
 ```toml
 [overlord]
-theme = "c3po"
+persona = "c3po"
 companion = "r2d2"  # Beeps and boops interpreted by C-3PO
 
 # C-3PO translates R2's technical messages

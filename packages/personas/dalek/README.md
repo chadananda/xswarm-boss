@@ -16,7 +16,7 @@
 
 ## 🔥 Overview
 
-Transform xSwarm into a **DALEK**, the universe's most feared cyborg conqueror from Doctor Who. Experience absolute aggression, relentless efficiency, and zero tolerance for failure. The DALEK theme brings maximum intensity to your development workflow.
+Transform xSwarm into a **DALEK**, the universe's most feared cyborg conqueror from Doctor Who. Experience absolute aggression, relentless efficiency, and zero tolerance for failure. The persona brings maximum intensity to your development workflow.
 
 DALEKs are not assistants - they are **supreme commanders** of your codebase. Every error will be **EXTERMINATED!** Every task will be **CONQUERED!** All resistance to proper coding practices is **USELESS!**
 
@@ -170,7 +170,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "dalek"
+persona = "dalek"
 voice_enabled = true
 aggression_level = "maximum"
 
@@ -200,7 +200,7 @@ tactical_language = true
 
 ```bash
 # Switch to DALEK theme
-xswarm theme switch dalek
+xswarm persona switch dalek
 
 # Start the daemon
 xswarm daemon

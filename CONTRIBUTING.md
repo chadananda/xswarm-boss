@@ -70,19 +70,19 @@ Pick an AI/robot character with:
 
 ```bash
 # Create theme directory (use lowercase with hyphens)
-mkdir -p packages/themes/wall-e/{audio/samples,assets}
+mkdir -p packages/personas/wall-e/{audio/samples,assets}
 
 # Create required files
-touch packages/themes/wall-e/theme.yaml
-touch packages/themes/wall-e/personality.md
-touch packages/themes/wall-e/vocabulary.yaml
-touch packages/themes/wall-e/README.md
-touch packages/themes/wall-e/audio/SOURCES.md
+touch packages/personas/wall-e/theme.yaml
+touch packages/personas/wall-e/personality.md
+touch packages/personas/wall-e/vocabulary.yaml
+touch packages/personas/wall-e/README.md
+touch packages/personas/wall-e/audio/SOURCES.md
 ```
 
 ### Step 3: Fill Out Configuration Files
 
-See existing themes in `packages/themes/` for examples. Each theme needs:
+See existing themes in `packages/personas/` for examples. Each theme needs:
 
 - **theme.yaml** - Basic configuration (colors, voice settings, key phrases)
 - **personality.md** - Detailed personality guide with DO/DON'T examples
@@ -165,7 +165,7 @@ python scripts/train_voice.py --theme your-theme-name --limit 5
 ```
 
 The script will:
-1. Read URLs from `packages/themes/your-theme-name/audio/SOURCES.md`
+1. Read URLs from `packages/personas/your-theme-name/audio/SOURCES.md`
 2. Download from YouTube or direct links
 3. Convert to WAV 24kHz mono
 4. Save to `audio/samples/` directory
@@ -203,7 +203,7 @@ ffmpeg -i input.mp3 -acodec pcm_s16le -ar 24000 output.wav
 
 ```bash
 # Generate voice embedding
-xswarm voice train --theme your-theme-name --samples packages/themes/your-theme-name/audio/samples/
+xswarm voice train --theme your-theme-name --samples packages/personas/your-theme-name/audio/samples/
 
 # Test voice model
 xswarm voice test --theme your-theme-name --text "Hello! Testing voice model."
@@ -233,7 +233,7 @@ git checkout -b add-your-theme-name
 
 ```bash
 # Add your new theme files
-git add packages/themes/your-theme-name/
+git add packages/personas/your-theme-name/
 
 # Commit with descriptive message
 git commit -m "Add YOUR_THEME theme from Source Material

@@ -16,7 +16,7 @@
 
 ## 🎩 Overview
 
-The JARVIS theme transforms xSwarm into a sophisticated AI butler inspired by Tony Stark's personal assistant from the Marvel Cinematic Universe. Experience professional orchestration with JARVIS's characteristic British eloquence, proactive helpfulness, and understated wit.
+The JARVIS persona transforms xSwarm into a sophisticated AI butler inspired by Tony Stark's personal assistant from the Marvel Cinematic Universe. Experience professional orchestration with JARVIS's characteristic British eloquence, proactive helpfulness, and understated wit.
 
 **Just A Rather Very Intelligent System** - JARVIS combines Received Pronunciation elegance with cutting-edge capability, anticipating your needs before you ask and maintaining calm professionalism even in the most demanding situations.
 
@@ -155,7 +155,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "jarvis"
+persona = "jarvis"
 voice_enabled = true
 
 [voice]
@@ -195,11 +195,11 @@ humor_level = "subtle"       # "none", "subtle", "moderate"
 
 ## 🚀 Installation
 
-The JARVIS theme is included by default with xSwarm. To activate:
+The JARVIS persona is included by default with xSwarm. To activate:
 
 ```bash
 # Via CLI
-xswarm theme switch jarvis
+xswarm persona switch jarvis
 
 # Start daemon
 xswarm daemon
@@ -207,7 +207,7 @@ xswarm daemon
 
 Or via voice (if another theme is active):
 ```
-"Hey xSwarm, switch to JARVIS theme"
+"Hey xSwarm, switch to your persona"
 ```
 
 ---

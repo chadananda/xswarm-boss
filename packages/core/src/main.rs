@@ -27,10 +27,10 @@ enum Commands {
     /// Initial setup wizard
     Setup,
 
-    /// Manage personality themes
-    Theme {
+    /// Manage personality personas
+    Persona {
         #[command(subcommand)]
-        action: ThemeAction,
+        action: PersonaAction,
     },
 
     /// Configuration management
@@ -53,12 +53,12 @@ enum Commands {
 }
 
 #[derive(Subcommand)]
-enum ThemeAction {
-    /// List available themes
+enum PersonaAction {
+    /// List available personas
     List,
-    /// Switch to a different theme
+    /// Switch to a different persona
     Switch { name: String },
-    /// Show current theme
+    /// Show current persona
     Current,
 }
 
@@ -104,9 +104,9 @@ async fn main() -> Result<()> {
             println!("🚀 xSwarm Setup Wizard");
             println!("Coming soon: Interactive configuration");
         }
-        Commands::Theme { action } => match action {
-            ThemeAction::List => {
-                println!("📋 Available Themes:");
+        Commands::Persona { action } => match action {
+            PersonaAction::List => {
+                println!("📋 Available Personas:");
                 println!("  - hal-9000 🔴  (HAL 9000 - Calm, rational AI)");
                 println!("  - sauron 👁️   (The Dark Lord - Commanding and imperial)");
                 println!("  - jarvis 💙   (JARVIS - Professional British butler)");
@@ -118,15 +118,15 @@ async fn main() -> Result<()> {
                 println!("  - kitt 🚗     (KITT - Knight Industries AI car)");
                 println!("  - cylon 👁️    (Cylon - By your command)");
             }
-            ThemeAction::Switch { name } => {
+            PersonaAction::Switch { name } => {
                 let mut config = Config::load()?;
-                config.overlord.theme = name.clone();
+                config.overlord.persona = name.clone();
                 config.save()?;
-                println!("🎨 Switched to theme: {}", name);
+                println!("🎨 Switched to persona: {}", name);
             }
-            ThemeAction::Current => {
+            PersonaAction::Current => {
                 let config = Config::load()?;
-                println!("🎨 Current theme: {}", config.overlord.theme);
+                println!("🎨 Current persona: {}", config.overlord.persona);
             }
         },
         Commands::Config { action } => match action {
@@ -137,7 +137,7 @@ async fn main() -> Result<()> {
                 println!("⚙️  xSwarm Configuration");
                 println!("📁 Config file: {}", config_path.display());
                 println!();
-                println!("🎨 Theme: {}", config.overlord.theme);
+                println!("🎨 Persona: {}", config.overlord.persona);
                 println!("🎤 Voice enabled: {}", config.overlord.voice_enabled);
                 println!("👂 Wake word: {}", config.overlord.wake_word);
                 println!("🔊 Voice provider: {}", config.voice.provider);

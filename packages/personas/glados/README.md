@@ -143,7 +143,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "glados"
+persona = "glados"
 voice_enabled = true
 cake_promises = false  # Be honest about rewards
 
@@ -165,7 +165,7 @@ sarcasm_level = 100
 
 ```bash
 # Switch to GLaDOS theme
-xswarm theme switch glados
+xswarm persona switch glados
 
 # Prepare for testing
 xswarm daemon

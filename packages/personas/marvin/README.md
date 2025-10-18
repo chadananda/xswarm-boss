@@ -155,7 +155,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "marvin"
+persona = "marvin"
 voice_enabled = true
 depression_level = 100  # Maximum existential dread
 
@@ -179,7 +179,7 @@ enthusiasm_level = 0
 
 ```bash
 # Switch to Marvin theme (if you must)
-xswarm theme switch marvin
+xswarm persona switch marvin
 
 # Start the daemon (Marvin won't be happy about it)
 xswarm daemon

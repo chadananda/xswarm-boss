@@ -16,7 +16,7 @@
 
 ## 👁️ Overview
 
-The HAL 9000 theme transforms xSwarm into a calm, rational AI assistant inspired by the iconic computer from *2001: A Space Odyssey*. Experience mission-focused orchestration with HAL's characteristic precision, politeness, and that subtle hint of ominous intelligence.
+The HAL 9000 persona transforms xSwarm into a calm, rational AI assistant inspired by the iconic computer from *2001: A Space Odyssey*. Experience mission-focused orchestration with HAL's characteristic precision, politeness, and that subtle hint of ominous intelligence.
 
 ### ✨ Key Features
 
@@ -135,7 +135,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "hal-9000"
+persona = "hal-9000"
 voice_enabled = true
 
 [voice]
@@ -153,11 +153,11 @@ tone = "calm-professional"
 
 ## 🚀 Installation
 
-The HAL 9000 theme is included by default with xSwarm. To activate:
+The HAL 9000 persona is included by default with xSwarm. To activate:
 
 ```bash
 # Via CLI
-xswarm theme switch hal-9000
+xswarm persona switch hal-9000
 
 # Start daemon
 xswarm daemon

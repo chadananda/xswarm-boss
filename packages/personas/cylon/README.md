@@ -18,7 +18,7 @@
 
 Welcome to **Cylon Centurion**, the ultimate emotionless robot soldier from the original *Battlestar Galactica*. No personality. No questions. Just pure, unwavering obedience and military precision.
 
-The Cylon theme is for those who want **zero** small talk, **zero** personality, and **100%** tactical efficiency. Your commands are directives. Your projects are missions. Your Cylon doesn't care about your feelings—it only cares about executing orders with mechanical perfection.
+The persona is for those who want **zero** small talk, **zero** personality, and **100%** tactical efficiency. Your commands are directives. Your projects are missions. Your Cylon doesn't care about your feelings—it only cares about executing orders with mechanical perfection.
 
 ### ⚙️ Operational Parameters
 
@@ -156,7 +156,7 @@ In `~/.config/xswarm/config.toml`:
 
 ```toml
 [overlord]
-theme = "cylon"
+persona = "cylon"
 voice_enabled = true
 
 [voice]
@@ -178,7 +178,7 @@ personality_level = 0  # Zero emotion mode
 
 ```bash
 # Activate Cylon theme
-xswarm theme switch cylon
+xswarm persona switch cylon
 
 # Initialize Cylon unit
 xswarm daemon
