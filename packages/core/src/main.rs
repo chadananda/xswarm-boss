@@ -111,6 +111,7 @@ async fn main() -> Result<()> {
                 println!("  - c3po 🤖     (C-3PO - Anxious protocol droid)");
                 println!("  - glados 🔬   (GLaDOS - Passive-aggressive science AI)");
                 println!("  - tars ◼️     (TARS - Honest, witty robot)");
+                println!("  - marvin 😔   (Marvin - Depressed paranoid android)");
             }
             ThemeAction::Switch { name } => {
                 println!("🎨 Switching to theme: {}", name);
