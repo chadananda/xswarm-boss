@@ -1,125 +1,437 @@
-# Development Guide
+# xSwarm Development Guide
 
-Guide for developing xSwarm-boss on macOS (M1/M2/M3) and Linux.
+Welcome to xSwarm development! This guide will help you set up a cross-platform development environment for building, testing, and extending xSwarm.
 
 ## Quick Start
 
 ```bash
-# 1. Clone and setup
+# 1. Clone the repository
 git clone https://github.com/chadananda/xswarm-boss.git
 cd xswarm-boss
 
 # 2. Install dependencies
 just setup
 
-# 3. Create .env file (optional - only if you need API keys)
-cp .env.example .env
-# Edit .env with your API keys (optional for initial development)
-
-# 4. Build everything
+# 3. Build for your platform
 just build
 
-# 5. Run the CLI
-cargo run -- theme list
+# 4. Run xSwarm
+cargo run -- --help
 ```
 
-## Development Environment Options
+## Table of Contents
 
-### Option 1: Native macOS (Recommended for Starting)
+- [Platform Requirements](#platform-requirements)
+- [Development Environment Setup](#development-environment-setup)
+- [Building for Different Platforms](#building-for-different-platforms)
+- [AI API Configuration](#ai-api-configuration)
+- [Development Workflow](#development-workflow)
+- [Testing](#testing)
+- [Troubleshooting](#troubleshooting)
 
-**Best for:**
-- Core Rust development
-- Theme system work
-- Documentation
-- CLI functionality
+---
 
-**Setup:**
+## Platform Requirements
 
+### macOS (Recommended for Development)
+
+**Minimum:**
+- macOS 12.0+ (Monterey or later)
+- Apple Silicon (M1/M2/M3) or Intel x86_64
+- 8GB RAM minimum, 16GB recommended
+
+**Required Tools:**
+```bash
+# Install Homebrew (if not already installed)
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# Install Rust
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Install Just (task runner)
+brew install just
+
+# Install pnpm (Node.js package manager)
+brew install pnpm
+
+# Install Docker Desktop (optional, for dev services)
+brew install --cask docker
+```
+
+### Linux
+
+**Supported Distributions:**
+- Arch Linux (primary development)
+- Ubuntu 22.04+ / Debian 12+
+- Fedora 38+
+
+**Required Tools:**
+
+**Arch Linux:**
+```bash
+sudo pacman -S rust just pnpm docker docker-compose
+```
+
+**Ubuntu/Debian:**
 ```bash
 # Install Rust
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
-# Install Node.js and pnpm
-brew install node
-npm install -g pnpm
+# Install Just
+cargo install just
 
-# Install just task runner
-brew install just
+# Install pnpm
+curl -fsSL https://get.pnpm.io/install.sh | sh -
 
-# Install cargo-watch (for auto-rebuild)
-cargo install cargo-watch
+# Install Docker
+sudo apt-get install docker.io docker-compose
 ```
 
-**What works:**
-- ✅ Rust compilation and testing
-- ✅ CLI commands
-- ✅ Theme system
-- ✅ Documentation building
-- ✅ Most core logic
+### Windows (Testing Only)
 
-**What doesn't work:**
-- ❌ Linux-specific features (systemd)
-- ❌ Package building (.deb, AUR)
-- ❌ Final integration testing
+**Note:** Windows support is primarily for testing builds. Active development on Windows is not fully supported yet.
 
-### Option 2: Docker (Full Linux Environment)
+**Required:**
+- Windows 10/11 with WSL2 (Ubuntu recommended)
+- Follow Linux instructions inside WSL2
 
-**Best for:**
-- Testing Linux-specific features
-- Building packages
-- Integration testing
-- CI/CD simulation
+---
 
-**Setup:**
+## Development Environment Setup
+
+### 1. Clone and Install
 
 ```bash
-# Start all services
-just dev
+# Clone the repository
+git clone https://github.com/chadananda/xswarm-boss.git
+cd xswarm-boss
 
-# Shell into development container
-just docker-shell
-
-# Inside container, you have full Arch Linux environment
-cargo build
-cargo test
+# Install all dependencies (Rust + Node.js)
+just setup
 ```
 
-**Services included:**
-- Arch Linux dev container (Rust + Node.js)
-- Meilisearch (port 7700)
-- LibSQL (port 8080)
+### 2. Verify Installation
 
-## Configuration vs Secrets
+```bash
+# Check platform detection
+just platform-info
 
-### Where Things Go
+# Build all packages
+just build
 
-xSwarm-boss separates configuration from secrets:
+# Run tests
+just test
+```
 
-**`.env` file (secrets only):**
-- API keys (OpenAI, Anthropic, RunPod, etc.)
-- Auth tokens (LibSQL, Meilisearch)
-- Service credentials
-- **Never committed to git**
+### 3. Start Development Services (Optional)
 
-**`~/.config/xswarm/config.toml` (configuration):**
-- Theme selection (hal-9000, sauron, etc.)
-- Voice settings (enabled, wake word, provider)
-- Audio devices (input/output)
-- GPU fallback chain
-- Vassal/worker settings
-- **Safe to share, backup, version control**
+xSwarm uses Docker Compose for optional development services (Meilisearch for search, LibSQL for database).
 
-**Example `config.toml`:**
+```bash
+# Start services
+just dev
+
+# Verify services are running
+just status
+
+# Stop services when done
+just dev-stop
+```
+
+**Services:**
+- **Meilisearch** (vector search): http://localhost:7700
+- **LibSQL** (database): http://localhost:8080
+
+---
+
+## Building for Different Platforms
+
+### Check Your Platform
+
+```bash
+just platform-info
+```
+
+### macOS Builds
+
+**Apple Silicon (M1/M2/M3):**
+```bash
+just build-macos-arm
+```
+
+**Intel:**
+```bash
+just build-macos-intel
+```
+
+**Universal Binary (both architectures):**
+```bash
+just build-macos-universal
+```
+
+Binary location: `target/universal-apple-darwin/release/xswarm`
+
+### Linux Builds
+
+**x86_64:**
+```bash
+just build-linux
+```
+
+**ARM64:**
+```bash
+just build-linux-arm
+```
+
+### Windows Builds
+
+**From macOS/Linux (cross-compilation):**
+```bash
+# Install cross tool (first time only)
+cargo install cross
+
+# Build for Windows
+just build-windows
+```
+
+Binary location: `target/x86_64-pc-windows-gnu/release/xswarm.exe`
+
+### Build All Platforms
+
+```bash
+just build-all-platforms
+```
+
+This creates binaries for:
+- macOS Universal (Apple Silicon + Intel)
+- Windows x86_64
+- Linux x86_64
+
+---
+
+## AI API Configuration
+
+xSwarm integrates with Anthropic Claude and OpenAI for natural language interaction. Voice features are currently stubbed, but text-based AI (`ask` and `do` commands) work with API keys.
+
+### Anthropic (Recommended)
+
+**Get API Key:**
+1. Sign up at https://console.anthropic.com/
+2. Generate an API key
+3. Set environment variable:
+
+```bash
+export ANTHROPIC_API_KEY='your-api-key-here'
+```
+
+**Add to shell profile (persistent):**
+
+**macOS/Linux (bash/zsh):**
+```bash
+echo 'export ANTHROPIC_API_KEY="your-api-key-here"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### OpenAI (Alternative)
+
+```bash
+export OPENAI_API_KEY='your-api-key-here'
+
+# Configure xSwarm to use OpenAI
+xswarm config set voice.provider openai
+```
+
+### Test AI Integration
+
+```bash
+# Build xSwarm
+cargo build --release
+
+# Try asking a question
+cargo run --release -- ask "What is xSwarm?"
+
+# Try a task
+cargo run --release -- do "analyze my git history"
+```
+
+### No API Key Development
+
+If you don't have an API key yet, you can still:
+- ✅ Build and run xSwarm CLI
+- ✅ Manage personas
+- ✅ Configure settings
+- ✅ Work on UI/TUI components
+- ✅ Test configuration system
+- ❌ Use `ask` or `do` commands (requires API key)
+
+---
+
+## Development Workflow
+
+### Recommended Workflow
+
+```bash
+# 1. Start development services
+just dev
+
+# 2. Make changes to code
+
+# 3. Run tests
+just test
+
+# 4. Format code
+just format
+
+# 5. Check for issues
+just check
+
+# 6. Build
+just build
+
+# 7. Test locally
+cargo run -- persona list
+cargo run -- config show
+```
+
+### Project Structure
+
+```
+xswarm-boss/
+├── packages/
+│   ├── core/              # Main Rust binary (xswarm CLI)
+│   │   ├── src/
+│   │   │   ├── main.rs    # CLI entry point
+│   │   │   ├── ai.rs      # AI API integration
+│   │   │   ├── config.rs  # Configuration management
+│   │   │   ├── platform.rs # Platform detection
+│   │   │   └── docs.rs    # Documentation indexing
+│   │   └── Cargo.toml
+│   ├── mcp-server/        # MCP isolation server (stub)
+│   ├── indexer/           # Semantic search library
+│   ├── personas/          # AI personality themes
+│   └── docs/              # Documentation site
+├── distribution/          # Packaging configs
+├── planning/              # Design documents
+├── justfile               # Task runner
+├── Cargo.toml             # Rust workspace
+└── pnpm-workspace.yaml    # Node.js workspace
+```
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `packages/core/src/main.rs` | CLI commands and entry point |
+| `packages/core/src/ai.rs` | AI API integration (Anthropic/OpenAI) |
+| `packages/core/src/config.rs` | TOML configuration system |
+| `packages/core/src/platform.rs` | Cross-platform compatibility |
+| `justfile` | Build and task automation |
+
+### Common Tasks
+
+```bash
+# Development
+just run ask "test query"       # Run with arguments
+just run config show            # Show configuration
+just run persona list           # List personas
+
+# Build variants
+just build                      # Debug build (fast)
+just build-release             # Release build (optimized)
+just build-native              # Native platform only
+
+# Code quality
+just format                    # Format all code
+just check                     # Lint with clippy
+just test                      # Run all tests
+
+# Cleaning
+just clean                     # Remove build artifacts
+```
+
+---
+
+## Testing
+
+### Run All Tests
+
+```bash
+just test
+```
+
+### Run Specific Tests
+
+```bash
+# Rust tests only
+cargo test --workspace
+
+# With logging
+RUST_LOG=debug cargo test --workspace
+
+# Specific package
+cargo test -p xswarm
+
+# Specific test
+cargo test test_platform_detection
+```
+
+### Docker Testing (Linux)
+
+```bash
+# Build Arch Linux dev container
+just docker-build
+
+# Run tests in container
+just docker-test
+
+# Interactive shell in container
+just docker-shell
+```
+
+---
+
+## Feature Status
+
+### ✅ Implemented
+
+- [x] Cross-platform builds (Mac, Linux, Windows)
+- [x] Configuration system (TOML)
+- [x] Persona/theme system (10 characters)
+- [x] CLI framework
+- [x] AI integration (Anthropic Claude, OpenAI)
+- [x] Platform detection
+- [x] Basic documentation indexing
+
+### 🚧 In Progress
+
+- [ ] Ratatui TUI Dashboard
+- [ ] Voice interface (stubbed)
+- [ ] Multi-machine orchestration
+- [ ] Memory system
+
+### 📋 Planned
+
+- [ ] Full MCP server implementation
+- [ ] Search UI integration
+- [ ] Desktop environment integration
+- [ ] Package distribution (AUR, Flatpak, Homebrew)
+
+---
+
+## Stubbed Features
+
+These features have configuration and stub implementations, but are not yet functional:
+
+### Voice Interface
+
+**Status:** Configuration exists, implementation stubbed
+
+The voice system is designed but not implemented. Configuration is in place:
+
 ```toml
-[overlord]
-theme = "hal-9000"
-voice_enabled = true
-wake_word = "hey hal"
-
 [voice]
 provider = "openai_realtime"
 model = "gpt-4o-realtime-preview"
-include_personality = true
 
 [audio]
 input_device = "default"
@@ -129,435 +441,213 @@ sample_rate = 16000
 [wake_word]
 engine = "porcupine"
 sensitivity = 0.5
-
-[gpu]
-use_local = false
-fallback = ["runpod", "anthropic"]
-
-[vassal]
-# Vassal config set during 'xswarm setup --mode vassal'
-# Not needed for overlord-only setups
-name = "speedy"
-host = "0.0.0.0"
-port = 9000
 ```
 
-## API Keys and Services
+**To contribute voice implementation:**
+- See `packages/core/src/ai.rs` (VoiceClient stub)
+- See `planning/ARCHITECTURE.md` for design
+- Options: OpenAI Realtime, STT→LLM→TTS pipeline, or local (MOSHI)
 
-### What You Need When
+### Search/Indexing
 
-**NO API KEYS NEEDED** for:
-- ✅ Theme development
-- ✅ CLI functionality
-- ✅ Documentation work
-- ✅ Core Rust architecture
-- ✅ Configuration system
-- ✅ Testing most features
+**Status:** Backend implemented, UI stubbed
 
-**API KEYS NEEDED** for:
-- ❌ Voice interface
-- ❌ AI-powered responses
-- ❌ Personality implementations
-- ❌ LLM conversations
+The `packages/indexer` library is functional with Meilisearch integration, but there's no UI yet.
 
-### Voice Interface Options
+**To develop search UI:**
+- Indexer API: `packages/indexer/src/client.rs`
+- Dashboard integration needed in `packages/core/src/main.rs`
 
-#### Option 1: OpenAI Realtime API (RECOMMENDED)
-
-**What it is:**
-Direct voice-to-voice conversation with GPT-4. Speaks in real-time with personality instructions.
-
-**Setup:**
-
-```bash
-# In .env (secrets only)
-OPENAI_API_KEY=sk-proj-your-key-here
-
-# In ~/.config/xswarm/config.toml
-[voice]
-provider = "openai_realtime"
-model = "gpt-4o-realtime-preview"
-include_personality = true
-```
-
-**Cost:**
-- Audio input: ~$0.06/minute
-- Audio output: ~$0.24/minute
-- Total: ~$0.30/minute (~$18/hour)
-
-**Pros:**
-- ✅ Direct voice-to-voice (fast, natural)
-- ✅ Can inject personality instructions
-- ✅ Low latency
-- ✅ One API call
-
-**Cons:**
-- ❌ More expensive
-- ❌ Voice won't sound exactly like HAL/Sauron/etc
-- ❌ Less control over voice characteristics
-
-**Best for:** Quick prototyping, natural conversations
-
-#### Option 2: Traditional Pipeline (STT → LLM → TTS)
-
-**What it is:**
-Speech-to-Text → Claude/GPT (with personality) → Text-to-Speech
-
-**Setup:**
-
-```bash
-# In .env (secrets only)
-OPENAI_API_KEY=sk-your-whisper-key
-ANTHROPIC_API_KEY=sk-ant-your-claude-key
-ELEVENLABS_API_KEY=your-elevenlabs-key
-
-# In ~/.config/xswarm/config.toml
-[voice]
-provider = "pipeline"
-
-[voice.pipeline]
-stt_provider = "openai_whisper"  # or deepgram
-llm_provider = "anthropic"        # Claude for personality
-tts_provider = "elevenlabs"       # or openai_tts
-```
-
-**Cost (per minute):**
-- Whisper STT: ~$0.006
-- Claude API: ~$0.01-0.05
-- ElevenLabs TTS: ~$0.30
-- Total: ~$0.35-0.40/minute
-
-**Pros:**
-- ✅ Better voice quality (ElevenLabs)
-- ✅ Can use Claude for personality (better than GPT-4)
-- ✅ More control over each step
-- ✅ Can clone specific voices
-
-**Cons:**
-- ❌ Higher latency (3 API calls)
-- ❌ More complex setup
-- ❌ Slightly more expensive
-
-**Best for:** Production, specific voice requirements
-
-#### Option 3: Local Voice (Free, Private)
-
-**What it is:**
-Run everything locally with open source models.
-
-**Requirements:**
-- GPU with 8GB+ VRAM
-- Or accept CPU-only (slower)
-
-**Setup:**
-
-```bash
-# In ~/.config/xswarm/config.toml
-[gpu]
-use_local = true
-
-[voice]
-provider = "local"
-
-[voice.local]
-stt_model = "whisper.cpp"
-llm_model = "llama3-70b"  # or smaller
-tts_model = "coqui-tts"
-model_path = "~/.local/share/xswarm/models/"
-
-# Install dependencies
-brew install llama.cpp whisper.cpp
-```
-
-**Cost:** $0 (just electricity)
-
-**Pros:**
-- ✅ Completely free
-- ✅ Fully private
-- ✅ Works offline
-- ✅ No rate limits
-
-**Cons:**
-- ❌ Requires powerful hardware
-- ❌ Slower than API
-- ❌ More setup complexity
-- ❌ Voice quality varies
-
-**Best for:** Privacy-focused, long-term use, offline work
-
-### Wake Word Detection (Local, No API)
-
-Wake word detection runs **locally** using Porcupine (or similar):
-
-```toml
-# In ~/.config/xswarm/config.toml
-[wake_word]
-engine = "porcupine"
-sensitivity = 0.5  # 0.0 to 1.0
-```
-
-**Supported engines:**
-- **Porcupine** (Picovoice) - Best accuracy, free tier
-- **Snowboy** - Older but works
-- **Vosk** - Open source alternative
-
-No API key needed for wake words! This runs on your Mac.
-
-## Recommended Development Path
-
-### Phase 1: No API Keys (Week 1)
-
-Focus on core functionality:
-
-```bash
-# 1. Build and test CLI
-cargo run -- theme list
-cargo run -- theme switch marvin
-cargo run -- config show
-
-# 2. Develop new themes
-# Add files to packages/themes/your-theme/
-
-# 3. Work on docs
-cd packages/docs
-pnpm dev  # http://localhost:4321
-
-# 4. Core Rust architecture
-# Implement task tracking, project management, etc.
-```
-
-### Phase 2: Add Text API (Week 2)
-
-Add just Claude for text-based testing:
-
-```bash
-# .env
-ANTHROPIC_API_KEY=sk-ant-your-key
-
-# Test AI responses (no voice)
-cargo run -- ask "what's my project status?"
-```
-
-**Cost:** ~$0.10-0.50 per dev session
-
-### Phase 3: Add Voice (Week 3+)
-
-Start with OpenAI Realtime for quick testing:
-
-```bash
-# In .env (secrets)
-OPENAI_API_KEY=sk-proj-your-key
-
-# In config.toml
-[voice]
-provider = "openai_realtime"
-
-# Test voice
-cargo run -- daemon
-# Say: "Hey HAL, hello!"
-```
-
-**Cost:** ~$5-10 per dev session
-
-### Phase 4: Optimize (Later)
-
-Switch to pipeline for better quality:
-
-```bash
-# In .env (add secrets)
-ANTHROPIC_API_KEY=sk-ant-your-key
-ELEVENLABS_API_KEY=your-elevenlabs-key
-DEEPGRAM_API_KEY=your-deepgram-key
-
-# In config.toml
-[voice]
-provider = "pipeline"
-
-[voice.pipeline]
-stt_provider = "deepgram"
-llm_provider = "anthropic"
-tts_provider = "elevenlabs"
-```
-
-## Common Development Tasks
-
-### Build Commands
-
-```bash
-# Build everything
-just build
-
-# Build in release mode
-just build-release
-
-# Build only Rust
-cargo build --workspace
-
-# Build only docs
-cd packages/docs && pnpm build
-
-# Watch and rebuild on changes
-cargo watch -x 'run -- theme list'
-```
-
-### Testing
-
-```bash
-# Run all tests
-just test
-
-# Run only Rust tests
-cargo test --workspace
-
-# Run tests in Docker
-just docker-test
-
-# Run with verbose logging
-RUST_LOG=debug cargo test
-```
-
-### Documentation
-
-```bash
-# Start docs dev server
-cd packages/docs
-pnpm dev
-
-# Build docs
-pnpm build
-
-# Check for broken links
-pnpm check
-```
-
-### Packaging
-
-```bash
-# Build .deb package
-just package-deb
-
-# Build static binaries
-just package-static
-
-# Build all packages
-just package-all
-```
-
-## IDE Setup
-
-### VS Code
-
-**Recommended Extensions:**
-- **rust-analyzer** - Rust IDE support
-- **Even Better TOML** - TOML/YAML editing
-- **Astro** - Documentation site
-- **CodeLLDB** - Debugging
-
-**Settings** (`.vscode/settings.json`):
-
-```json
-{
-  "rust-analyzer.cargo.features": "all",
-  "rust-analyzer.checkOnSave.command": "clippy",
-  "[rust]": {
-    "editor.formatOnSave": true
-  },
-  "rust-analyzer.lens.references.adt.enable": true,
-  "rust-analyzer.lens.references.trait.enable": true
-}
-```
-
-### CLion / RustRover
-
-Works great out of the box. Just open the project directory.
+---
 
 ## Troubleshooting
 
-### "Failed to compile"
+### Common Issues
+
+**"cross-compilation requires cross or cargo-xwin"**
+```bash
+cargo install cross
+```
+
+**"API key not configured"**
+```bash
+export ANTHROPIC_API_KEY='your-key'
+# Or
+export OPENAI_API_KEY='your-key'
+```
+
+**"Docker services not starting"**
+```bash
+# Check Docker is running
+docker ps
+
+# Restart services
+just dev-stop
+just dev
+```
+
+**"lipo: can't open input file"** (macOS Universal Build)
+```bash
+# Make sure both architectures are built first
+rustup target add aarch64-apple-darwin
+rustup target add x86_64-apple-darwin
+```
+
+**Build fails on Linux with musl target**
+```bash
+# Install musl toolchain
+rustup target add x86_64-unknown-linux-musl
+```
+
+### Getting Help
+
+- **Documentation:** See `planning/` directory for detailed design docs
+- **Issues:** https://github.com/chadananda/xswarm-boss/issues
+- **Architecture:** See `planning/ARCHITECTURE.md`
+- **Features:** See `planning/FEATURES.md`
+
+---
+
+## Contributing
+
+### Before Contributing
+
+1. Read `planning/CODESTYLE.md` for coding standards
+2. Review `planning/ARCHITECTURE.md` for system design
+3. Check `planning/TODO.md` for current priorities
+
+### Development Cycle
 
 ```bash
-# Update Rust
-rustup update
+# 1. Create feature branch
+git checkout -b feature/my-feature
 
-# Clean build
-cargo clean
-just build
+# 2. Make changes and test
+just test
+
+# 3. Format and check
+just format
+just check
+
+# 4. Commit with descriptive message
+git commit -m "feat: add voice recognition stub"
+
+# 5. Push and create PR
+git push origin feature/my-feature
 ```
 
-### "Docker compose not found"
+### Testing Checklist
+
+- [ ] Code compiles on your platform
+- [ ] Tests pass (`just test`)
+- [ ] Code is formatted (`just format`)
+- [ ] No clippy warnings (`just check`)
+- [ ] Documentation updated if needed
+
+---
+
+## Platform-Specific Notes
+
+### macOS
+
+- **Apple Silicon** is the primary development platform
+- Use `just build-macos-arm` for fastest builds
+- Intel builds work via Rosetta but are slower
+- Docker Desktop required for dev services
+
+### Linux
+
+- **Arch Linux** is the primary testing platform
+- systemd integration only works on Linux
+- Use `just docker-shell` for containerized testing
+- Flatpak/AppImage builds planned
+
+### Windows
+
+- **WSL2** required for development
+- Native Windows builds are for testing only
+- Voice features may not work natively yet
+- Use Linux commands inside WSL2
+
+---
+
+## What to Work On
+
+### Good First Issues
+
+- [ ] Improve platform detection edge cases
+- [ ] Add more persona personalities
+- [ ] Write integration tests
+- [ ] Improve error messages
+- [ ] Add configuration validation
+
+### High Priority
+
+- [ ] Ratatui TUI implementation
+- [ ] Voice interface (any backend)
+- [ ] Search UI integration
+- [ ] Memory system foundation
+
+### Advanced
+
+- [ ] Multi-machine WebSocket orchestration
+- [ ] MCP server implementation
+- [ ] Desktop environment integration
+- [ ] Package distribution
+
+---
+
+## Resources
+
+### Documentation
+
+- [Architecture](planning/ARCHITECTURE.md) - System design
+- [Features](planning/FEATURES.md) - Feature roadmap
+- [PRD](planning/PRD.md) - Product requirements
+- [Security](planning/SECURITY.md) - Security model
+- [Testing](planning/TESTING.md) - Test strategy
+
+### Tools
+
+- [Just](https://github.com/casey/just) - Task runner
+- [Ratatui](https://ratatui.rs/) - Terminal UI
+- [Clap](https://docs.rs/clap/) - CLI framework
+- [Tokio](https://tokio.rs/) - Async runtime
+- [Anthropic](https://docs.anthropic.com/) - Claude API
+
+---
+
+## Quick Reference
 
 ```bash
-# Install Docker Desktop for Mac
-brew install --cask docker
+# Setup
+just setup                    # Install dependencies
+just platform-info            # Check platform
+
+# Building
+just build                    # Debug build
+just build-release            # Release build
+just build-macos-arm          # macOS Apple Silicon
+just build-windows            # Windows cross-compile
+just build-all-platforms      # All platforms
+
+# Development
+just dev                      # Start services
+just dev-stop                 # Stop services
+just run <args>              # Run xSwarm
+just test                     # Run tests
+just format                   # Format code
+just check                    # Lint code
+
+# Cleaning
+just clean                    # Remove artifacts
+
+# Packages
+just package-deb             # Debian package
+just package-static          # Static binaries
+just package-all             # All packages
 ```
 
-### "pnpm command not found"
+---
 
-```bash
-npm install -g pnpm
-```
-
-### "Can't access microphone"
-
-macOS requires permission:
-1. System Settings → Privacy & Security → Microphone
-2. Enable Terminal (or your IDE)
-
-### Voice not working
-
-```bash
-# Check .env has correct keys
-cat .env | grep OPENAI
-
-# Test with debug logging
-RUST_LOG=debug cargo run -- daemon
-
-# Check audio devices
-cargo run -- config audio-test
-```
-
-## Project Structure
-
-```
-xswarm-boss/
-├── packages/
-│   ├── core/           # Main Rust binary
-│   ├── mcp-server/     # Secret isolation server
-│   ├── indexer/        # Semantic search
-│   ├── themes/         # Personality themes
-│   └── docs/           # Astro documentation
-├── distribution/       # Package configs
-│   ├── systemd/       # systemd services
-│   ├── aur/           # Arch Linux
-│   ├── debian/        # .deb packages
-│   └── flatpak/       # Flatpak
-├── planning/          # Design docs
-├── .env.example       # Environment template
-└── justfile           # Task runner
-```
-
-## Next Steps
-
-1. **Start without API keys** - Build core functionality
-2. **Add Anthropic key** - Test text-based AI
-3. **Add OpenAI key** - Test voice interface
-4. **Iterate on themes** - Perfect personality responses
-5. **Add features** - Multi-machine, memory, etc.
-
-## Getting Help
-
-- **GitHub Discussions:** Ask questions
-- **Issues:** Report bugs
-- **Discord:** (Coming soon)
-
-## Cost Summary
-
-**Minimum to get started:** $0
-
-**With text AI:** ~$5-10/month (Anthropic)
-
-**With voice AI:** ~$20-50/month (OpenAI Realtime or pipeline)
-
-**For serious development:** ~$50-100/month (all services)
-
-Start free, add services as needed!
+Happy hacking! 🚀

@@ -36,3 +36,6 @@ tokio-tungstenite = "0.21"
 # Documentation indexing
 walkdir = "2.4"
 scraper = "0.18"
+
+# HTTP client for AI APIs
+reqwest = { version = "0.11", features = ["json"] }

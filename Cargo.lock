@@ -4209,6 +4209,7 @@ dependencies = [
  "crossterm",
  "dirs",
  "ratatui",
+ "reqwest 0.11.27",
  "scraper",
  "serde",
  "serde_json",

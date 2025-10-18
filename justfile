@@ -94,6 +94,74 @@ status:
     @echo "Docker:"
     @docker compose ps || echo "Docker Compose not running"
 
+# === Cross-Platform Development ===
+
+# Build for current platform (auto-detect)
+build-native:
+    @echo "🔨 Building for native platform..."
+    cargo build --workspace --release
+
+# Build for macOS (Apple Silicon)
+build-macos-arm:
+    @echo "🍎 Building for macOS (Apple Silicon)..."
+    cargo build --workspace --release --target aarch64-apple-darwin
+
+# Build for macOS (Intel)
+build-macos-intel:
+    @echo "🍎 Building for macOS (Intel)..."
+    cargo build --workspace --release --target x86_64-apple-darwin
+
+# Build for macOS (Universal Binary)
+build-macos-universal: build-macos-arm build-macos-intel
+    @echo "🍎 Creating universal binary..."
+    mkdir -p target/universal-apple-darwin/release
+    lipo -create \
+        target/aarch64-apple-darwin/release/xswarm \
+        target/x86_64-apple-darwin/release/xswarm \
+        -output target/universal-apple-darwin/release/xswarm
+    @echo "✅ Universal binary created at target/universal-apple-darwin/release/xswarm"
+
+# Build for Windows (x86_64) - requires cross or cargo-xwin
+build-windows:
+    @echo "🪟 Building for Windows (x86_64)..."
+    @echo "Installing cross if needed..."
+    cargo install cross --quiet || true
+    cross build --workspace --release --target x86_64-pc-windows-gnu
+
+# Build for Linux (x86_64)
+build-linux:
+    @echo "🐧 Building for Linux (x86_64)..."
+    cargo build --workspace --release --target x86_64-unknown-linux-gnu
+
+# Build for Linux (ARM64)
+build-linux-arm:
+    @echo "🐧 Building for Linux (ARM64)..."
+    cargo install cross --quiet || true
+    cross build --workspace --release --target aarch64-unknown-linux-gnu
+
+# Build for all development platforms (Mac, Windows, Linux)
+build-all-platforms: build-macos-universal build-windows build-linux
+    @echo "✅ Built for all platforms!"
+    @echo ""
+    @echo "📦 Platform binaries:"
+    @echo "  macOS (Universal): target/universal-apple-darwin/release/xswarm"
+    @echo "  Windows (x86_64):  target/x86_64-pc-windows-gnu/release/xswarm.exe"
+    @echo "  Linux (x86_64):    target/x86_64-unknown-linux-gnu/release/xswarm"
+
+# Check platform and show build instructions
+platform-info:
+    @echo "🖥️  Platform Detection"
+    @echo ""
+    @uname -s | grep -q "Darwin" && echo "Platform: macOS" || true
+    @uname -s | grep -q "Linux" && echo "Platform: Linux" || true
+    @uname -m | grep -q "arm64" && echo "Architecture: ARM64 (Apple Silicon)" || true
+    @uname -m | grep -q "x86_64" && echo "Architecture: x86_64 (Intel)" || true
+    @echo ""
+    @echo "Recommended build command:"
+    @uname -s | grep -q "Darwin" && uname -m | grep -q "arm64" && echo "  just build-macos-arm" || true
+    @uname -s | grep -q "Darwin" && uname -m | grep -q "x86_64" && echo "  just build-macos-intel" || true
+    @uname -s | grep -q "Linux" && echo "  just build-linux" || true
+
 # === Package Distribution ===
 
 # Build .deb package

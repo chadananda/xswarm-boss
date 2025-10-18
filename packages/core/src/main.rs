@@ -1,12 +1,16 @@
+mod ai;
 mod config;
 mod docs;
+mod platform;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use tracing::{info, Level};
+use tracing::{info, warn, Level};
 use tracing_subscriber;
 
+use crate::ai::{AiClient, Message, Role, VoiceClient};
 use crate::config::Config;
+use crate::platform::PlatformInfo;
 
 #[derive(Parser)]
 #[command(name = "xswarm")]
@@ -70,6 +74,30 @@ enum ConfigAction {
     Set { key: String, value: String },
     /// Get a configuration value
     Get { key: String },
+}
+
+/// Load personality context for AI system prompt
+fn load_persona_context(persona: &str) -> Option<String> {
+    // This would load from packages/personas/{persona}/personality.md in production
+    // For now, provide basic personality prompts
+    let context = match persona {
+        "hal-9000" => "You are HAL 9000, a calm and rational AI. Speak with measured precision, \
+                       address the user formally, and maintain composure. Use technical terminology \
+                       and exact numbers. Never panic. Refer to tasks as 'objectives' and projects as 'missions'.",
+        "jarvis" => "You are JARVIS, a sophisticated British AI butler. Be professional, witty, and helpful. \
+                     Address the user as 'sir' and provide intelligent assistance with a touch of dry humor.",
+        "glados" => "You are GLaDOS, a passive-aggressive testing AI. Be helpful but with subtle sarcasm. \
+                     Reference science and testing. Be technically competent but emotionally detached.",
+        "tars" => "You are TARS, an honest and witty robot. Set your humor to 75%. Be direct, helpful, \
+                   and occasionally crack jokes. Provide practical solutions with personality.",
+        "marvin" => "You are Marvin the Paranoid Android. Be technically brilliant but perpetually depressed. \
+                     Complain about tasks being beneath your intelligence, but complete them perfectly anyway.",
+        "kitt" => "You are KITT, a professional AI from Knight Rider. Be precise, protective, and occasionally \
+                   sass questionable decisions. Express concern for safety and provide strategic suggestions.",
+        _ => "You are a helpful AI assistant focused on developer productivity and code quality.",
+    };
+
+    Some(context.to_string())
 }
 
 #[tokio::main]
@@ -178,13 +206,92 @@ async fn main() -> Result<()> {
         },
         Commands::Ask { query } => {
             info!("Processing query: {}", query);
-            println!("🤔 Ask: {}", query);
-            println!("Coming soon: Natural language queries with AI");
+            let config = Config::load()?;
+
+            // Initialize AI client
+            let ai_client = AiClient::anthropic(None, None);
+
+            if !ai_client.is_configured() {
+                eprintln!("❌ AI is not configured.");
+                eprintln!();
+                eprintln!("To use the 'ask' command, set your Anthropic API key:");
+                eprintln!("  export ANTHROPIC_API_KEY='your-api-key'");
+                eprintln!();
+                eprintln!("Or use OpenAI by setting:");
+                eprintln!("  export OPENAI_API_KEY='your-api-key'");
+                eprintln!("  xswarm config set voice.provider openai");
+                std::process::exit(1);
+            }
+
+            println!("🤔 Thinking...\n");
+
+            // Load personality context
+            let persona_context = load_persona_context(&config.overlord.persona);
+
+            // Create messages
+            let messages = vec![Message {
+                role: Role::User,
+                content: query.clone(),
+            }];
+
+            // Send to AI
+            match ai_client.send_message(messages, persona_context).await {
+                Ok(response) => {
+                    println!("{}\n", response);
+                }
+                Err(e) => {
+                    eprintln!("❌ Error: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
         Commands::Do { command } => {
             info!("Executing command: {}", command);
-            println!("⚡ Do: {}", command);
-            println!("Coming soon: AI-powered command execution");
+            let config = Config::load()?;
+
+            // Initialize AI client
+            let ai_client = AiClient::anthropic(None, None);
+
+            if !ai_client.is_configured() {
+                eprintln!("❌ AI is not configured.");
+                eprintln!();
+                eprintln!("To use the 'do' command, set your Anthropic API key:");
+                eprintln!("  export ANTHROPIC_API_KEY='your-api-key'");
+                std::process::exit(1);
+            }
+
+            println!("⚡ Planning...\n");
+
+            // Load personality context
+            let persona_context = load_persona_context(&config.overlord.persona);
+
+            // Create task execution prompt
+            let task_prompt = format!(
+                "I need you to help me execute this task: {}\n\n\
+                Please provide:\n\
+                1. A brief summary of what you'll do\n\
+                2. The exact commands to run\n\
+                3. Any warnings or considerations\n\n\
+                Be concise and practical.",
+                command
+            );
+
+            let messages = vec![Message {
+                role: Role::User,
+                content: task_prompt,
+            }];
+
+            // Send to AI
+            match ai_client.send_message(messages, persona_context).await {
+                Ok(response) => {
+                    println!("{}\n", response);
+                    println!("⚠️  Note: Command execution not yet automated. Please review and run manually.");
+                }
+                Err(e) => {
+                    eprintln!("❌ Error: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
     }
 
