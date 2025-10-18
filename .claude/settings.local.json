@@ -7,7 +7,8 @@
       "WebFetch(domain:commons.wikimedia.org)",
       "WebFetch(domain:docs.redhat.com)",
       "WebFetch(domain:kifarunix.com)",
-      "WebFetch(domain:learn.omacom.io)"
+      "WebFetch(domain:learn.omacom.io)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

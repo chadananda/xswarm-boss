@@ -21,11 +21,13 @@ theme-name/
 
 - **hal-9000** 🔴 - Calm, rational AI with mission-focused communication (2001: A Space Odyssey)
 - **sauron** 👁️ - Dark, commanding overlord with imperious language (Lord of the Rings)
-- **jarvis** 💙 - Sophisticated British butler AI (Iron Man) - *Coming soon*
-- **dalek** ⚡ - Authoritarian extermination units (Doctor Who) - *Coming soon*
-- **c3po** 🌟 - Anxious protocol droid (Star Wars) - *Coming soon*
-- **glados** 🧪 - Passive-aggressive testing AI (Portal) - *Coming soon*
-- **tars** 🤖 - Honest, humorous robot (Interstellar) - *Coming soon*
+- **jarvis** 💙 - Sophisticated British butler AI (Iron Man)
+- **dalek** 🤖 - Aggressive cyborg extermination units (Doctor Who)
+- **c3po** 🤖 - Anxious protocol droid concerned about odds (Star Wars)
+- **glados** 🔬 - Passive-aggressive science AI obsessed with testing (Portal)
+- **tars** ◼️ - Honest, witty robot with configurable humor settings (Interstellar)
+- **marvin** 😔 - Depressed paranoid android with massive intellect (Hitchhiker's Guide)
+- **kitt** 🚗 - Professional AI car, technically proficient and protective (Knight Rider)
 
 ## Creating a Theme
 
