@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <title>KITT Scanner</title>
+
+  <defs>
+    <!-- Main scanner gradient with depth -->
+    <linearGradient id="scannerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#330000" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#ff0000" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#ff3333" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#ff0000" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#ff3333" stop-opacity="0.8"/>
+      <stop offset="80%" stop-color="#ff0000" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#330000" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Bright core gradient -->
+    <linearGradient id="coreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#660000" stop-opacity="0"/>
+      <stop offset="35%" stop-color="#ff6666" stop-opacity="0.5"/>
+      <stop offset="50%" stop-color="#ffcccc" stop-opacity="1"/>
+      <stop offset="65%" stop-color="#ff6666" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#660000" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Outer glow -->
+    <radialGradient id="glowGradient">
+      <stop offset="0%" stop-color="#ff0000" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#ff0000" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#ff0000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Static light gradients -->
+    <radialGradient id="staticLight">
+      <stop offset="0%" stop-color="#ff0000" stop-opacity="0.4"/>
+      <stop offset="70%" stop-color="#660000" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#330000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Blur filter for glow -->
+    <filter id="blur1">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+    <filter id="blur2">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" fill="#000000"/>
+
+  <!-- Background static lights with proper spacing -->
+  <g opacity="0.12">
+    <rect x="20" y="120" width="16" height="16" fill="url(#staticLight)" rx="2"/>
+    <rect x="56" y="120" width="16" height="16" fill="url(#staticLight)" rx="2"/>
+    <rect x="92" y="120" width="16" height="16" fill="url(#staticLight)" rx="2"/>
+    <rect x="128" y="120" width="16" height="16" fill="url(#staticLight)" rx="2"/>
+    <rect x="164" y="120" width="16" height="16" fill="url(#staticLight)" rx="2"/>
+    <rect x="200" y="120" width="16" height="16" fill="url(#staticLight)" rx="2"/>
+  </g>
+
+  <!-- Outer glow layer (largest, most diffuse) -->
+  <ellipse cx="64" cy="128" rx="80" ry="40" fill="url(#glowGradient)" opacity="0.4" filter="url(#blur2)">
+    <animate attributeName="cx" values="0;196;0" dur="1.5s" repeatCount="indefinite"/>
+  </ellipse>
+
+  <!-- Middle glow layer -->
+  <rect x="20" y="112" width="60" height="32" fill="url(#scannerGradient)" opacity="0.5" rx="6" filter="url(#blur1)">
+    <animate attributeName="x" values="-20;216;-20" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Main scanner bar -->
+  <rect x="20" y="116" width="60" height="24" fill="url(#scannerGradient)" rx="4">
+    <animate attributeName="x" values="-20;216;-20" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Bright core highlight -->
+  <rect x="20" y="122" width="60" height="12" fill="url(#coreGradient)" opacity="0.9" rx="3">
+    <animate attributeName="x" values="-20;216;-20" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Top highlight shine -->
+  <rect x="24" y="118" width="52" height="4" fill="#ffffff" opacity="0.3" rx="2">
+    <animate attributeName="x" values="-16;220;-16" dur="1.5s" repeatCount="indefinite"/>
+  </rect>
+</svg>

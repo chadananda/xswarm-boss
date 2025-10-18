@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <title>Cylon Centurion</title>
+
+  <defs>
+    <!-- Scanner gradient with more depth -->
+    <linearGradient id="cylonScan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#330000" stop-opacity="0"/>
+      <stop offset="20%" stop-color="#ff0000" stop-opacity="0.3"/>
+      <stop offset="40%" stop-color="#ff3333" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#ff0000" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#ff3333" stop-opacity="0.7"/>
+      <stop offset="80%" stop-color="#ff0000" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#330000" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Bright scanner core -->
+    <linearGradient id="scanCore" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#660000" stop-opacity="0"/>
+      <stop offset="40%" stop-color="#ff9999" stop-opacity="0.6"/>
+      <stop offset="50%" stop-color="#ffcccc" stop-opacity="1"/>
+      <stop offset="60%" stop-color="#ff9999" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#660000" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Helmet metallic gradient -->
+    <linearGradient id="helmetGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d0d0d0"/>
+      <stop offset="20%" stop-color="#a8a8a8"/>
+      <stop offset="50%" stop-color="#808080"/>
+      <stop offset="80%" stop-color="#5a5a5a"/>
+      <stop offset="100%" stop-color="#404040"/>
+    </linearGradient>
+
+    <!-- Helmet shine gradient -->
+    <linearGradient id="helmetShine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.6"/>
+      <stop offset="40%" stop-color="#e0e0e0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#808080" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Scanner glow filter -->
+    <filter id="scanGlow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="3"/>
+    </filter>
+    <filter id="scanGlow2">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" fill="#2a2a2a"/>
+
+  <!-- Back helmet layer (shadow) -->
+  <rect x="36" y="82" width="184" height="92" fill="#404040" rx="20" opacity="0.5"/>
+
+  <!-- Main helmet base -->
+  <rect x="32" y="75" width="192" height="106" fill="url(#helmetGradient)" rx="18"/>
+
+  <!-- Helmet top shine -->
+  <rect x="36" y="78" width="184" height="45" fill="url(#helmetShine)" rx="16" opacity="0.4"/>
+
+  <!-- Scanner visor area (darker inset) -->
+  <rect x="40" y="115" width="176" height="50" fill="#1a1a1a" rx="8"/>
+
+  <!-- Visor inner shadow -->
+  <rect x="44" y="119" width="168" height="42" fill="#0f0f0f" rx="6"/>
+
+  <!-- Widest scanner glow (backdrop) -->
+  <ellipse cx="100" cy="140" rx="70" ry="30" fill="url(#cylonScan)" opacity="0.25" filter="url(#scanGlow2)">
+    <animate attributeName="cx" values="70;186;70" dur="1.2s" repeatCount="indefinite"/>
+  </ellipse>
+
+  <!-- Middle scanner glow -->
+  <rect x="50" y="125" width="60" height="30" fill="url(#cylonScan)" opacity="0.5" rx="4" filter="url(#scanGlow)">
+    <animate attributeName="x" values="40;156;40" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Main scanner bar -->
+  <rect x="50" y="130" width="60" height="20" fill="url(#cylonScan)" rx="3">
+    <animate attributeName="x" values="40;156;40" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Scanner bright core -->
+  <rect x="54" y="134" width="52" height="12" fill="url(#scanCore)" opacity="0.9" rx="2">
+    <animate attributeName="x" values="44;160;44" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Scanner top highlight -->
+  <rect x="56" y="132" width="48" height="4" fill="#ffffff" opacity="0.4" rx="2">
+    <animate attributeName="x" values="46;162;46" dur="1.2s" repeatCount="indefinite"/>
+  </rect>
+
+  <!-- Helmet detail lines -->
+  <g opacity="0.15" stroke="#000000" stroke-width="2">
+    <line x1="64" y1="80" x2="64" y2="176"/>
+    <line x1="96" y1="80" x2="96" y2="176"/>
+    <line x1="128" y1="80" x2="128" y2="176"/>
+    <line x1="160" y1="80" x2="160" y2="176"/>
+    <line x1="192" y1="80" x2="192" y2="176"/>
+  </g>
+
+  <!-- Helmet panel edges -->
+  <g opacity="0.2" fill="none" stroke="#ffffff" stroke-width="1.5">
+    <rect x="34" y="77" width="188" height="102" rx="17"/>
+    <rect x="42" y="117" width="172" height="46" rx="7"/>
+  </g>
+
+  <!-- Helmet side vents (detail) -->
+  <g opacity="0.3" fill="#1a1a1a">
+    <rect x="36" y="95" width="8" height="60" rx="2"/>
+    <rect x="212" y="95" width="8" height="60" rx="2"/>
+  </g>
+</svg>

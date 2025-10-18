@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <title>DALEK Eyestalk</title>
+
+  <defs>
+    <!-- Bronze/brass metallic gradient -->
+    <linearGradient id="bronzeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#cd853f"/>
+      <stop offset="30%" stop-color="#b8860b"/>
+      <stop offset="70%" stop-color="#8b6914"/>
+      <stop offset="100%" stop-color="#5a4a1f"/>
+    </linearGradient>
+
+    <!-- Eyestalk gradient -->
+    <linearGradient id="stalkGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5a4a1f"/>
+      <stop offset="50%" stop-color="#8b6914"/>
+      <stop offset="100%" stop-color="#5a4a1f"/>
+    </linearGradient>
+
+    <!-- Blue eye lens gradient -->
+    <radialGradient id="eyeLens">
+      <stop offset="0%" stop-color="#e6f7ff"/>
+      <stop offset="20%" stop-color="#66d9ff"/>
+      <stop offset="50%" stop-color="#0099ff"/>
+      <stop offset="80%" stop-color="#0066cc"/>
+      <stop offset="100%" stop-color="#003366"/>
+    </radialGradient>
+
+    <!-- Eye glow gradient -->
+    <radialGradient id="eyeGlow">
+      <stop offset="0%" stop-color="#66d9ff" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#0099ff" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#003d7a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Shadow gradient -->
+    <radialGradient id="shadowGrad">
+      <stop offset="0%" stop-color="#000000" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glow filter -->
+    <filter id="glow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" fill="#1a1510"/>
+
+  <!-- Main dome shadow -->
+  <ellipse cx="130" cy="135" rx="85" ry="70" fill="url(#shadowGrad)" opacity="0.6"/>
+
+  <!-- Dome base (top section of Dalek head) -->
+  <ellipse cx="128" cy="130" rx="85" ry="70" fill="url(#bronzeGradient)"/>
+
+  <!-- Dome highlight -->
+  <ellipse cx="128" cy="110" rx="50" ry="30" fill="#daa520" opacity="0.4"/>
+
+  <!-- Dome panel lines -->
+  <g opacity="0.3" stroke="#5a4a1f" stroke-width="2" fill="none">
+    <ellipse cx="128" cy="130" rx="75" ry="60"/>
+    <ellipse cx="128" cy="130" rx="65" ry="50"/>
+  </g>
+
+  <!-- Eyestalk base mount -->
+  <ellipse cx="128" cy="120" rx="20" ry="12" fill="#5a4a1f"/>
+  <ellipse cx="128" cy="118" rx="18" ry="10" fill="#8b6914"/>
+
+  <!-- Eyestalk arm (articulated sections) -->
+  <g>
+    <!-- Section 1 (base) -->
+    <rect x="120" y="95" width="16" height="25" fill="url(#stalkGradient)" rx="3"/>
+    <ellipse cx="128" cy="95" rx="9" ry="5" fill="#8b6914"/>
+    <ellipse cx="128" cy="120" rx="9" ry="5" fill="#5a4a1f"/>
+
+    <!-- Section 2 (middle joint) -->
+    <circle cx="128" cy="95" r="8" fill="#b8860b"/>
+    <circle cx="128" cy="95" r="6" fill="#5a4a1f"/>
+
+    <!-- Section 3 (upper arm) -->
+    <rect x="121" y="70" width="14" height="28" fill="url(#stalkGradient)" rx="3"/>
+    <ellipse cx="128" cy="70" rx="8" ry="4" fill="#8b6914"/>
+    <ellipse cx="128" cy="98" rx="8" ry="4" fill="#5a4a1f"/>
+
+    <!-- Section 4 (joint) -->
+    <circle cx="128" cy="70" r="7" fill="#b8860b"/>
+    <circle cx="128" cy="70" r="5" fill="#5a4a1f"/>
+  </g>
+
+  <!-- Eye lens housing -->
+  <circle cx="128" cy="60" r="32" fill="#2a2a2a"/>
+  <circle cx="128" cy="60" r="30" fill="#3a3a3a"/>
+
+  <!-- Eye lens rim (metallic) -->
+  <circle cx="128" cy="60" r="28" fill="none" stroke="url(#bronzeGradient)" stroke-width="4"/>
+
+  <!-- Eye glow aura (outer) -->
+  <circle cx="128" cy="60" r="35" fill="url(#eyeGlow)" opacity="0.5" filter="url(#glow)">
+    <animate attributeName="opacity" values="0.5;0.8;0.5" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Main eye lens -->
+  <circle cx="128" cy="60" r="24" fill="url(#eyeLens)">
+    <animate attributeName="r" values="24;26;24" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Inner eye glow -->
+  <circle cx="128" cy="60" r="18" fill="#66d9ff" opacity="0.8">
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Eye bright center -->
+  <circle cx="128" cy="60" r="10" fill="#e6f7ff">
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="2s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Lens reflection highlight -->
+  <ellipse cx="122" cy="54" rx="8" ry="10" fill="#ffffff" opacity="0.6"/>
+  <ellipse cx="120" cy="52" rx="4" ry="5" fill="#ffffff" opacity="0.8"/>
+
+  <!-- Lens glass detail rings -->
+  <g opacity="0.2" fill="none" stroke="#ffffff" stroke-width="1">
+    <circle cx="128" cy="60" r="22"/>
+    <circle cx="128" cy="60" r="16"/>
+    <circle cx="128" cy="60" r="12"/>
+  </g>
+
+  <!-- Dome sensor bumps (Dalek characteristic) -->
+  <g opacity="0.7">
+    <circle cx="80" cy="140" r="5" fill="#8b6914"/>
+    <circle cx="100" cy="150" r="5" fill="#8b6914"/>
+    <circle cx="120" cy="155" r="5" fill="#8b6914"/>
+    <circle cx="136" cy="155" r="5" fill="#8b6914"/>
+    <circle cx="156" cy="150" r="5" fill="#8b6914"/>
+    <circle cx="176" cy="140" r="5" fill="#8b6914"/>
+  </g>
+
+  <!-- Bump highlights -->
+  <g opacity="0.4" fill="#daa520">
+    <circle cx="79" cy="138" r="2"/>
+    <circle cx="99" cy="148" r="2"/>
+    <circle cx="119" cy="153" r="2"/>
+    <circle cx="135" cy="153" r="2"/>
+    <circle cx="155" cy="148" r="2"/>
+    <circle cx="175" cy="138" r="2"/>
+  </g>
+
+  <!-- Dome edge shadow -->
+  <ellipse cx="128" cy="195" rx="80" ry="15" fill="#000000" opacity="0.3"/>
+
+  <!-- Menacing eye beam hint -->
+  <line x1="128" y1="60" x2="128" y2="20" stroke="#66d9ff" stroke-width="3" opacity="0.3" stroke-linecap="round">
+    <animate attributeName="opacity" values="0.1;0.4;0.1" dur="2s" repeatCount="indefinite"/>
+  </line>
+</svg>

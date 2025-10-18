@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <title>Marvin the Paranoid Android</title>
+
+  <defs>
+    <!-- Dull metallic gradient -->
+    <radialGradient id="metallicHead">
+      <stop offset="0%" stop-color="#505050"/>
+      <stop offset="40%" stop-color="#3a3a3a"/>
+      <stop offset="80%" stop-color="#2a2a2a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </radialGradient>
+
+    <!-- Darker panel gradient -->
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3a3a3a"/>
+      <stop offset="50%" stop-color="#2a2a2a"/>
+      <stop offset="100%" stop-color="#1a1a1a"/>
+    </linearGradient>
+
+    <!-- Dim eye glow (depressed) -->
+    <radialGradient id="dimGlow">
+      <stop offset="0%" stop-color="#4d5e66"/>
+      <stop offset="50%" stop-color="#2a3840"/>
+      <stop offset="100%" stop-color="#1a2028"/>
+    </radialGradient>
+
+    <!-- Subtle glow filter -->
+    <filter id="subtleGlow">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="256" height="256" fill="#14171a"/>
+
+  <!-- Head shadow -->
+  <circle cx="130" cy="132" r="85" fill="#0a0a0a" opacity="0.5"/>
+
+  <!-- Main head (large round dome) -->
+  <circle cx="128" cy="128" r="85" fill="url(#metallicHead)"/>
+
+  <!-- Top highlight (dome shine) -->
+  <ellipse cx="128" cy="90" rx="50" ry="30" fill="#6a6a6a" opacity="0.3"/>
+
+  <!-- Face panel (darker inset area) -->
+  <rect x="68" y="100" width="120" height="80" fill="url(#panelGrad)" rx="12"/>
+
+  <!-- Panel detail lines -->
+  <g opacity="0.2" stroke="#505050" stroke-width="1.5" fill="none">
+    <rect x="70" y="102" width="116" height="76" rx="11"/>
+    <line x1="128" y1="105" x2="128" y2="175"/>
+  </g>
+
+  <!-- Eye sockets (depressed, droopy) -->
+  <ellipse cx="100" cy="125" rx="14" ry="16" fill="#1a1a1a"/>
+  <ellipse cx="156" cy="125" rx="14" ry="16" fill="#1a1a1a"/>
+
+  <!-- Dim eye glow (barely lit) -->
+  <ellipse cx="100" cy="125" rx="11" ry="13" fill="url(#dimGlow)" opacity="0.5">
+    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
+  </ellipse>
+  <ellipse cx="156" cy="125" rx="11" ry="13" fill="url(#dimGlow)" opacity="0.5">
+    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="4s" repeatCount="indefinite"/>
+  </ellipse>
+
+  <!-- Dim eye cores -->
+  <ellipse cx="100" cy="125" rx="6" ry="8" fill="#2a3840" opacity="0.7"/>
+  <ellipse cx="156" cy="125" rx="6" ry="8" fill="#2a3840" opacity="0.7"/>
+
+  <!-- Small highlights (depressed look) -->
+  <circle cx="98" cy="123" r="2" fill="#4d5e66" opacity="0.6"/>
+  <circle cx="154" cy="123" r="2" fill="#4d5e66" opacity="0.6"/>
+
+  <!-- Droopy eyebrow area (conveys sadness) -->
+  <path d="M 85 115 Q 100 118 115 115" fill="none" stroke="#1a1a1a" stroke-width="3" opacity="0.5"/>
+  <path d="M 141 115 Q 156 118 171 115" fill="none" stroke="#1a1a1a" stroke-width="3" opacity="0.5"/>
+
+  <!-- Downturned mouth area -->
+  <path d="M 95 155 Q 128 150 161 155" fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Mouth panel lines -->
+  <g opacity="0.3">
+    <line x1="100" y1="157" x2="156" y2="157" stroke="#0a0a0a" stroke-width="1.5"/>
+    <line x1="105" y1="162" x2="151" y2="162" stroke="#0a0a0a" stroke-width="1.5"/>
+  </g>
+
+  <!-- Side panels (ears) -->
+  <rect x="48" y="118" width="18" height="30" fill="url(#panelGrad)" rx="4"/>
+  <rect x="190" y="118" width="18" height="30" fill="url(#panelGrad)" rx="4"/>
+
+  <!-- Panel detail on sides -->
+  <g opacity="0.3">
+    <rect x="51" y="123" width="4" height="20" fill="#505050" rx="1"/>
+    <rect x="193" y="123" width="4" height="20" fill="#505050" rx="1"/>
+  </g>
+
+  <!-- Antenna nub on top -->
+  <rect x="120" y="38" width="16" height="8" fill="#3a3a3a" rx="2"/>
+  <rect x="124" y="32" width="8" height="8" fill="#2a2a2a" rx="1"/>
+
+  <!-- Very dim status light (barely active) -->
+  <circle cx="128" cy="68" r="4" fill="#2a3840" opacity="0.4">
+    <animate attributeName="opacity" values="0.2;0.4;0.2" dur="5s" repeatCount="indefinite"/>
+  </circle>
+
+  <!-- Bottom edge shadow -->
+  <ellipse cx="128" cy="205" rx="75" ry="10" fill="#000000" opacity="0.3"/>
+
+  <!-- Metallic edge highlights (subtle) -->
+  <g opacity="0.08" fill="#ffffff">
+    <ellipse cx="85" cy="110" rx="3" ry="20"/>
+    <ellipse cx="171" cy="110" rx="3" ry="20"/>
+  </g>
+
+  <!-- Depression lines (forehead) -->
+  <g opacity="0.15" stroke="#1a1a1a" stroke-width="2" fill="none">
+    <line x1="100" y1="95" x2="105" y2="90"/>
+    <line x1="151" y1="90" x2="156" y2="95"/>
+  </g>
+</svg>
