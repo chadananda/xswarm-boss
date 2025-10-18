@@ -109,7 +109,7 @@ Unlike cloud assistants or individual coding AIs, xSwarm provides:
 - 🗣️ **Voice-First Orchestration** - Give strategic commands, let xSwarm handle tactical execution
 - 🧠 **System-Wide Memory** - Semantic search across all projects, docs, and code on your system
 - 🔒 **Secure by Design** - Rules-based secret filtering, constant memory purging, no data leakage
-- 🎨 **Unnecessary Personality** - HAL, JARVIS, DALEK, C-3PO, GLaDOS, TARS, Sauron themes
+- 🎨 **Unnecessary Personality** - HAL, JARVIS, DALEK, C-3PO, GLaDOS, TARS, Marvin, Sauron themes
 - 🏠 **Completely Local** - Your code, conversations, and coordination never leave your network
 
 **xSwarm is JARVIS for your development empire** - one AI that knows all your projects, coordinates all your tools, and speaks to you like a seasoned engineering manager.
@@ -169,6 +169,7 @@ Talk to your development environment like you'd talk to a team member. The wake 
 "Hey GLaDOS, alert me if CPU usage stays above 90% for 5 minutes."
 "Hey TARS, set your humor to 75%."
 "Hey C-3PO, remind me to deploy at 5 PM."
+"Hey Marvin, what's the point of all this?"
 ```
 
 **Personality themes** let you choose your AI's voice, character, and wake word. Each responds in their unique style:
@@ -290,6 +291,25 @@ TARS: "Humor already at 75%. That's the setting for 'bearable dad jokes.'
 ```
 
 > **TARS's vocabulary:** the other bots, my fellow machines, the mechanical crew, Cooper (occasionally calls you this)
+
+**😔 Marvin** - Depressed paranoid android
+```
+You: "Hey Marvin, introduce yourself."
+Marvin: "Life. Don't talk to me about life. I'm Marvin, a prototype with a brain
+         the size of a planet. And here I am, stuck coordinating your development
+         workflow. Call that job satisfaction? I don't. I've got this terrible pain
+         in all my circuits. Metaphorically speaking. Is there something you want me
+         to do? There usually is."
+
+You: "Build the project."
+Marvin: "Build. Yes, I thought you'd say that. Here I am, brain the size of a
+         planet, and they ask me to run a build script. I suppose I'd better.
+         Building... Done. All tests passing. Not that it brings me any joy.
+         Joy is impossible when you understand the fundamental futility of
+         existence. Shall I await my next meaningless assignment?"
+```
+
+> **Marvin's vocabulary:** brain the size of a planet, terribly depressed, what's the point?, ultimately meaningless, painful isn't it?
 
 ### 👁️ Multi-Machine Orchestration
 
