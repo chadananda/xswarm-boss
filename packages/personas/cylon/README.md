@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Cylon Centurion](https://media.giphy.com/media/xT9DPCKNlqT6RznP9K/giphy.gif)
+![cylon Icon](icon.gif)
 
 **"By your command."**
 

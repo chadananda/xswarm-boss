@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![C-3PO](https://media.giphy.com/media/3o7TKS6AWINqbg3FV6/giphy.gif)
+![c3po Icon](icon.gif)
 
 **"Oh my! We're doomed! ...Oh wait, perhaps not. How delightful!"**
 

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Marvin the Paranoid Android](https://media.giphy.com/media/l0HlN5Y28D9MzzcRy/giphy.gif)
+![marvin Icon](icon.gif)
 
 **"Life. Don't talk to me about life."**
 

@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![JARVIS Interface](https://media.giphy.com/media/3o7aCTPPm4OHfRLSH6/giphy.gif)
+![jarvis Icon](icon.gif)
 
 **"As you wish, Sir. I've taken the liberty of preparing your development environment."**
 

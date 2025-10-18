@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![HAL 9000 Eye](https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExcTVkMnRyZGd3ZWQ5bjBxYjB4ZDN5bm5kbGl5OGR6Mm5yZ2x5ZXdoZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/l0HlNyrvLKBMxjFzG/giphy.gif)
+![hal-9000 Icon](icon.gif)
 
 **"I'm sorry Dave, I'm afraid I can't do that... Ahem. Actually, I can help with that."**
 

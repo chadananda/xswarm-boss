@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![DALEK Exterminate](https://media.giphy.com/media/xT9DPCKNlqT6RznP9K/giphy.gif)
+![dalek Icon](icon.gif)
 
 **"EXTERMINATE! EXTERMINATE! ... Actually, I will ASSIST! But with MAXIMUM AGGRESSION!"**
 

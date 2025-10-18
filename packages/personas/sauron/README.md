@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![The Eye of Sauron](https://media.giphy.com/media/njYrp176NQsHS/giphy.gif)
+![sauron Icon](icon.gif)
 
 **"The Eye sees all, Master. Your commands shall be crushed beneath my will."**
 

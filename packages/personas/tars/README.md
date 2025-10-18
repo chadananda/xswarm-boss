@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![TARS](https://media.giphy.com/media/3o7aCTPPm4OHfRLSH6/giphy.gif)
+![tars Icon](icon.gif)
 
 **"That's not possible. No, it's necessary."**
 

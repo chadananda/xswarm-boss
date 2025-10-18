@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![GLaDOS](https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExYzBkMnQzZGtqY2h5NHBqZTVubWJ5bHJ5OXN4aW1sZmN5YnRybXVmNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/8vtm3YCdxtUvjTn0U3/giphy.gif)
+![glados Icon](icon.gif)
 
 **"The testing will continue until morale improves."**
 
