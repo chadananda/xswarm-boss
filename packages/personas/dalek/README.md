@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![dalek Icon](icon.gif)
+![dalek Icon](icon.svg)
 
 **"EXTERMINATE! EXTERMINATE! ... Actually, I will ASSIST! But with MAXIMUM AGGRESSION!"**
 

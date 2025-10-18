@@ -2,7 +2,7 @@
 
 # xSwarm Persona: C-3PO 🤖
 
-![c3po Icon](icon.gif)
+![c3po Icon](icon.svg)
 
 **"Oh my! We're doomed! ...Oh wait, perhaps not. How delightful!"**
 

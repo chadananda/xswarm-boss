@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![KITT Scanner](https://media.tenor.com/QVPOKZDrWb4AAAAC/knight-rider-scanner.gif)
+![KITT Scanner](icon.svg)
 
 **"As you wish, Michael. My systems are at your disposal."**
 

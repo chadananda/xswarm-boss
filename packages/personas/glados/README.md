@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![glados Icon](icon.gif)
+![glados Icon](icon.svg)
 
 **"The testing will continue until morale improves."**
 

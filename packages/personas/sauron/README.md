@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![sauron Icon](icon.gif)
+![sauron Icon](icon.svg)
 
 **"The Eye sees all, Master. Your commands shall be crushed beneath my will."**
 

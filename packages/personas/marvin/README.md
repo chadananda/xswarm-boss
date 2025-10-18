@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![marvin Icon](icon.gif)
+![marvin Icon](icon.svg)
 
 **"Life. Don't talk to me about life."**
 

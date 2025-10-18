@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![tars Icon](icon.gif)
+![tars Icon](icon.svg)
 
 **"That's not possible. No, it's necessary."**
 

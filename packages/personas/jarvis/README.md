@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![jarvis Icon](icon.gif)
+![jarvis Icon](icon.svg)
 
 **"As you wish, Sir. I've taken the liberty of preparing your development environment."**
 

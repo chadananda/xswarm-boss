@@ -4,7 +4,7 @@
 
 <div align="center">
 
-![cylon Icon](icon.gif)
+![cylon Icon](icon.svg)
 
 **"By your command."**
 
