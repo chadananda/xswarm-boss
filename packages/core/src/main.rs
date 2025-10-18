@@ -1,9 +1,12 @@
+mod config;
 mod docs;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 use tracing::{info, Level};
 use tracing_subscriber;
+
+use crate::config::Config;
 
 #[derive(Parser)]
 #[command(name = "xswarm")]
@@ -114,22 +117,61 @@ async fn main() -> Result<()> {
                 println!("  - marvin 😔   (Marvin - Depressed paranoid android)");
             }
             ThemeAction::Switch { name } => {
-                println!("🎨 Switching to theme: {}", name);
+                let mut config = Config::load()?;
+                config.overlord.theme = name.clone();
+                config.save()?;
+                println!("🎨 Switched to theme: {}", name);
             }
             ThemeAction::Current => {
-                println!("🎨 Current theme: hal-9000");
+                let config = Config::load()?;
+                println!("🎨 Current theme: {}", config.overlord.theme);
             }
         },
         Commands::Config { action } => match action {
             ConfigAction::Show => {
+                let config = Config::load()?;
+                let config_path = Config::config_path()?;
+
                 println!("⚙️  xSwarm Configuration");
-                println!("Coming soon: Configuration display");
+                println!("📁 Config file: {}", config_path.display());
+                println!();
+                println!("🎨 Theme: {}", config.overlord.theme);
+                println!("🎤 Voice enabled: {}", config.overlord.voice_enabled);
+                println!("👂 Wake word: {}", config.overlord.wake_word);
+                println!("🔊 Voice provider: {}", config.voice.provider);
+                if let Some(model) = &config.voice.model {
+                    println!("🤖 Voice model: {}", model);
+                }
+                println!("🎧 Audio input: {}", config.audio.input_device);
+                println!("📢 Audio output: {}", config.audio.output_device);
+                println!("⚡ Sample rate: {} Hz", config.audio.sample_rate);
+                println!("👁️  Wake word engine: {}", config.wake_word.engine);
+                println!("🎚️  Wake word sensitivity: {}", config.wake_word.sensitivity);
+                println!("💻 Local GPU: {}", config.gpu.use_local);
+                println!("🔄 GPU fallback: {}", config.gpu.fallback.join(", "));
+
+                if let Some(vassal) = &config.vassal {
+                    println!();
+                    println!("🤖 Vassal Configuration:");
+                    println!("   Name: {}", vassal.name);
+                    println!("   Host: {}", vassal.host);
+                    println!("   Port: {}", vassal.port);
+                }
             }
             ConfigAction::Set { key, value } => {
-                println!("✏️  Setting {} = {}", key, value);
+                let mut config = Config::load()?;
+                config.set(&key, &value)?;
+                config.save()?;
+                println!("✅ Set {} = {}", key, value);
             }
             ConfigAction::Get { key } => {
-                println!("🔍 Getting value for: {}", key);
+                let config = Config::load()?;
+                if let Some(value) = config.get(&key) {
+                    println!("{}", value);
+                } else {
+                    eprintln!("❌ Unknown config key: {}", key);
+                    std::process::exit(1);
+                }
             }
         },
         Commands::Ask { query } => {
