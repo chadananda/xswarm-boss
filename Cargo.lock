@@ -341,9 +341,9 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.6.0"
+version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec182b0ca2f35d8fc196cf3404988fd8b8c739a4d270ff118a398feb0cbec1ca"
+checksum = "baaaa0ecca5b51987b9423ccdc971514dd8b0bb7b4060b983d3664dad3f1f89f"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -785,28 +785,12 @@ dependencies = [
 ]
 
 [[package]]
-name = "futures"
-version = "0.3.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "65bc07b1a8bc7c85c5f2e110c476c7389b4554ba72af57d8445ea63a576b0876"
-dependencies = [
- "futures-channel",
- "futures-core",
- "futures-executor",
- "futures-io",
- "futures-sink",
- "futures-task",
- "futures-util",
-]
-
-[[package]]
 name = "futures-channel"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2dff15bf788c671c1934e366d07e30c1814a8ef514e1af724a602e8a2fbe1b10"
 dependencies = [
  "futures-core",
- "futures-sink",
 ]
 
 [[package]]
@@ -814,17 +798,6 @@ name = "futures-core"
 version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "05f29059c0c2090612e8d742178b0580d2dc940c837851ad723096f87af6663e"
-
-[[package]]
-name = "futures-executor"
-version = "0.3.31"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e28d1d997f585e54aebc3f97d39e72338912123a67330d723fdbb564d646c9f"
-dependencies = [
- "futures-core",
- "futures-task",
- "futures-util",
-]
 
 [[package]]
 name = "futures-io"
@@ -861,7 +834,6 @@ version = "0.3.31"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9fa08315bb612088cc391249efdc3bc77536f16c91f6cf495e6fbe85b20a4a81"
 dependencies = [
- "futures-channel",
  "futures-core",
  "futures-io",
  "futures-macro",
@@ -1613,9 +1585,9 @@ dependencies = [
 
 [[package]]
 name = "meilisearch-index-setting-macro"
-version = "0.26.1"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "517f9cbfcc9368d71c021bef83b1d448c2b29f5734a25da6174ddf31deead340"
+checksum = "e36e5cad3754ed329feb201c24f26c0694442bef50a90dbcff0ba6d12b5ca133"
 dependencies = [
  "convert_case",
  "proc-macro2",
@@ -1626,15 +1598,17 @@ dependencies = [
 
 [[package]]
 name = "meilisearch-sdk"
-version = "0.26.1"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa561e4357a47bc64b1d87b6a081416cd58e2e3c00a30813e8936baed3b5a121"
+checksum = "f620c9ed9b790cf292b66c8dab16f0e4aafb377583ec0e589da7c3ee81ff2038"
 dependencies = [
  "async-trait",
  "bytes",
  "either",
- "futures",
+ "futures-channel",
+ "futures-core",
  "futures-io",
+ "futures-util",
  "iso8601",
  "jsonwebtoken",
  "log",
@@ -1643,8 +1617,9 @@ dependencies = [
  "reqwest 0.12.24",
  "serde",
  "serde_json",
- "thiserror 1.0.69",
+ "thiserror 2.0.17",
  "time",
+ "tokio",
  "uuid",
  "wasm-bindgen-futures",
  "web-sys",
@@ -4286,12 +4261,13 @@ dependencies = [
 
 [[package]]
 name = "yaup"
-version = "0.2.1"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a59e7d27bed43f7c37c25df5192ea9d435a8092a902e02203359ac9ce3e429d9"
+checksum = "b0144f1a16a199846cb21024da74edd930b43443463292f536b7110b4855b5c6"
 dependencies = [
+ "form_urlencoded",
  "serde",
- "url",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

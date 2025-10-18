@@ -41,19 +41,18 @@ impl SearchClient {
         );
 
         // Get or create indexes
-        let documents_index = client
-            .index(DOCUMENTS_INDEX)
-            .create(None)
-            .await
-            .or_else(|_| async { client.index(DOCUMENTS_INDEX) })
-            .await?;
+        // Try to create index, if it already exists just get it
+        match client.create_index(DOCUMENTS_INDEX, Some("id")).await {
+            Ok(_) => tracing::info!("Created documents index"),
+            Err(e) => tracing::debug!("Documents index may already exist: {}", e),
+        }
+        let documents_index = client.index(DOCUMENTS_INDEX);
 
-        let chunks_index = client
-            .index(CHUNKS_INDEX)
-            .create(None)
-            .await
-            .or_else(|_| async { client.index(CHUNKS_INDEX) })
-            .await?;
+        match client.create_index(CHUNKS_INDEX, Some("id")).await {
+            Ok(_) => tracing::info!("Created chunks index"),
+            Err(e) => tracing::debug!("Chunks index may already exist: {}", e),
+        }
+        let chunks_index = client.index(CHUNKS_INDEX);
 
         // Configure indexes
         Self::configure_index(&documents_index).await?;
