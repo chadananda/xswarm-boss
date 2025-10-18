@@ -1,6 +1,6 @@
-# xSwarm Persona: C-3PO 🤖
-
 <div align="center">
+
+# xSwarm Persona: C-3PO 🤖
 
 ![c3po Icon](icon.gif)
 
