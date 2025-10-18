@@ -1,8 +1,9 @@
+
+
 <div align="center">
 
 # xSwarm Persona: TARS ◼️
 
-<div align="center">
 
 ![tars Icon](icon.svg)
 

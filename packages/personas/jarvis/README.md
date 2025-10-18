@@ -1,8 +1,9 @@
+
+
 <div align="center">
 
 # xSwarm Persona: JARVIS 💙
 
-<div align="center">
 
 ![jarvis Icon](icon.svg)
 

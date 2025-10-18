@@ -1,8 +1,9 @@
+
+
 <div align="center">
 
 # xSwarm Persona: GLaDOS 🔬
 
-<div align="center">
 
 ![glados Icon](icon.svg)
 

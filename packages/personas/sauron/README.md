@@ -1,8 +1,9 @@
+
+
 <div align="center">
 
 # xSwarm Persona: Sauron 👁️
 
-<div align="center">
 
 ![sauron Icon](icon.svg)
 

@@ -64,18 +64,18 @@
 
   <!-- Left eye glow -->
   <circle cx="105" cy="120" r="18" fill="url(#eyeGlow)" opacity="0.9">
-    <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
   </circle>
   <circle cx="105" cy="120" r="12" fill="#ffffcc">
-    <animate attributeName="opacity" values="0.9;1;0.9" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Right eye glow -->
   <circle cx="151" cy="120" r="18" fill="url(#eyeGlow)" opacity="0.9">
-    <animate attributeName="opacity" values="0.8;1;0.8" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.5s" repeatCount="indefinite"/>
   </circle>
   <circle cx="151" cy="120" r="12" fill="#ffffcc">
-    <animate attributeName="opacity" values="0.9;1;0.9" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Eye highlights -->
@@ -84,10 +84,10 @@
 
   <!-- Eye outer glow -->
   <circle cx="105" cy="120" r="25" fill="url(#eyeGlow)" opacity="0.3" filter="url(#glow)">
-    <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.1;0.6;0.1" dur="1.5s" repeatCount="indefinite"/>
   </circle>
   <circle cx="151" cy="120" r="25" fill="url(#eyeGlow)" opacity="0.3" filter="url(#glow)">
-    <animate attributeName="opacity" values="0.2;0.4;0.2" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.1;0.6;0.1" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Nose bridge detail -->

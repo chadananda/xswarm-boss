@@ -61,26 +61,26 @@
 
   <!-- Outer glow layer (largest, most diffuse) -->
   <ellipse cx="64" cy="128" rx="80" ry="40" fill="url(#glowGradient)" opacity="0.4" filter="url(#blur2)">
-    <animate attributeName="cx" values="0;196;0" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="cx" values="0;196;0" dur="0.8s" repeatCount="indefinite"/>
   </ellipse>
 
   <!-- Middle glow layer -->
   <rect x="20" y="112" width="60" height="32" fill="url(#scannerGradient)" opacity="0.5" rx="6" filter="url(#blur1)">
-    <animate attributeName="x" values="-20;216;-20" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="-20;216;-20" dur="0.8s" repeatCount="indefinite"/>
   </rect>
 
   <!-- Main scanner bar -->
   <rect x="20" y="116" width="60" height="24" fill="url(#scannerGradient)" rx="4">
-    <animate attributeName="x" values="-20;216;-20" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="-20;216;-20" dur="0.8s" repeatCount="indefinite"/>
   </rect>
 
   <!-- Bright core highlight -->
   <rect x="20" y="122" width="60" height="12" fill="url(#coreGradient)" opacity="0.9" rx="3">
-    <animate attributeName="x" values="-20;216;-20" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="-20;216;-20" dur="0.8s" repeatCount="indefinite"/>
   </rect>
 
   <!-- Top highlight shine -->
   <rect x="24" y="118" width="52" height="4" fill="#ffffff" opacity="0.3" rx="2">
-    <animate attributeName="x" values="-16;220;-16" dur="1.5s" repeatCount="indefinite"/>
+    <animate attributeName="x" values="-16;220;-16" dur="0.8s" repeatCount="indefinite"/>
   </rect>
 </svg>

@@ -1,8 +1,9 @@
+
+
 <div align="center">
 
 # xSwarm Persona: KITT 🚗
 
-<div align="center">
 
 ![KITT Scanner](icon.svg)
 

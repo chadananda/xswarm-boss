@@ -637,14 +637,14 @@
              transform="matrix(0.74941633,0,0,0.74941633,25.063546,826.70441)"
              id="path3874"
              style="opacity:0.38050316;fill:url(#radialGradient4965);fill-opacity:1;stroke:none">
-            <animate attributeName="opacity" values="0.38;0.55;0.38" dur="4s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="0.2;0.7;0.2" dur="2s" repeatCount="indefinite"/>
           </path>
           <path
              d="m 224.15285,130.31177 a 86.797356,86.797356 0 1 1 -173.594706,0 86.797356,86.797356 0 1 1 173.594706,0 z"
              transform="translate(-9.3554993,794.05041)"
              id="path3772"
              style="fill:url(#radialGradient4967);fill-opacity:1;stroke:none">
-            <animate attributeName="opacity" values="1;0.7;1" dur="3s" repeatCount="indefinite"/>
+            <animate attributeName="opacity" values="1;0.5;1" dur="2s" repeatCount="indefinite"/>
           </path>
           <path
              d="m 170.25,125.125 a 43.375,43.375 0 1 1 -86.75,0 43.375,43.375 0 1 1 86.75,0 z"

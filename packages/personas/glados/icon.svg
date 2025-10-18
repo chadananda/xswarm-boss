@@ -42,7 +42,7 @@
 
   <!-- Outer glow aura -->
   <circle cx="128" cy="140" r="95" fill="url(#coreGlow)" opacity="0.2" filter="url(#glow)">
-    <animate attributeName="opacity" values="0.15;0.3;0.15" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.1;0.5;0.1" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Main core body (white shell - spherical) -->
@@ -69,17 +69,17 @@
 
   <!-- Yellow glowing core (visible through aperture) -->
   <circle cx="128" cy="140" r="42" fill="url(#coreGlow)" opacity="0.8">
-    <animate attributeName="opacity" values="0.7;0.95;0.7" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.7;0.95;0.7" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Inner bright core -->
   <circle cx="128" cy="140" r="32" fill="#FFD700">
-    <animate attributeName="r" values="32;34;32" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="32;34;32" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Core bright center -->
   <circle cx="128" cy="140" r="20" fill="#fffacd" opacity="0.95">
-    <animate attributeName="opacity" values="0.9;1;0.9" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.9;1;0.9" dur="1.5s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Aperture blades (triangular segments - Portal style) -->
@@ -104,7 +104,7 @@
 
   <!-- Core reflection highlight -->
   <ellipse cx="118" cy="128" rx="15" ry="18" fill="#ffffff" opacity="0.4">
-    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="3s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.5;0.3" dur="1.5s" repeatCount="indefinite"/>
   </ellipse>
 
   <!-- Side panels/wings (shell segments) -->

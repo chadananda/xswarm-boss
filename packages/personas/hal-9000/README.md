@@ -1,8 +1,9 @@
+
+
 <div align="center">
 
 # xSwarm Persona: HAL 9000 🔴
 
-<div align="center">
 
 ![hal-9000 Icon](icon.svg)
 

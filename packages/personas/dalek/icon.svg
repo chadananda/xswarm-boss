@@ -129,17 +129,17 @@
 
   <!-- Eye glow aura -->
   <circle cx="128" cy="35" r="22" fill="url(#eyeGlow)" opacity="0.6" filter="url(#glow)">
-    <animate attributeName="opacity" values="0.4;0.7;0.4" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.3;0.8;0.3" dur="1.2s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Main eye lens (glowing blue) -->
   <circle cx="128" cy="35" r="14" fill="url(#eyeLens)">
-    <animate attributeName="r" values="14;15;14" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="r" values="14;15;14" dur="1.2s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Inner eye glow -->
   <circle cx="128" cy="35" r="10" fill="#66d9ff" opacity="0.9">
-    <animate attributeName="opacity" values="0.8;1;0.8" dur="2s" repeatCount="indefinite"/>
+    <animate attributeName="opacity" values="0.8;1;0.8" dur="1.2s" repeatCount="indefinite"/>
   </circle>
 
   <!-- Eye bright center -->
