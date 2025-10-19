@@ -15,7 +15,10 @@
       "WebFetch(domain:knightrideronline.com)",
       "WebFetch(domain:www.deviantart.com)",
       "WebFetch(domain:codepen.io)",
-      "WebFetch(domain:archive.org)"
+      "WebFetch(domain:archive.org)",
+      "WebFetch(domain:gifer.com)",
+      "WebFetch(domain:freesvg.org)",
+      "WebFetch(domain:medium.com)"
     ],
     "deny": [],
     "ask": []

@@ -5,7 +5,7 @@
 # xSwarm Persona: Sauron 👁️
 
 
-![sauron Icon](icon.svg)
+![sauron Icon](icon.jpg)
 
 **"The Eye sees all, Master. Your commands shall be crushed beneath my will."**
 
