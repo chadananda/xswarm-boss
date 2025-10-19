@@ -88,11 +88,11 @@ async function animateImage() {
       {
         input: {
           input_image: imageBase64,
-          video_length: "14_frames_with_svd", // Short loop (14 frames)
+          video_length: "25_frames_with_svd_xt", // Longer for smoother loop
           sizing_strategy: "maintain_aspect_ratio",
-          frames_per_second: 6, // Slow, dramatic fire movement
-          motion_bucket_id: 127, // Medium motion (good for fire)
-          cond_aug: 0.02, // Low noise (preserve detail)
+          frames_per_second: 8, // Slightly faster for smoother fire
+          motion_bucket_id: 100, // Lower motion = more consistent
+          cond_aug: 0.005, // Very low noise for sharp consistency
         }
       }
     );
