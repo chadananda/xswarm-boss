@@ -11,10 +11,15 @@
     "clean": "pnpm -r run clean && cargo clean",
     "lint": "pnpm -r run lint",
     "format": "prettier --write .",
-    "animate:sauron": "node scripts/animate-sauron.js"
+    "animate:sauron": "node scripts/animate-sauron.js",
+    "animate:sauron:multi": "node scripts/animate-sauron-multi-try.js",
+    "animate:sauron:luma": "node scripts/animate-sauron-luma.js",
+    "animate:sauron:leonardo": "node scripts/animate-sauron-leonardo.js",
+    "animate:sauron:runway": "node scripts/animate-sauron-runway.js"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
+    "lumaai": "^1.18.0",
     "replicate": "^0.25.2"
   },
   "devDependencies": {

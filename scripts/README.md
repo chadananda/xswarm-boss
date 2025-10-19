@@ -6,6 +6,8 @@ Scripts for generating animated persona icons using AI.
 
 Creates a realistic animated fire loop for the Eye of Sauron persona icon.
 
+The challenge: Getting fire to flow **outward from the center pupil** (not random motion).
+
 ### Prerequisites
 
 1. **Install dependencies:**
@@ -20,120 +22,244 @@ Creates a realistic animated fire loop for the Eye of Sauron persona icon.
 
    # Ubuntu/Debian
    sudo apt-get install ffmpeg
-
-   # Arch Linux
-   sudo pacman -S ffmpeg
    ```
 
-3. **Get Replicate API token:**
-   - Sign up at https://replicate.com
-   - Go to https://replicate.com/account/api-tokens
-   - Create a new API token
-   - Add to `.env` file:
-     ```bash
-     REPLICATE_API_TOKEN=r8_your_token_here
-     ```
+3. **Get an API key** (see options below)
 
-### Usage
+---
 
+## Animation Options
+
+Since controlling fire direction is challenging, we have multiple approaches:
+
+### Option 1: Multi-Seed Attempt ⭐ Recommended
+
+Generate **5 variations** with different random seeds, then pick the best one.
+
+**Setup:**
 ```bash
-# Run the animation script
+# Already have Replicate? You're ready!
+REPLICATE_API_KEY=r8_your_token_here  # Add to .env
+```
+
+**Run:**
+```bash
+pnpm animate:sauron:multi
+```
+
+**What happens:**
+1. Generates 5 different animations (different random seeds)
+2. Saves to `assets/sauron-variations/variation-1.mp4` through `variation-5.mp4`
+3. Creates APNG and WebP for each
+4. You preview all and pick the best
+
+**Preview:**
+```bash
+open assets/sauron-variations/variation-1.mp4
+open assets/sauron-variations/variation-2.mp4
+# ... etc
+```
+
+**Use the winner:**
+```bash
+# Replace N with the best variation number
+cp assets/sauron-variations/variation-N.webp packages/personas/sauron/icon.webp
+cp assets/sauron-variations/variation-N.apng packages/personas/sauron/icon.apng
+```
+
+| **Pros** | **Cons** |
+|----------|----------|
+| ✅ Uses API you already have | ❌ No motion control (luck-based) |
+| ✅ Multiple options to choose from | ❌ Takes 5x longer |
+| ✅ Best chance of getting good result | |
+
+**Cost:** ~$0.05-0.10 total | **Time:** 5-15 minutes
+
+---
+
+### Option 2: Luma AI Dream Machine (Text-Guided) ⭐ Best Quality
+
+Official API with **text prompt control** and 1080p cinematic quality.
+
+**Setup:**
+```bash
+# 1. Get API key: https://lumalabs.ai/dream-machine/api/keys
+# 2. Add to .env
+echo "LUMA_API_KEY=luma_your_key_here" >> .env
+```
+
+**Run:**
+```bash
+pnpm animate:sauron:luma
+```
+
+**What happens:**
+1. Sends image + text prompt to Luma AI
+2. Generates 1080p video with motion guided by prompt
+3. Downloads and converts to APNG/WebP
+
+**Text prompt used:**
+> "Fire and flames radiating outward from the center pupil, dramatic orange fire flowing from the dark vertical slit, intense heat waves emanating outward in all directions"
+
+| **Pros** | **Cons** |
+|----------|----------|
+| ✅ Text-guided motion control | ❌ Different service (new API key) |
+| ✅ Official API, easy to get key | ❌ Slightly more expensive |
+| ✅ 1080p cinematic quality | |
+| ✅ Loop support built-in | |
+
+**Cost:** ~$0.20-0.50 per generation | **Time:** 2-4 minutes
+
+---
+
+### Option 3: Runway Gen-2 (Text-Guided - Hard to Access)
+
+**Best motion control** but API access is nearly impossible to get.
+
+**Setup:**
+```bash
+# If you somehow get a Runway API key
+echo "RUNWAY_API_KEY=your_key_here" >> .env
+```
+
+**Run:**
+```bash
+pnpm animate:sauron:runway
+```
+
+**Text prompt used:**
+> "Fire and flames flowing outward from the center eye pupil, dramatic orange and yellow fire radiating from the dark vertical slit, intense heat waves emanating outward, cinematic fire effect"
+
+| **Pros** | **Cons** |
+|----------|----------|
+| ✅ Text-guided motion control | ❌ API key almost impossible to obtain |
+| ✅ Best directional control | ❌ Most expensive |
+| ✅ Highest quality | |
+
+**Cost:** ~$0.20 per 4-second clip | **Time:** 2-5 minutes
+
+---
+
+### Option 4: Single Attempt (Quick Test)
+
+Quick single generation with Replicate (original script).
+
+**Run:**
+```bash
 pnpm animate:sauron
 ```
 
-### What it does
+**Good for:** Testing, quick iterations, when you get lucky on first try
 
-1. **Uploads** `assets/sauron.jpg` to Replicate
-2. **Generates** animated video using Stable Video Diffusion AI
-   - Creates 14-frame loop (~2.3 seconds at 6 fps)
-   - Optimized for fire/flame movement
-   - Preserves image quality
-3. **Downloads** the video to `assets/sauron-animated.mp4`
-4. **Converts** to formats:
-   - `packages/personas/sauron/icon.apng` - Animated PNG with transparency
-   - `packages/personas/sauron/icon.webp` - Smaller WebP format
+---
 
-### Cost
+## Output Formats
 
-Using Replicate API with Stable Video Diffusion:
-- **~$0.01-0.02** per generation
-- Fast (usually 1-3 minutes)
+All scripts generate both formats:
 
-### Output Formats
-
-| Format | Transparency | Size | Use Case |
-|--------|--------------|------|----------|
-| **APNG** | ✅ Yes | 1-3 MB | Best for SVG embedding |
-| **WebP** | ✅ Yes | 0.5-1 MB | Smaller, modern browsers |
-| **MP4** | ❌ No | Smallest | Preview only |
+| Format | Size | Compatibility | Recommended |
+|--------|------|---------------|-------------|
+| **APNG** | 6-11 MB | All browsers | Safest choice |
+| **WebP** | 0.4-0.9 MB | Modern browsers | Smaller, use this |
 
 ### Using in SVG
 
-After generating, update `packages/personas/sauron/icon.svg`:
+After generating, the icon is already embedded in `packages/personas/sauron/icon.svg`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+<svg width="256" height="256" viewBox="0 0 256 256">
   <title>Eye of Sauron</title>
 
-  <!-- Embedded animated image -->
-  <image href="icon.apng" width="256" height="256"/>
-
-  <!-- Or use WebP for smaller size -->
-  <!-- <image href="icon.webp" width="256" height="256"/> -->
+  <!-- AI-generated animated fire loop -->
+  <image href="icon.webp" width="256" height="256"/>
 </svg>
 ```
 
-### Troubleshooting
+---
 
-**"REPLICATE_API_TOKEN not found"**
-- Make sure you've added the token to `.env`
-- Load it: `source .env` or restart your terminal
+## Tips for Best Results
 
-**"FFmpeg not found"**
-- Install FFmpeg (see Prerequisites above)
+### What to Look For
 
-**"APNG is large (>2 MB)"**
-- Use the WebP version instead (icon.webp)
-- Or reduce frames: edit `video_length: "14_frames_with_svd"` to fewer frames
+When previewing variations, look for:
+- ✅ **Fire flowing outward** from center pupil
+- ✅ **Consistent sharpness** (no blur cycling)
+- ✅ **Smooth loop** (start matches end)
+- ✅ **Realistic fire** (organic movement)
 
-**Animation looks wrong**
-- Adjust motion settings in the script:
-  - `motion_bucket_id`: 127 (default), lower = less motion, higher = more motion
-  - `frames_per_second`: 6 (default), adjust for speed
-  - `cond_aug`: 0.02 (default), higher = more variation
+### If Nothing Works
 
-### Advanced: Custom Settings
-
-Edit `scripts/animate-sauron.js` to adjust:
+Try adjusting parameters in the script:
 
 ```javascript
-{
-  video_length: "14_frames_with_svd", // 14 or 25 frames
-  frames_per_second: 6,                // 3-30 fps
-  motion_bucket_id: 127,               // 1-255 (motion amount)
-  cond_aug: 0.02,                      // 0-1 (variation)
-}
+// scripts/animate-sauron.js or scripts/animate-sauron-multi-try.js
+
+motion_bucket_id: 127,  // 1-255 (higher = more motion)
+cond_aug: 0.02,         // 0-1 (higher = more variation)
+frames_per_second: 8,   // 3-30 (speed)
+seed: 42,              // Any number (controls randomness)
 ```
+
+---
+
+## Troubleshooting
+
+**"API key not found"**
+```bash
+# Make sure it's in .env file
+cat .env | grep API_KEY
+```
+
+**"FFmpeg not found"**
+```bash
+brew install ffmpeg  # macOS
+```
+
+**"Animation goes from sharp to blurry"**
+- Lower `cond_aug` to 0.005 or 0.01
+- Try multi-seed option to find consistent one
+
+**"Fire moves randomly, not outward"**
+- Try multi-seed option (5 chances)
+- Or use Leonardo/Runway if available
+
+**"File too large"**
+- Use WebP instead of APNG
+- Reduce frames: `video_length: "14_frames_with_svd"`
+
+---
+
+## Cost Summary
+
+| Service | Per Generation | Best For |
+|---------|----------------|----------|
+| **Replicate** | $0.01-0.02 | Single attempts |
+| **Replicate (5x)** | $0.05-0.10 | Multiple options |
+| **Luma AI** | $0.20-0.50 | Text-guided, best quality |
+| **Runway** | $0.20 | Text-guided (API inaccessible) |
+| **Leonardo** | $0.01-0.03 | (Site broken) |
+
+---
 
 ## Other Personas
 
-To create animations for other personas:
+To animate other persona icons:
 
-1. **Copy the script:**
+1. **Copy multi-try script:**
    ```bash
-   cp scripts/animate-sauron.js scripts/animate-[persona].js
+   cp scripts/animate-sauron-multi-try.js scripts/animate-[persona]-multi-try.js
    ```
 
-2. **Update paths** in the new script:
+2. **Update paths:**
    ```javascript
    const INPUT_IMAGE = path.join(__dirname, '../assets/[persona].jpg');
-   const OUTPUT_APNG = path.join(__dirname, '../packages/personas/[persona]/icon.apng');
+   const OUTPUT_DIR = path.join(__dirname, '../assets/[persona]-variations');
    ```
 
 3. **Add to package.json:**
    ```json
-   "animate:[persona]": "node scripts/animate-[persona].js"
+   "animate:[persona]": "node scripts/animate-[persona]-multi-try.js"
    ```
 
 4. **Run:**
@@ -141,32 +267,28 @@ To create animations for other personas:
    pnpm animate:[persona]
    ```
 
-## Cost Optimization
+---
 
-To minimize API costs:
+## Recommended Workflow
 
-1. **Test with static first** - Make sure the base image looks good
-2. **Use short loops** - 14 frames is usually enough for smooth loops
-3. **Batch multiple generations** - The API has volume discounts
-4. **Cache results** - Save generated videos, don't regenerate unnecessarily
+For best results with minimal cost:
 
-## Alternative APIs
+1. **Start with multi-seed** (`pnpm animate:sauron:multi`)
+   - Cost: ~$0.05-0.10 for 5 variations
+   - Uses Replicate API you already have
 
-If you prefer different AI services:
+2. **Preview all 5 variations**
+   - Look for fire flowing outward from center
+   - Check for consistent sharpness
 
-### Runway ML
-- Higher quality
-- More expensive (~$0.05/second)
-- Better for complex motion
+3. **If one is good** → Use it! Copy to packages/personas/sauron/
 
-### Pika Labs
-- Good quality
-- Similar pricing to Replicate
-- Different motion style
+4. **If none are good** → Try Luma AI for text-guided control
+   - Cost: ~$0.20-0.50 per attempt
+   - Text prompt guides fire direction
+   - 1080p cinematic quality
+   - Run: `pnpm animate:sauron:luma`
 
-### Local (Free)
-- Use AnimateDiff or SVD locally
-- Requires GPU (8GB+ VRAM)
-- No API costs but slower
+5. **If still no luck** → Adjust parameters in multi-seed and retry
 
-Update the script to use a different API by changing the `replicate.run()` call.
+This strategy gives you 5 chances for under $0.10, with a high-quality fallback option.
