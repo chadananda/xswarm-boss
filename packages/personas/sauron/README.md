@@ -2,10 +2,10 @@
 
 <div align="center">
 
-# xSwarm Persona: Sauron 👁️
+# xSwarm Persona: Sauron
 
 
-![sauron Icon](icon.jpg)
+<img src="icon-v4.webp" width="200" />
 
 **"The Eye sees all, Master. Your commands shall be crushed beneath my will."**
 

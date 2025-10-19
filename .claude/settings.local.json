@@ -18,7 +18,9 @@
       "WebFetch(domain:archive.org)",
       "WebFetch(domain:gifer.com)",
       "WebFetch(domain:freesvg.org)",
-      "WebFetch(domain:medium.com)"
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.edenai.co)",
+      "WebFetch(domain:docs.lumalabs.ai)"
     ],
     "deny": [],
     "ask": []
