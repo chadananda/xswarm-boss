@@ -130,6 +130,71 @@ pub struct SubscriptionConfig {
     /// Subscription expiry date (ISO 8601)
     #[serde(default)]
     pub expires_at: Option<String>,
+
+    /// Stripe billing configuration
+    #[serde(default)]
+    pub stripe: Option<StripeConfig>,
+}
+
+/// Stripe subscription and billing configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StripeConfig {
+    /// Stripe customer ID
+    pub customer_id: String,
+
+    /// Stripe subscription ID (for premium tier)
+    pub subscription_id: Option<String>,
+
+    /// Stripe subscription item IDs for metered billing
+    pub subscription_items: Option<StripeSubscriptionItems>,
+
+    /// Current billing period usage
+    #[serde(default)]
+    pub usage: UsageTracking,
+}
+
+/// Stripe subscription item IDs for metered billing
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StripeSubscriptionItems {
+    /// Voice minutes subscription item ID
+    pub voice_item_id: String,
+
+    /// SMS messages subscription item ID
+    pub sms_item_id: String,
+}
+
+/// Usage tracking for current billing period
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageTracking {
+    /// Voice minutes used this billing period
+    #[serde(default)]
+    pub voice_minutes: u32,
+
+    /// SMS messages sent/received this billing period
+    #[serde(default)]
+    pub sms_messages: u32,
+
+    /// Number of phone numbers provisioned
+    #[serde(default)]
+    pub phone_numbers: u32,
+
+    /// Billing period start date (ISO 8601)
+    pub period_start: Option<String>,
+
+    /// Billing period end date (ISO 8601)
+    pub period_end: Option<String>,
+}
+
+impl Default for UsageTracking {
+    fn default() -> Self {
+        Self {
+            voice_minutes: 0,
+            sms_messages: 0,
+            phone_numbers: 0,
+            period_start: None,
+            period_end: None,
+        }
+    }
 }
 
 /// Direct Line phone configuration (premium feature)
@@ -325,6 +390,7 @@ impl Default for SubscriptionConfig {
             active: false,
             tier: default_tier(),
             expires_at: None,
+            stripe: None,
         }
     }
 }
