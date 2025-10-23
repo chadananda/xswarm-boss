@@ -20,6 +20,9 @@ importers:
       replicate:
         specifier: ^0.25.2
         version: 0.25.2
+      stripe:
+        specifier: ^17.5.0
+        version: 17.7.0
       twilio:
         specifier: ^5.10.3
         version: 5.10.3
@@ -31,7 +34,11 @@ importers:
         specifier: ^5.3.3
         version: 5.9.3
 
-  packages/core: {}
+  packages/core:
+    dependencies:
+      stripe:
+        specifier: ^17.7.0
+        version: 17.7.0
 
   packages/docs:
     dependencies:
@@ -2371,6 +2378,10 @@ packages:
   strip-json-comments@2.0.1:
     resolution: {integrity: sha512-4gB8na07fecVVkOI6Rs4e7T6NOTki5EmL7TUduTs6bu3EdnSycntVJ4re8kgZA+wx9IueI2Y11bfbgwtzuE0KQ==}
     engines: {node: '>=0.10.0'}
+
+  stripe@17.7.0:
+    resolution: {integrity: sha512-aT2BU9KkizY9SATf14WhhYVv2uOapBWX0OFWF4xvcj1mPaNotlSc2CsxpS4DS46ZueSppmCF5BX1sNYBtwBvfw==}
+    engines: {node: '>=12.*'}
 
   style-to-js@1.1.18:
     resolution: {integrity: sha512-JFPn62D4kJaPTnhFUI244MThx+FEGbi+9dw1b9yBBQ+1CZpV7QAT8kUtJ7b7EUNdHajjF/0x8fT+16oLJoojLg==}
@@ -5818,6 +5829,11 @@ snapshots:
   strip-bom@3.0.0: {}
 
   strip-json-comments@2.0.1: {}
+
+  stripe@17.7.0:
+    dependencies:
+      '@types/node': 18.19.130
+      qs: 6.14.0
 
   style-to-js@1.1.18:
     dependencies:
