@@ -17,5 +17,12 @@
     "test": "cargo test",
     "clean": "cargo clean"
   },
-  "keywords": ["rust", "cli", "orchestration"]
+  "keywords": [
+    "rust",
+    "cli",
+    "orchestration"
+  ],
+  "dependencies": {
+    "stripe": "^17.7.0"
+  }
 }
