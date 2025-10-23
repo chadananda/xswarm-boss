@@ -23,6 +23,15 @@ pub struct Config {
 
     #[serde(default)]
     pub vassal: Option<VassalConfig>,
+
+    #[serde(default)]
+    pub subscription: SubscriptionConfig,
+
+    #[serde(default)]
+    pub direct_line: Option<DirectLineConfig>,
+
+    #[serde(default)]
+    pub communication: CommunicationConfig,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,6 +116,117 @@ pub struct VassalConfig {
     pub port: u16,
 }
 
+/// Subscription configuration for premium features
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SubscriptionConfig {
+    /// Whether the user has an active premium subscription
+    #[serde(default)]
+    pub active: bool,
+
+    /// Subscription tier (free, premium, enterprise)
+    #[serde(default = "default_tier")]
+    pub tier: String,
+
+    /// Subscription expiry date (ISO 8601)
+    #[serde(default)]
+    pub expires_at: Option<String>,
+}
+
+/// Direct Line phone configuration (premium feature)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DirectLineConfig {
+    /// User's phone number (E.164 format, e.g., +15551234567)
+    pub user_phone: String,
+
+    /// Twilio phone number assigned to this xSwarm instance
+    pub xswarm_phone: String,
+
+    /// Twilio account configuration
+    pub twilio: TwilioConfig,
+
+    /// Whether to call user on blocking issues
+    #[serde(default = "default_true")]
+    pub call_on_blocking: bool,
+
+    /// Whether to allow user to call xSwarm
+    #[serde(default = "default_true")]
+    pub accept_inbound: bool,
+}
+
+/// Twilio API configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TwilioConfig {
+    /// Twilio Account SID
+    pub account_sid: String,
+
+    /// Twilio Auth Token (stored securely)
+    pub auth_token: String,
+
+    /// Public webhook URL for this xSwarm instance
+    pub webhook_url: String,
+}
+
+/// Complete communication configuration (email + phone + SMS)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CommunicationConfig {
+    /// User's real email (whitelist)
+    pub user_email: String,
+
+    /// User's real phone number (whitelist)
+    pub user_phone: String,
+
+    /// xSwarm's assigned email (username@xswarm.ai)
+    pub xswarm_email: String,
+
+    /// xSwarm's assigned phone number (optional, premium only)
+    pub xswarm_phone: Option<String>,
+
+    /// Channel configuration
+    #[serde(default)]
+    pub channels: ChannelConfig,
+
+    /// SendGrid API key (shared across all users)
+    pub sendgrid_api_key: Option<String>,
+
+    /// Twilio credentials (shared pool)
+    pub twilio: Option<TwilioCredentials>,
+}
+
+/// Communication channel settings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChannelConfig {
+    /// Email enabled (always true for free tier)
+    #[serde(default = "default_true")]
+    pub email_enabled: bool,
+
+    /// Phone calls enabled (premium only)
+    #[serde(default)]
+    pub phone_enabled: bool,
+
+    /// SMS enabled (premium only)
+    #[serde(default)]
+    pub sms_enabled: bool,
+
+    /// Accept inbound calls from user
+    #[serde(default = "default_true")]
+    pub accept_inbound_calls: bool,
+
+    /// Accept inbound SMS from user
+    #[serde(default = "default_true")]
+    pub accept_inbound_sms: bool,
+
+    /// Accept inbound email from user
+    #[serde(default = "default_true")]
+    pub accept_inbound_email: bool,
+}
+
+/// Twilio credentials for communication (not persona-specific)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TwilioCredentials {
+    pub account_sid: String,
+    pub auth_token: String,
+}
+
 // Default value functions
 fn default_persona() -> String {
     "hal-9000".to_string()
@@ -142,6 +262,10 @@ fn default_sensitivity() -> f32 {
 
 fn default_fallback() -> Vec<String> {
     vec!["runpod".to_string(), "anthropic".to_string()]
+}
+
+fn default_tier() -> String {
+    "free".to_string()
 }
 
 // Implement Default trait
@@ -195,6 +319,43 @@ impl Default for GpuConfig {
     }
 }
 
+impl Default for SubscriptionConfig {
+    fn default() -> Self {
+        Self {
+            active: false,
+            tier: default_tier(),
+            expires_at: None,
+        }
+    }
+}
+
+impl Default for ChannelConfig {
+    fn default() -> Self {
+        Self {
+            email_enabled: true,  // Always enabled
+            phone_enabled: false, // Premium only
+            sms_enabled: false,   // Premium only
+            accept_inbound_calls: true,
+            accept_inbound_sms: true,
+            accept_inbound_email: true,
+        }
+    }
+}
+
+impl Default for CommunicationConfig {
+    fn default() -> Self {
+        Self {
+            user_email: String::new(),
+            user_phone: String::new(),
+            xswarm_email: String::new(),
+            xswarm_phone: None,
+            channels: ChannelConfig::default(),
+            sendgrid_api_key: None,
+            twilio: None,
+        }
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -204,6 +365,9 @@ impl Default for Config {
             wake_word: WakeWordConfig::default(),
             gpu: GpuConfig::default(),
             vassal: None,
+            subscription: SubscriptionConfig::default(),
+            direct_line: None,
+            communication: CommunicationConfig::default(),
         }
     }
 }
@@ -282,6 +446,10 @@ impl Config {
             "wake_word.engine" => Some(self.wake_word.engine.clone()),
             "wake_word.sensitivity" => Some(self.wake_word.sensitivity.to_string()),
             "gpu.use_local" => Some(self.gpu.use_local.to_string()),
+            "subscription.active" => Some(self.subscription.active.to_string()),
+            "subscription.tier" => Some(self.subscription.tier.clone()),
+            "direct_line.user_phone" => self.direct_line.as_ref().map(|dl| dl.user_phone.clone()),
+            "direct_line.xswarm_phone" => self.direct_line.as_ref().map(|dl| dl.xswarm_phone.clone()),
             _ => None,
         }
     }
