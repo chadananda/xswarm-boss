@@ -16,9 +16,11 @@
     "animate:sauron:luma": "node scripts/animate-sauron-luma.js",
     "animate:sauron:leonardo": "node scripts/animate-sauron-leonardo.js",
     "animate:sauron:runway": "node scripts/animate-sauron-runway.js",
-    "test:twilio": "node scripts/test-twilio.js"
+    "test:twilio": "node scripts/test-twilio.js",
+    "test:sendgrid": "node scripts/test-sendgrid.js"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "dotenv": "^16.3.1",
     "lumaai": "^1.18.0",
     "replicate": "^0.25.2",
