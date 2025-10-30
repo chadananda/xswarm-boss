@@ -58,7 +58,7 @@
     "setup:webhooks": "node scripts/setup-stripe-webhooks.js",
     "setup:twilio": "node scripts/setup-twilio-webhook.js",
     "setup:sendgrid": "node scripts/setup-sendgrid.js",
-    "deploy:admin": "source .env && cd admin-pages && npx wrangler pages deploy . --project-name xswarm-signup --commit-dirty=true",
+    "deploy:admin": "source .env && cd packages/admin-pages && npx wrangler pages deploy . --project-name xswarm-signup --commit-dirty=true",
     "deploy:pages": "npm run deploy:admin",
     "deploy:check": "node deployment/scripts/pre-deploy-check.js",
     "deploy:migrate": "node deployment/scripts/migrate-all.js",

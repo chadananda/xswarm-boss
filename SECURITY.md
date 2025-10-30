@@ -34,7 +34,7 @@ xSwarm-boss implements multiple security layers:
 - **mTLS** - Encrypted communication between machines
 - **Audit Logging** - Tamper-proof security event logs
 
-See [planning/SECURITY.md](planning/SECURITY.md) for complete security documentation.
+See [docs/planning/SECURITY.md](docs/planning/SECURITY.md) for complete security documentation.
 
 ## Security Best Practices
 
