@@ -42,3 +42,93 @@ jobs:
 
       - name: Run tests in container
         run: docker compose run --rm archlinux-dev cargo test --workspace
+
+  test-saas:
+    name: Test SaaS Features
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Setup test environment
+        run: |
+          cp tests/.env.example tests/.env
+          echo "TEST_DATABASE_URL=${{ secrets.TEST_DATABASE_URL }}" >> tests/.env
+          echo "TEST_AUTH_TOKEN=${{ secrets.TEST_AUTH_TOKEN }}" >> tests/.env
+
+      - name: Run database migrations
+        run: pnpm run setup:db
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TEST_AUTH_TOKEN }}
+
+      - name: Start test server
+        run: |
+          pnpm run dev:server &
+          sleep 10
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TURSO_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TEST_AUTH_TOKEN }}
+
+      - name: Run SaaS tests
+        run: pnpm run test:ci
+        env:
+          TEST_API_URL: http://localhost:8787
+          TEST_DATABASE_URL: ${{ secrets.TEST_DATABASE_URL }}
+          TEST_AUTH_TOKEN: ${{ secrets.TEST_AUTH_TOKEN }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: saas-test-results-${{ matrix.node-version }}
+          path: test-results.json
+
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+            const stats = results.stats;
+
+            const body = `## SaaS Test Results (Node ${{ matrix.node-version }})
+
+            - **Total**: ${stats.total} tests
+            - **Passed**: ✅ ${stats.passed}
+            - **Failed**: ❌ ${stats.failed}
+            - **Skipped**: ⏭️ ${stats.skipped}
+            - **Pass Rate**: ${stats.passRate.toFixed(2)}%
+            - **Duration**: ${stats.duration}ms
+
+            ${stats.failed > 0 ? '### ❌ Some tests failed. Please review.' : '### ✅ All tests passed!'}
+            `;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });

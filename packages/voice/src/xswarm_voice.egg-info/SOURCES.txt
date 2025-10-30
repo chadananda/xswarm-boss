@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+src/xswarm_voice/__init__.py
+src/xswarm_voice/__main__.py
+src/xswarm_voice/audio.py
+src/xswarm_voice/bridge.py
+src/xswarm_voice/persona.py
+src/xswarm_voice/server.py
+src/xswarm_voice.egg-info/PKG-INFO
+src/xswarm_voice.egg-info/SOURCES.txt
+src/xswarm_voice.egg-info/dependency_links.txt
+src/xswarm_voice.egg-info/requires.txt
+src/xswarm_voice.egg-info/top_level.txt

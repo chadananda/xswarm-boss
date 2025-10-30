@@ -1,0 +1,43 @@
+name = "xswarm-webhooks"
+main = "src/index.js"
+compatibility_date = "2024-10-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Workers configuration
+workers_dev = true
+account_id = "CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER"
+
+# Local development configuration
+[dev]
+port = 8787
+
+# R2 Storage binding (allows Worker to access R2 bucket)
+# Used for general storage AND Git LFS objects (prefix: lfs/objects/)
+[[r2_buckets]]
+binding = "R2_BUCKET"
+bucket_name = "xswarm-boss"
+
+# Environment variables (development configuration)
+# Note: In production, sensitive keys should be managed as secrets via wrangler secret put
+[vars]
+ENVIRONMENT = "production"
+TWILIO_ACCOUNT_SID = "***REMOVED***"
+TWILIO_PHONE_NUMBER = "+18447472899"
+SENDGRID_API_KEY = "***REMOVED***"
+ANTHROPIC_API_KEY = "***REMOVED***"
+
+# Secrets are managed via:
+#   wrangler secret put <KEY>
+# Or use the setup script:
+#   pnpm setup:secrets
+#
+# Required secrets:
+#   - TWILIO_ACCOUNT_SID
+#   - TWILIO_AUTH_TOKEN
+#   - STRIPE_SECRET_KEY
+#   - STRIPE_WEBHOOK_SECRET
+#   - TURSO_DATABASE_URL
+#   - TURSO_AUTH_TOKEN
+#   - SENDGRID_API_KEY         (Email sending/receiving)
+#   - LFS_AUTH_TOKEN_READ      (Git LFS read access)
+#   - LFS_AUTH_TOKEN_WRITE     (Git LFS write access)

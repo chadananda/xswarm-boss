@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="xSwarm Terms and Conditions - Fair terms for your private AI assistant service">
+    <meta name="keywords" content="xSwarm, terms of service, legal, AI assistant, voice assistant">
+    <meta name="author" content="xSwarm">
+    <title>Terms and Conditions | xSwarm - Voice-First AI Assistant</title>
+    <link rel="icon" type="image/x-icon" href="https://xswarm.ai/favicon.ico">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-cyan: #00d9ff;
+            --accent-cyan-dim: #0099bb;
+            --border-color: #1a2332;
+            --code-bg: #0f1419;
+            --link-color: #00d9ff;
+            --link-hover: #00ffcc;
+            --terms-highlight: #00ff88;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .terminal-header {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            white-space: pre;
+            display: inline-block;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .prompt {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        h1 {
+            color: var(--accent-cyan);
+            font-size: 2rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        h1::before {
+            content: '$ ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .last-updated {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--code-bg);
+            border-left: 3px solid var(--accent-cyan-dim);
+        }
+
+        .last-updated::before {
+            content: '> ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .terms-guarantee {
+            background: linear-gradient(135deg, #001a1a 0%, #003333 100%);
+            border: 2px solid var(--terms-highlight);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+
+        .terms-guarantee h2 {
+            color: var(--terms-highlight);
+            font-size: 1.8rem;
+            margin-top: 0;
+            margin-bottom: 1.5rem;
+            text-align: center;
+            border: none;
+            padding: 0;
+        }
+
+        .terms-guarantee h2::before {
+            content: '📋 ';
+        }
+
+        .terms-guarantee ul {
+            margin-top: 1rem;
+        }
+
+        .terms-guarantee li {
+            color: var(--text-primary);
+            font-size: 1.05rem;
+            margin: 1rem 0;
+        }
+
+        .terms-guarantee strong {
+            color: var(--terms-highlight);
+        }
+
+        h2 {
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+            margin: 2.5rem 0 1rem 0;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        h2::before {
+            content: '## ';
+            color: var(--accent-cyan-dim);
+        }
+
+        h3 {
+            color: var(--text-primary);
+            font-size: 1.2rem;
+            margin: 2rem 0 1rem 0;
+        }
+
+        h3::before {
+            content: '### ';
+            color: var(--accent-cyan-dim);
+        }
+
+        p {
+            margin: 1rem 0;
+            color: var(--text-primary);
+        }
+
+        ul, ol {
+            margin: 1rem 0 1rem 2rem;
+            color: var(--text-primary);
+        }
+
+        li {
+            margin: 0.5rem 0;
+            padding-left: 0.5rem;
+        }
+
+        ul li::marker {
+            content: '▸ ';
+            color: var(--accent-cyan);
+        }
+
+        ol li::marker {
+            color: var(--accent-cyan);
+        }
+
+        a {
+            color: var(--link-color);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--link-color);
+            transition: all 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--link-hover);
+            border-bottom-color: var(--link-hover);
+        }
+
+        .contact-box {
+            background-color: var(--code-bg);
+            border: 1px solid var(--accent-cyan-dim);
+            border-radius: 4px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .contact-box h3 {
+            margin-top: 0;
+        }
+
+        .contact-info {
+            margin: 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .contact-info strong {
+            color: var(--accent-cyan);
+        }
+
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--accent-cyan-dim), transparent);
+            margin: 3rem 0;
+        }
+
+        footer {
+            background-color: var(--bg-darker);
+            border-top: 2px solid var(--accent-cyan-dim);
+            padding: 2rem 1rem;
+            text-align: center;
+            margin-top: 4rem;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            border: none;
+        }
+
+        footer a:hover {
+            color: var(--link-hover);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--code-bg);
+            border: 1px solid var(--accent-cyan-dim);
+            border-radius: 4px;
+            color: var(--accent-cyan);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            background-color: var(--accent-cyan-dim);
+            color: var(--bg-darker);
+            border-color: var(--accent-cyan);
+        }
+
+        .back-link::before {
+            content: '← ';
+        }
+
+        strong {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        code {
+            background-color: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            color: var(--accent-cyan);
+            font-size: 0.9em;
+        }
+
+        .highlight-box {
+            background-color: var(--code-bg);
+            border: 2px solid var(--accent-cyan-dim);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 0.6rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            h2 {
+                font-size: 1.3rem;
+            }
+
+            h3 {
+                font-size: 1.1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .terms-guarantee {
+                padding: 1rem;
+            }
+
+            .terms-guarantee h2 {
+                font-size: 1.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="terminal-header">
+        <div class="logo">██╗  ██╗███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
+╚██╗██╔╝██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
+ ╚███╔╝ ███████╗██║ █╗ ██║███████║██████╔╝██╔████╔██║
+ ██╔██╗ ╚════██║██║███╗██║██╔══██║██╔══██╗██║╚██╔╝██║
+██╔╝ ██╗███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝</div>
+        <h1>Terms and Conditions</h1>
+        <p style="color: var(--text-secondary);">Voice-First AI Assistant for Developers</p>
+    </header>
+
+    <div class="container">
+        <a href="https://xswarm.ai" class="back-link">Return to xSwarm.ai</a>
+
+        <nav style="text-align: center; margin: 1.5rem 0; padding: 1rem; background-color: var(--code-bg); border: 1px solid var(--accent-cyan-dim); border-radius: 4px;">
+            <a href="index.html" style="margin: 0 1rem;">Sign Up</a> |
+            <a href="privacy.html" style="margin: 0 1rem;">Privacy Policy</a>
+        </nav>
+
+        <div class="last-updated">
+            Last Updated: October 29, 2025
+        </div>
+
+        <section>
+            <h2>Agreement to Terms</h2>
+            <p>
+                By accessing or using xSwarm services ("Boss AI", "the Service"), you agree to be bound by these Terms and Conditions. If you do not agree to these terms, please do not use our service.
+            </p>
+            <p>
+                <strong>xSwarm</strong> provides a private AI assistant service accessible via phone, SMS, and email. These terms govern your use of all xSwarm services and platforms.
+            </p>
+        </section>
+
+        <div class="terms-guarantee">
+            <h2>Fair Terms Promise</h2>
+            <p style="text-align: center; font-size: 1.1rem; margin-bottom: 1.5rem;">
+                <strong>We believe in clear, fair, and privacy-respecting terms.</strong>
+            </p>
+            <ul>
+                <li><strong>No Hidden Fees:</strong> Clear pricing with no surprise charges</li>
+                <li><strong>Cancel Anytime:</strong> No long-term contracts or cancellation penalties</li>
+                <li><strong>Your Data is Yours:</strong> We don't own your communications or content</li>
+                <li><strong>Privacy First:</strong> Your conversations with Boss AI remain private</li>
+            </ul>
+            <p style="text-align: center; margin-top: 1.5rem; font-size: 1.05rem;">
+                <strong>Simple, transparent service terms you can trust.</strong>
+            </p>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Service Description</h2>
+
+            <h3>What Boss AI Provides</h3>
+            <p>xSwarm offers an AI-powered personal assistant ("Boss AI") that provides:</p>
+            <ul>
+                <li><strong>Voice Communication:</strong> Phone-based conversational AI interface</li>
+                <li><strong>SMS Messaging:</strong> Text-based interactions with Boss AI</li>
+                <li><strong>Email Support:</strong> Email-based communication and task management</li>
+                <li><strong>Task Assistance:</strong> Help with scheduling, reminders, information retrieval, and general assistance</li>
+                <li><strong>Developer Tools:</strong> Integration capabilities for developer workflows</li>
+            </ul>
+
+            <h3>Service Nature</h3>
+            <p>
+                Boss AI is a <strong>private personal assistant service</strong>. Your communications with Boss AI are intended for your personal use and are processed privately as detailed in our <a href="https://xswarm.ai/privacy-page/">Privacy Policy</a>.
+            </p>
+            <p>
+                <strong>Important:</strong> Boss AI is an AI system and may occasionally produce incorrect, incomplete, or unexpected responses. You are responsible for verifying important information and decisions.
+            </p>
+
+            <h3>Paired Communication Security</h3>
+            <div style="background: linear-gradient(135deg, #001a1a 0%, #003333 100%); border: 2px solid var(--terms-highlight); border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0;">
+                <p style="text-align: center; font-size: 1.1rem; margin-bottom: 1rem;">
+                    <strong style="color: var(--terms-highlight);">🔒 Isolated, Secure Communication Channels</strong>
+                </p>
+                <p>
+                    xSwarm enforces a <strong>paired communication security model</strong> as a critical security policy:
+                </p>
+                <ul style="margin: 1rem 0;">
+                    <li><strong>Your Phone ↔ YOUR Boss AI Phone:</strong> Your phone number can only communicate with your assigned Boss AI phone number</li>
+                    <li><strong>Your Email ↔ YOUR Boss AI Email:</strong> Your email can only communicate with your assigned Boss AI email address</li>
+                    <li><strong>Enforced Isolation:</strong> Communications from unauthorized numbers or addresses are automatically rejected</li>
+                    <li><strong>No Cross-User Access:</strong> Other users cannot access your Boss AI, and you cannot access theirs</li>
+                </ul>
+                <p style="text-align: center; margin-top: 1rem; color: var(--terms-highlight);">
+                    <strong>This security model prevents unauthorized access and ensures your privacy.</strong>
+                </p>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Eligibility and Account Requirements</h2>
+
+            <h3>Age Requirements</h3>
+            <p>You must be at least 13 years old to use xSwarm services. Users between 13-17 must have parental consent.</p>
+
+            <h3>Account Registration</h3>
+            <p>To use Boss AI, you must:</p>
+            <ul>
+                <li>Provide accurate and complete registration information (email, phone number)</li>
+                <li>Maintain the security of your account credentials</li>
+                <li>Promptly update account information if it changes</li>
+                <li>Accept responsibility for all activities under your account</li>
+                <li>Notify us immediately of any unauthorized account access</li>
+            </ul>
+
+            <h3>Account Security</h3>
+            <p>
+                You are responsible for safeguarding your account. Do not share your login credentials or access methods with others. xSwarm is not liable for losses resulting from unauthorized account access due to your actions or inactions.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Acceptable Use Policy</h2>
+
+            <h3>Permitted Uses</h3>
+            <p>You may use Boss AI for:</p>
+            <ul>
+                <li>Personal productivity and task management</li>
+                <li>Information retrieval and research</li>
+                <li>Scheduling and reminder services</li>
+                <li>General assistance and conversation</li>
+                <li>Developer workflow integration (where supported)</li>
+                <li>Any lawful personal or professional purpose</li>
+            </ul>
+
+            <h3>Prohibited Uses</h3>
+            <p>You may NOT use Boss AI for:</p>
+            <ul>
+                <li><strong>Illegal Activities:</strong> Any unlawful purpose or violation of applicable laws</li>
+                <li><strong>Harassment:</strong> Abusive, threatening, or harassing communications</li>
+                <li><strong>Harmful Content:</strong> Creating, distributing, or requesting illegal, harmful, or violent content</li>
+                <li><strong>Service Abuse:</strong> Attempting to disrupt, damage, or overload our systems</li>
+                <li><strong>Unauthorized Access:</strong> Attempting to access other users' accounts or our systems</li>
+                <li><strong>Spam:</strong> Sending unsolicited commercial messages through our service</li>
+                <li><strong>Impersonation:</strong> Misrepresenting yourself or your affiliation</li>
+                <li><strong>Exploitation:</strong> Exploiting minors or engaging in human trafficking</li>
+                <li><strong>Privacy Violations:</strong> Violating others' privacy or data protection rights</li>
+                <li><strong>Reverse Engineering:</strong> Attempting to reverse engineer or extract our AI models</li>
+            </ul>
+
+            <p style="margin-top: 1.5rem;">
+                <strong>Violation Consequences:</strong> We reserve the right to immediately suspend or terminate accounts that violate these terms. Serious violations may be reported to law enforcement.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>User Responsibilities</h2>
+
+            <h3>Content You Provide</h3>
+            <p>When using Boss AI, you are responsible for:</p>
+            <ul>
+                <li>The content of your communications and requests</li>
+                <li>Ensuring your use complies with all applicable laws</li>
+                <li>Verifying important information before acting on AI responses</li>
+                <li>Understanding AI limitations and potential for errors</li>
+                <li>Not sharing sensitive personal information unnecessarily</li>
+            </ul>
+
+            <h3>Decision Responsibility</h3>
+            <p>
+                <strong>Boss AI provides assistance, not advice.</strong> You are solely responsible for your decisions and actions based on interactions with Boss AI. xSwarm does not provide professional advice (legal, medical, financial, etc.), and Boss AI responses should not be treated as such.
+            </p>
+
+            <h3>Communication Charges</h3>
+            <p>
+                Standard carrier messaging and data rates may apply for SMS and phone communications. You are responsible for any charges from your mobile carrier or internet service provider.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Payment Terms and Billing</h2>
+
+            <h3>Subscription Plans</h3>
+            <p>xSwarm offers subscription-based access to Boss AI with various plans:</p>
+            <ul>
+                <li>Monthly and annual subscription options</li>
+                <li>Different tiers with varying features and usage limits</li>
+                <li>All prices listed in USD unless otherwise specified</li>
+                <li>Prices are subject to change with 30 days notice</li>
+            </ul>
+
+            <h3>Billing and Payment</h3>
+            <p>By subscribing to xSwarm:</p>
+            <ul>
+                <li><strong>Automatic Billing:</strong> Subscriptions renew automatically at the end of each billing period</li>
+                <li><strong>Payment Methods:</strong> We accept credit cards via Stripe (PCI-compliant processor)</li>
+                <li><strong>Billing Date:</strong> You'll be charged on the same day each billing period</li>
+                <li><strong>Payment Failures:</strong> Failed payments may result in service suspension after notice</li>
+                <li><strong>Taxes:</strong> Prices exclude applicable taxes (added at checkout where required)</li>
+            </ul>
+
+            <h3>Usage-Based Charges</h3>
+            <p>Some services may include usage-based components:</p>
+            <ul>
+                <li>Voice call minutes beyond included allowance</li>
+                <li>SMS messages beyond included allowance</li>
+                <li>Premium features or API usage</li>
+            </ul>
+            <p>Usage charges are billed monthly and clearly displayed in your account dashboard.</p>
+
+            <h3>Cancellation and Refunds</h3>
+            <p><strong>Cancellation Policy:</strong></p>
+            <ul>
+                <li>Cancel anytime from your account dashboard</li>
+                <li>No cancellation fees or penalties</li>
+                <li>Service continues until the end of your current billing period</li>
+                <li>No partial refunds for unused time in billing period</li>
+            </ul>
+
+            <p><strong>Refund Policy:</strong></p>
+            <ul>
+                <li><strong>7-Day Guarantee:</strong> Full refund if you cancel within 7 days of first subscription</li>
+                <li><strong>Service Issues:</strong> Refunds considered for significant service disruptions</li>
+                <li><strong>No Refunds:</strong> For completed billing periods or usage-based charges</li>
+            </ul>
+
+            <p style="margin-top: 1.5rem;">
+                For refund requests, contact <a href="mailto:billing@xswarm.ai">billing@xswarm.ai</a> within 30 days of the charge.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Service Availability and Support</h2>
+
+            <h3>Service Level</h3>
+            <p>
+                We strive to provide reliable, high-quality service but cannot guarantee uninterrupted access. Boss AI is provided "as-is" with the following understanding:
+            </p>
+            <ul>
+                <li><strong>Target Uptime:</strong> We aim for 99% service availability</li>
+                <li><strong>Maintenance:</strong> Scheduled maintenance announced at least 24 hours in advance</li>
+                <li><strong>Emergency Maintenance:</strong> May occur without notice for critical issues</li>
+                <li><strong>No Guarantees:</strong> We don't guarantee specific uptime or response times</li>
+            </ul>
+
+            <h3>Technical Support</h3>
+            <p>xSwarm provides:</p>
+            <ul>
+                <li>Email support at <a href="mailto:support@xswarm.ai">support@xswarm.ai</a></li>
+                <li>Documentation at <a href="https://xswarm.ai">xswarm.ai</a></li>
+                <li>Response time: Within 48 business hours for support inquiries</li>
+                <li>Priority support available for higher-tier subscriptions</li>
+            </ul>
+
+            <h3>Service Limitations</h3>
+            <p>Boss AI has limitations including:</p>
+            <ul>
+                <li>AI-generated responses may contain errors or inaccuracies</li>
+                <li>Knowledge cutoff dates for AI training data</li>
+                <li>Rate limits on messages, calls, or requests per time period</li>
+                <li>Geographic availability restrictions</li>
+                <li>Dependency on third-party services (Twilio, OpenAI, etc.)</li>
+            </ul>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Intellectual Property Rights</h2>
+
+            <h3>Your Content</h3>
+            <p>
+                <strong>You retain ownership</strong> of all content you provide to Boss AI through communications. By using the service, you grant xSwarm a limited license to process your communications solely to provide the service.
+            </p>
+            <p>
+                <strong>Important:</strong> As stated in our <a href="https://xswarm.ai/privacy-page/">Privacy Policy</a>, we do not store your communication content. We process it in real-time only.
+            </p>
+
+            <h3>xSwarm Intellectual Property</h3>
+            <p>All xSwarm intellectual property remains our property, including:</p>
+            <ul>
+                <li>The xSwarm platform, software, and services</li>
+                <li>Boss AI system, algorithms, and models</li>
+                <li>xSwarm trademarks, logos, and branding</li>
+                <li>Documentation, interfaces, and designs</li>
+                <li>Any content we create or provide</li>
+            </ul>
+
+            <h3>License to Use</h3>
+            <p>
+                We grant you a limited, non-exclusive, non-transferable license to use xSwarm services for their intended purpose during your subscription. This license terminates when your subscription ends.
+            </p>
+
+            <h3>AI-Generated Content</h3>
+            <p>
+                Responses generated by Boss AI are provided for your use. However, AI-generated content may not be unique and similar content may be generated for other users. We make no claims of copyright or ownership over AI-generated responses.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Privacy and Data Protection</h2>
+
+            <p>
+                Your privacy is important to us. Our data collection and usage practices are detailed in our <a href="https://xswarm.ai/privacy-page/">Privacy Policy</a>, which is incorporated into these Terms and Conditions.
+            </p>
+
+            <h3>Key Privacy Points</h3>
+            <ul>
+                <li><strong>Minimal Data Collection:</strong> We collect only email, phone, and payment info</li>
+                <li><strong>No Communication Storage:</strong> Your conversations with Boss AI are NOT stored</li>
+                <li><strong>Real-Time Processing:</strong> Communications processed in real-time and immediately discarded</li>
+                <li><strong>Third-Party Services:</strong> We use Twilio, OpenAI, and SendGrid for service delivery</li>
+                <li><strong>Your Rights:</strong> Access, correct, delete, or export your account data</li>
+            </ul>
+
+            <p style="margin-top: 1.5rem;">
+                For complete privacy details, see our <a href="https://xswarm.ai/privacy-page/">Privacy Policy</a>.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Limitation of Liability</h2>
+
+            <h3>Service "As-Is"</h3>
+            <p>
+                xSwarm services are provided "AS-IS" and "AS AVAILABLE" without warranties of any kind, either express or implied, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement.
+            </p>
+
+            <h3>No Guarantees</h3>
+            <p>We do not guarantee that:</p>
+            <ul>
+                <li>The service will be uninterrupted, secure, or error-free</li>
+                <li>AI responses will be accurate, complete, or reliable</li>
+                <li>Any defects will be corrected</li>
+                <li>The service will meet your specific requirements</li>
+                <li>Results from service use will be satisfactory</li>
+            </ul>
+
+            <h3>Liability Limits</h3>
+            <p>
+                <strong>To the maximum extent permitted by law:</strong>
+            </p>
+            <ul>
+                <li>xSwarm is not liable for indirect, incidental, special, consequential, or punitive damages</li>
+                <li>Our total liability is limited to the amount you paid us in the 12 months before the claim</li>
+                <li>We are not liable for third-party services, AI errors, or user decisions</li>
+                <li>We are not liable for data loss, business interruption, or lost profits</li>
+            </ul>
+
+            <h3>Exceptions</h3>
+            <p>
+                These limitations don't apply where prohibited by law or to liability for death or personal injury caused by our negligence.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Indemnification</h2>
+
+            <p>
+                You agree to indemnify, defend, and hold harmless xSwarm, its officers, directors, employees, and agents from any claims, damages, losses, liabilities, and expenses (including legal fees) arising from:
+            </p>
+            <ul>
+                <li>Your use or misuse of xSwarm services</li>
+                <li>Your violation of these Terms and Conditions</li>
+                <li>Your violation of any rights of another party</li>
+                <li>Your violation of applicable laws or regulations</li>
+                <li>Content you provide or actions you take using Boss AI</li>
+            </ul>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Account Termination</h2>
+
+            <h3>Termination by You</h3>
+            <p>You may terminate your account at any time:</p>
+            <ul>
+                <li>Cancel subscription from your account dashboard</li>
+                <li>Email <a href="mailto:support@xswarm.ai">support@xswarm.ai</a> to request account deletion</li>
+                <li>Service access continues until end of current billing period</li>
+                <li>Account data deleted 30 days after cancellation (per Privacy Policy)</li>
+            </ul>
+
+            <h3>Termination by xSwarm</h3>
+            <p>We may suspend or terminate your account if:</p>
+            <ul>
+                <li>You violate these Terms and Conditions</li>
+                <li>You engage in prohibited uses or illegal activities</li>
+                <li>Your payment fails and you don't update payment information</li>
+                <li>We discontinue the service (with 30 days notice)</li>
+                <li>Required by law or legal process</li>
+            </ul>
+
+            <h3>Effect of Termination</h3>
+            <p>Upon termination:</p>
+            <ul>
+                <li>Your access to Boss AI immediately ceases</li>
+                <li>Remaining subscription time is forfeited (no partial refunds)</li>
+                <li>Your account data is deleted per our Privacy Policy</li>
+                <li>These terms survive termination where applicable (e.g., liability limits)</li>
+            </ul>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Changes to Service and Terms</h2>
+
+            <h3>Service Changes</h3>
+            <p>We reserve the right to:</p>
+            <ul>
+                <li>Modify, suspend, or discontinue any aspect of the service</li>
+                <li>Change pricing with 30 days notice to existing subscribers</li>
+                <li>Add or remove features or capabilities</li>
+                <li>Update AI models, capabilities, or limitations</li>
+            </ul>
+
+            <h3>Terms Changes</h3>
+            <p>
+                We may update these Terms and Conditions to reflect service changes, legal requirements, or operational needs. Material changes will be communicated via:
+            </p>
+            <ul>
+                <li>Email notification to your registered address</li>
+                <li>Prominent notice on our website</li>
+                <li>Updated "Last Updated" date at the top of this page</li>
+            </ul>
+
+            <h3>Acceptance of Changes</h3>
+            <p>
+                Continued use after changes constitutes acceptance of new terms. If you disagree with changes, you may cancel your account. Changes are effective 30 days after notification unless otherwise stated.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Dispute Resolution</h2>
+
+            <h3>Governing Law</h3>
+            <p>
+                These Terms and Conditions are governed by the laws of the State of Delaware, United States, without regard to conflict of law principles.
+            </p>
+
+            <h3>Informal Resolution</h3>
+            <p>
+                Before filing any formal dispute, please contact us at <a href="mailto:legal@xswarm.ai">legal@xswarm.ai</a> to attempt informal resolution. We commit to working in good faith to resolve disputes.
+            </p>
+
+            <h3>Arbitration Agreement</h3>
+            <p>
+                For disputes that cannot be resolved informally, you agree to binding arbitration rather than court proceedings, except:
+            </p>
+            <ul>
+                <li>Small claims court cases (under jurisdictional limit)</li>
+                <li>Intellectual property disputes</li>
+                <li>Emergency injunctive relief</li>
+            </ul>
+
+            <h3>Class Action Waiver</h3>
+            <p>
+                You agree that disputes will be resolved individually, not as part of a class action, consolidated action, or representative action. This class action waiver is essential to this arbitration agreement.
+            </p>
+
+            <h3>Jurisdiction</h3>
+            <p>
+                For matters not subject to arbitration, you consent to exclusive jurisdiction in state or federal courts located in Delaware, United States.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Miscellaneous Provisions</h2>
+
+            <h3>Entire Agreement</h3>
+            <p>
+                These Terms and Conditions, together with our Privacy Policy, constitute the entire agreement between you and xSwarm regarding use of our services.
+            </p>
+
+            <h3>Severability</h3>
+            <p>
+                If any provision of these terms is found unenforceable, the remaining provisions remain in full effect, and the unenforceable provision is modified to the minimum extent necessary to make it enforceable.
+            </p>
+
+            <h3>Waiver</h3>
+            <p>
+                Our failure to enforce any provision doesn't constitute a waiver of that provision. No waiver is effective unless in writing and signed by xSwarm.
+            </p>
+
+            <h3>Assignment</h3>
+            <p>
+                You may not assign or transfer these terms without our written consent. We may assign these terms in connection with a merger, acquisition, or sale of assets.
+            </p>
+
+            <h3>Force Majeure</h3>
+            <p>
+                xSwarm is not liable for delays or failures due to causes beyond our reasonable control, including natural disasters, government actions, telecommunications failures, or third-party service outages.
+            </p>
+
+            <h3>Export Compliance</h3>
+            <p>
+                You agree to comply with all applicable export laws and regulations. You may not use xSwarm services in violation of any export restrictions or sanctions.
+            </p>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Contact Information</h2>
+            <div class="contact-box">
+                <h3>Questions About Terms?</h3>
+                <p class="contact-info">
+                    Have questions or need clarification about these terms?
+                </p>
+                <p class="contact-info">
+                    <strong>Legal Inquiries:</strong> <a href="mailto:legal@xswarm.ai">legal@xswarm.ai</a>
+                </p>
+                <p class="contact-info">
+                    <strong>Billing Questions:</strong> <a href="mailto:billing@xswarm.ai">billing@xswarm.ai</a>
+                </p>
+                <p class="contact-info">
+                    <strong>Technical Support:</strong> <a href="mailto:support@xswarm.ai">support@xswarm.ai</a>
+                </p>
+                <p class="contact-info">
+                    <strong>Privacy Concerns:</strong> <a href="mailto:privacy@xswarm.ai">privacy@xswarm.ai</a>
+                </p>
+                <p class="contact-info">
+                    <strong>Website:</strong> <a href="https://xswarm.ai">https://xswarm.ai</a>
+                </p>
+                <p class="contact-info">
+                    <strong>GitHub:</strong> <a href="https://github.com/chadananda/xSwarm-boss">github.com/chadananda/xSwarm-boss</a>
+                </p>
+                <p class="contact-info">
+                    <strong>Response Time:</strong> 7 business days for legal inquiries
+                </p>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section>
+            <h2>Terms Summary (Plain English)</h2>
+            <div class="highlight-box">
+                <p style="font-size: 1.15rem; margin: 0 0 1rem 0;">
+                    <strong style="color: var(--terms-highlight);">What You're Agreeing To:</strong>
+                </p>
+                <ul style="margin: 0 0 1.5rem 1.5rem;">
+                    <li>Use Boss AI responsibly and legally</li>
+                    <li>Pay for your subscription as agreed</li>
+                    <li>Understand AI has limitations and may make errors</li>
+                    <li>Take responsibility for decisions based on AI responses</li>
+                </ul>
+
+                <p style="font-size: 1.15rem; margin: 1.5rem 0 1rem 0;">
+                    <strong style="color: var(--terms-highlight);">What We Promise:</strong>
+                </p>
+                <ul style="margin: 0 0 1.5rem 1.5rem;">
+                    <li>Provide Boss AI service as described</li>
+                    <li>Protect your privacy (no communication storage)</li>
+                    <li>Clear pricing with no hidden fees</li>
+                    <li>Let you cancel anytime without penalty</li>
+                </ul>
+
+                <p style="font-size: 1.2rem; margin: 1.5rem 0 0 0; text-align: center; color: var(--terms-highlight);">
+                    <strong>Fair terms for a private, powerful AI assistant.</strong>
+                </p>
+            </div>
+        </section>
+
+        <div class="section-divider"></div>
+
+        <section style="text-align: center; padding: 2rem 0;">
+            <p style="font-size: 1.1rem; margin-bottom: 1rem;">
+                <strong>By using xSwarm services, you agree to these Terms and Conditions.</strong>
+            </p>
+            <p style="color: var(--text-secondary);">
+                Last Updated: October 29, 2025
+            </p>
+        </section>
+    </div>
+
+    <footer>
+        <p>
+            <strong class="prompt">xSwarm</strong> - Voice-First AI Assistant for Developers
+        </p>
+        <p style="margin-top: 0.5rem;">
+            <a href="index.html">Get Started</a> •
+            <a href="privacy.html">Privacy Policy</a> •
+            <a href="https://xswarm.ai">Home</a> •
+            <a href="https://github.com/chadananda/xSwarm-boss">GitHub</a> •
+            <a href="mailto:legal@xswarm.ai">Contact</a>
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.85rem;">
+            © 2025 xSwarm. All rights reserved. |
+            Privacy-First AI for Developers
+        </p>
+    </footer>
+</body>
+</html>

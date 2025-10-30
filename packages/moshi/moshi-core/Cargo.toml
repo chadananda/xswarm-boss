@@ -1,0 +1,26 @@
+[package]
+name = "moshi"
+version = "0.6.4"
+edition = "2021"
+description = "moshi, a real-time voice AI"
+repository = "https://github.com/kyutai-labs/moshi"
+keywords = ["machine-learning", "audio"]
+categories = ["science"]
+license = "MIT/Apache-2.0"
+readme = "../README.md"
+
+[dependencies]
+candle = { workspace = true }
+candle-nn = { workspace = true }
+candle-transformers = { workspace = true }
+candle-flash-attn = { workspace = true, optional = true }
+
+rayon = { workspace = true }
+serde = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = []
+cuda = ["candle/cuda", "candle-nn/cuda"]
+metal = ["candle/metal", "candle-nn/metal"]
+flash-attn = ["cuda", "dep:candle-flash-attn"]

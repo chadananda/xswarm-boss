@@ -1,0 +1,30 @@
+[
+  {
+    "id": "user_test_free_001",
+    "email": "free.user@test.xswarm.local",
+    "name": "Free User Test",
+    "subscription_tier": "free",
+    "email_verified": true
+  },
+  {
+    "id": "user_test_secretary_001",
+    "email": "secretary.user@test.xswarm.local",
+    "name": "Secretary User Test",
+    "subscription_tier": "ai_secretary",
+    "email_verified": true
+  },
+  {
+    "id": "user_test_pm_001",
+    "email": "pm.user@test.xswarm.local",
+    "name": "PM User Test",
+    "subscription_tier": "ai_project_manager",
+    "email_verified": true
+  },
+  {
+    "id": "user_test_cto_001",
+    "email": "cto.user@test.xswarm.local",
+    "name": "CTO User Test",
+    "subscription_tier": "ai_cto",
+    "email_verified": true
+  }
+]

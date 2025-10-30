@@ -1,0 +1,18 @@
+# Local Development Secrets
+# Copy this file to .dev.vars and fill in your actual secrets
+# .dev.vars is gitignored and used by `wrangler dev`
+#
+# For production, use: pnpm setup:secrets
+# Or manually: wrangler secret put <KEY>
+
+# Twilio API (for webhook signature verification)
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token_here
+
+# Stripe API (for payment processing and webhook verification)
+STRIPE_SECRET_KEY=***REMOVED***
+STRIPE_WEBHOOK_SECRET=***REMOVED***
+
+# Turso Database (LibSQL for user data)
+TURSO_DATABASE_URL=libsql://your-database.turso.io
+TURSO_AUTH_TOKEN=your_turso_auth_token_here

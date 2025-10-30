@@ -1,0 +1,321 @@
+# xSwarm Configuration
+# Project-level configuration (non-secret values safe to commit)
+# Secrets go in .env (gitignored)
+#
+# Environment (dev/staging/production) should be set via:
+# - ENVIRONMENT or NODE_ENV environment variable
+# - Auto-detected from runtime context (Cloudflare Workers, etc.)
+# - CLI flag if needed
+
+# =============================================================================
+# Server Connection (Rust Client → Node.js Server)
+# =============================================================================
+# The Node.js server maintains the main libsql database (backed up to Turso).
+# The Rust client connects to the server to get its identity and user data.
+[server]
+host = "localhost"
+port = 8787
+api_base = "/api"
+# auth_token is read from XSWARM_AUTH_TOKEN environment variable
+use_https = false  # true for production
+
+# =============================================================================
+# Admin User Configuration (Single Admin - Full Access)
+# =============================================================================
+# Note: Admin user is configured here. Additional users are stored in database.
+# Phone numbers are NOT secrets - they're used for caller ID verification
+#
+# Only ONE admin user should exist in config.toml
+# Regular users with limited permissions are stored in the Turso database
+
+# =============================================================================
+# Twilio Configuration (Voice & SMS)
+# =============================================================================
+[twilio]
+# Account SID (not secret, just an account identifier)
+account_sid = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Test account for development
+test_account_sid = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+test_receive_number = "+15559876543"
+test_send_number = "+15551234567"
+test_receive_webhook = "https://demo.twilio.com/welcome/voice/"
+
+# =============================================================================
+# Stripe Configuration (Payments & Subscriptions)
+# =============================================================================
+[stripe]
+# Publishable keys (safe for client-side, not secret)
+# Test mode publishable key
+publishable_key_test = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Live mode publishable key (production)
+publishable_key_live = "***REMOVED***xxxxxxxxxxxxxxxx"
+
+# Product Price IDs (create these in Stripe Dashboard)
+[stripe.prices]
+# New 4-tier subscription prices
+ai_buddy = "price_1SNfOARfk9upK3BeVL15MBCo"           # Free tier (no charge)
+ai_secretary = "price_1SNfOBRfk9upK3BepnFbldcs"       # $40/month subscription
+ai_project_manager = "price_1SNfOdRfk9upK3BegXBAYz0z" # $280/month subscription
+ai_cto = "price_1SNfOeRfk9upK3Benxw8PKds"             # Enterprise (custom pricing)
+
+# Metered usage prices (for overages)
+voice = "price_1SNfOfRfk9upK3BeqSfse2OH"    # Voice minutes (metered)
+sms = "price_1SNfOgRfk9upK3BeZTkdPV9R"      # SMS messages (metered)
+phone = "price_1SNfOhRfk9upK3Be0t9n94vl"    # Additional phone numbers
+
+# Legacy tier mappings (for backward compatibility)
+premium = "price_1SNfOBRfk9upK3BepnFbldcs"  # Maps to ai_secretary (deprecated)
+
+# =============================================================================
+# SendGrid Configuration (Email)
+# =============================================================================
+[sendgrid]
+# Domain for xSwarm email addresses
+domain = "xswarm.ai"
+
+# Test email addresses (for development/testing)
+test_user_email = "xswarm-testuser@xswarm.ai"
+test_xswarm_email = "xswarm-testboss@xswarm.ai"
+
+# =============================================================================
+# Turso Database Configuration
+# =============================================================================
+[turso]
+# Database name (your database identifier on turso.tech)
+database_name = "xswarm"
+
+# Organization (your Turso org name)
+organization = "your-org-name"
+
+# Database URL
+database_url = "libsql://your-database.turso.io"
+
+# Primary region (where database is created)
+primary_region = "pdx"  # AWS US West 2 (Portland)
+
+# Replica regions (for global edge replication)
+replica_regions = ["iad", "fra", "nrt"]  # US East, Frankfurt, Tokyo
+
+# Local embedded replica settings
+[turso.local_replica]
+enabled = true
+sync_interval_seconds = 60
+local_db_path = "~/.local/share/xswarm/users.db"
+
+# Backup configuration
+[turso.backup]
+# Automatic backups (Turso does this by default)
+enabled = true
+
+# Point-in-time recovery retention (days)
+retention_days = 30
+
+# Manual backup schedule (optional, for extra safety)
+manual_backup_enabled = false
+backup_schedule = "0 2 * * *"  # Daily at 2 AM UTC (cron format)
+
+# =============================================================================
+# S3-Compatible Storage (Assets & Backups)
+# =============================================================================
+[storage]
+# Provider: "s3" (AWS), "r2" (Cloudflare R2), or "custom"
+# R2 recommended for Cloudflare Workers (zero egress fees, S3-compatible API)
+provider = "r2"
+
+# Primary bucket (single bucket with prefixes for organization)
+bucket_name = "xswarm-boss"
+
+# Prefix for assets within the bucket (like folders)
+assets_prefix = "assets/"
+
+# AWS region (for S3) or hint for R2
+region = "auto"
+
+# Custom endpoint (required for R2, optional for S3-compatible services)
+# For R2: https://<account-id>.r2.cloudflarestorage.com
+endpoint = "https://CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.r2.cloudflarestorage.com"
+
+# Public URL for assets (if using CDN or public bucket)
+public_url = "https://assets.xswarm.ai"
+
+# Backup configuration (uses same bucket with different prefix)
+[storage.backup]
+enabled = true
+bucket_name = "xswarm-boss"  # Same bucket
+backups_prefix = "backups/"  # Different prefix (like a folder)
+retention_days = 90
+
+# Automatic backup schedule for database dumps
+backup_schedule = "0 3 * * *"  # Daily at 3 AM UTC (after Turso backup)
+
+# =============================================================================
+# Feature Flags
+# =============================================================================
+[features]
+voice_enabled = true
+sms_enabled = true
+email_enabled = true
+stripe_enabled = true
+direct_line_enabled = true
+
+# =============================================================================
+# AI Provider Configuration
+# =============================================================================
+[ai]
+# Default providers (can be overridden in user config)
+default_text_provider = "anthropic"
+default_voice_provider = "moshi"
+
+# Model defaults
+[ai.models]
+anthropic_model = "claude-sonnet-4-5-20250929"
+moshi_model = "kyutai/moshika-mlx-q4"
+
+# =============================================================================
+# Voice Configuration Defaults
+# =============================================================================
+[voice]
+default_persona = "boss"
+default_wake_word = "hey boss"
+sample_rate = 24000  # MOSHI requires 24kHz audio
+include_personality = true
+
+# =============================================================================
+# Subscription Tiers (4-Tier Structure)
+# =============================================================================
+# Tier 1: AI Buddy (Free) - Email only, limited usage
+[subscription.ai_buddy]
+tier = "ai_buddy"
+name = "AI Buddy"
+price = 0.00  # Free
+email_limit = 100  # emails per day
+voice_minutes = 0
+sms_messages = 0
+phone_numbers = 0
+team_management = false
+priority_support = false
+enterprise_features = false
+
+# Tier 2: AI Secretary ($40/month) - Email + SMS + Basic Voice
+[subscription.ai_secretary]
+tier = "ai_secretary"
+name = "AI Secretary"
+price = 40.00  # USD per month
+email_limit = -1  # unlimited
+voice_minutes = 500  # included per month
+sms_messages = 500   # included per month
+phone_numbers = 1    # included
+voice_minutes_included = 500
+sms_messages_included = 500
+phone_numbers_included = 1
+team_management = false
+priority_support = false
+enterprise_features = false
+# Overage rates
+voice_overage_rate = 0.013    # per minute
+sms_overage_rate = 0.0075     # per message
+phone_overage_rate = 2.00     # per number per month
+
+# Tier 3: AI Project Manager ($280/month) - All features + Team + Priority
+[subscription.ai_project_manager]
+tier = "ai_project_manager"
+name = "AI Project Manager"
+price = 280.00  # USD per month
+email_limit = -1  # unlimited
+voice_minutes = 2000  # included per month
+sms_messages = 2000   # included per month
+phone_numbers = 3     # included
+voice_minutes_included = 2000
+sms_messages_included = 2000
+phone_numbers_included = 3
+team_management = true
+priority_support = true
+enterprise_features = false
+# Overage rates (discounted from AI Secretary)
+voice_overage_rate = 0.010    # per minute
+sms_overage_rate = 0.006      # per message
+phone_overage_rate = 1.50     # per number per month
+
+# Tier 4: AI CTO (Enterprise) - Custom pricing + Dedicated resources
+[subscription.ai_cto]
+tier = "ai_cto"
+name = "AI CTO"
+price = -1  # Custom pricing (contact sales)
+email_limit = -1  # unlimited
+voice_minutes = -1  # unlimited
+sms_messages = -1   # unlimited
+phone_numbers = -1  # unlimited
+voice_minutes_included = -1   # unlimited
+sms_messages_included = -1    # unlimited
+phone_numbers_included = 10   # base included, more on request
+team_management = true
+priority_support = true
+enterprise_features = true
+phone_support = true
+dedicated_resources = true
+# No overage rates for enterprise (all usage included)
+
+# Legacy tier mappings (for backward compatibility)
+[subscription.free]
+tier = "ai_buddy"
+redirect_to = "ai_buddy"
+
+[subscription.premium]
+tier = "ai_secretary"
+redirect_to = "ai_secretary"
+
+# =============================================================================
+# Test User (for local development and testing)
+# =============================================================================
+[test_user]
+# Test user's real email (whitelist - receives emails from xSwarm)
+email = "testuser@example.com"
+phone = "+15551234567"
+subscription_tier = "ai_secretary"  # Updated to new tier structure
+persona = "boss"
+wake_word = "hey boss"
+
+# Test user's xSwarm assignments (assigned during testing)
+xswarm_email = "testuser@xswarm.ai"
+xswarm_phone = "+18005551001"
+
+# =============================================================================
+# Admin User (Single Admin - Configured in TOML, NOT Database)
+# =============================================================================
+# This is the ONLY user configured in config.toml
+# All other users are stored in the Turso database with limited permissions
+#
+[admin]
+username = "admin"
+name = "Admin User"
+email = "admin@xswarm.dev"
+phone = "+15559876543"
+xswarm_email = "admin@xswarm.ai"
+xswarm_phone = "+18005559876"
+persona = "boss"
+wake_word = "hey boss"
+subscription_tier = "admin"  # Admin gets full access to all features
+
+# Admin-only permissions (regular users do NOT have these)
+access_level = "superadmin"
+can_provision_numbers = true
+can_view_all_users = true
+can_manage_subscriptions = true
+can_manage_config = true
+can_access_all_channels = true  # Email, SMS, Voice all enabled by default
+
+# =============================================================================
+# Development Settings
+# =============================================================================
+[development]
+# Enable debug logging
+debug = true
+
+# Use test credentials
+use_test_credentials = true
+
+# Local server settings
+server_port = 8787
+server_host = "localhost"

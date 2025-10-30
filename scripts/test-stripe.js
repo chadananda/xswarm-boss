@@ -9,41 +9,46 @@
  *   node scripts/test-stripe.js
  */
 
-import 'dotenv/config';
 import Stripe from 'stripe';
+import { loadConfig } from './load-config.js';
 
-const {
-  STRIPE_SECRET_KEY,
-  STRIPE_PUBLISHABLE_KEY,
-  STRIPE_PRICE_PREMIUM,
-  STRIPE_PRICE_VOICE,
-  STRIPE_PRICE_SMS,
-  STRIPE_PRICE_PHONE,
-  TEST_USER_EMAIL = 'test@example.com'
-} = process.env;
+// Load secrets and config
+const { secrets, config } = loadConfig();
 
-// Validate environment variables
+// Determine which keys to use (test by default, live if --live flag)
+const useLive = process.argv.includes('--live');
+const STRIPE_SECRET_KEY = useLive ? secrets.STRIPE_SECRET_KEY_LIVE : secrets.STRIPE_SECRET_KEY_TEST;
+const STRIPE_PUBLISHABLE_KEY = useLive ? config.stripe?.publishable_key_live : config.stripe?.publishable_key_test;
+const STRIPE_PRICE_PREMIUM = config.stripe?.prices?.premium;
+const STRIPE_PRICE_VOICE = config.stripe?.prices?.voice;
+const STRIPE_PRICE_SMS = config.stripe?.prices?.sms;
+const STRIPE_PRICE_PHONE = config.stripe?.prices?.phone;
+const TEST_USER_EMAIL = config.test_user?.email || config.sendgrid?.test_user_email || 'test@example.com';
+
+// Validate secrets and config
 function validateEnv() {
   const missing = [];
 
   if (!STRIPE_SECRET_KEY) {
-    missing.push('STRIPE_SECRET_KEY');
+    const keyName = useLive ? 'STRIPE_SECRET_KEY_LIVE' : 'STRIPE_SECRET_KEY_TEST';
+    missing.push(`${keyName} (in .env)`);
   }
   if (!STRIPE_PUBLISHABLE_KEY) {
-    missing.push('STRIPE_PUBLISHABLE_KEY');
+    const keyName = useLive ? 'stripe.publishable_key_live' : 'stripe.publishable_key_test';
+    missing.push(`${keyName} (in config.toml)`);
   }
 
   if (missing.length > 0) {
-    console.error('❌ Missing or unconfigured environment variables:');
+    console.error('❌ Missing or unconfigured values:');
     missing.forEach(key => console.error(`   - ${key}`));
-    console.error('\nPlease update your .env file with Stripe credentials.');
+    console.error('\nPlease update your .env file with secrets and config.toml with configuration.');
     console.error('See planning/STRIPE_SETUP.md for setup instructions.');
     process.exit(1);
   }
 }
 
 async function testStripeConnection() {
-  console.log('💳 Stripe Subscription Test\n');
+  console.log('💳 Stripe Connection Test\n');
 
   // Validate environment
   validateEnv();
@@ -51,9 +56,11 @@ async function testStripeConnection() {
   // Detect test vs live mode
   const isTestMode = STRIPE_SECRET_KEY.startsWith('sk_test_');
   const mode = isTestMode ? 'Test Mode' : 'Live Mode';
+  const requestedMode = useLive ? 'Live' : 'Test';
 
-  console.log('✓ Environment variables configured');
-  console.log(`  Mode: ${mode}`);
+  console.log('✓ Configuration loaded');
+  console.log(`  Requested: ${requestedMode} Mode`);
+  console.log(`  Detected: ${mode}`);
   console.log(`  Secret Key: ${STRIPE_SECRET_KEY.substring(0, 15)}...`);
   console.log(`  Publishable Key: ${STRIPE_PUBLISHABLE_KEY.substring(0, 15)}...`);
 

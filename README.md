@@ -22,7 +22,7 @@
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/chadananda/xSwarm-boss?style=for-the-badge)](https://github.com/chadananda/xSwarm-boss/stargazers)
 
-**[🌐 Website](https://xswarm.ai)** • **[📖 Architecture](planning/ARCHITECTURE.md)** • **[📋 Full PRD](planning/PRD.md)** • **[🐛 Report Bug](https://github.com/chadananda/xSwarm-boss/issues)**
+**[🌐 Website](https://xswarm.ai)** • **[📖 Architecture](planning/ARCHITECTURE.md)** • **[📋 Full Spec](planning/COMPLETE_SPECIFICATION.md)** • **[🐛 Report Bug](https://github.com/chadananda/xSwarm-boss/issues)**
 
 </div>
 
@@ -514,10 +514,10 @@ Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever persona you 
 
 ## Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical system design
-- **[PRD.md](PRD.md)** - Full product requirements document
+- **[Architecture](planning/ARCHITECTURE.md)** - Technical system design
+- **[Complete Specification](planning/COMPLETE_SPECIFICATION.md)** - Full product requirements
+- **[Quickstart Guide](docs/quickstart/QUICKSTART.md)** - Get started quickly
 - **[Website](https://xswarm.ai)** - Project homepage
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute
 
 ---
 
@@ -561,6 +561,6 @@ HAL 9000 eye image by [Cryteria](https://commons.wikimedia.org/wiki/File:HAL9000
 
 ### 🌟 Star this repo to follow development!
 
-**[Install xSwarm](https://xswarm.ai)** • **[Read the Docs](planning/ARCHITECTURE.md)** • **[GitHub Discussions](https://github.com/chadananda/xSwarm-boss/discussions)**
+**[Install xSwarm](https://xswarm.ai)** • **[Architecture](planning/ARCHITECTURE.md)** • **[Quickstart](docs/quickstart/QUICKSTART.md)** • **[Discussions](https://github.com/chadananda/xSwarm-boss/discussions)**
 
 </div>

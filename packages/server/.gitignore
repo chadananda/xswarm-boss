@@ -1,0 +1,21 @@
+# Wrangler build artifacts
+.wrangler/
+dist/
+worker/
+
+# Local development secrets
+.dev.vars
+
+# Node modules (installed by pnpm at root)
+node_modules/
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db

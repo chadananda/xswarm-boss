@@ -1,0 +1,36 @@
+{
+  "name": "@xswarm/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Workers webhook server for xSwarm multi-channel communication",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "predeploy": "node scripts/sync-config.js",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "test": "node --test src/simple-index.test.js",
+    "test:db": "node test-database.js",
+    "setup-db": "node scripts/setup-db.js",
+    "db:reset": "node scripts/setup-db.js --reset --sample",
+    "db:sample": "node scripts/setup-db.js --sample"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.5.6",
+    "@noble/hashes": "^2.0.1",
+    "jsonwebtoken": "^9.0.2",
+    "stripe": "^17.5.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "wrangler": "^4.45.0"
+  },
+  "keywords": [
+    "cloudflare-workers",
+    "webhooks",
+    "twilio",
+    "stripe",
+    "serverless"
+  ]
+}

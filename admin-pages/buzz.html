@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="xSwarm Buzz - Discover innovative products and services from the xSwarm community">
+    <meta name="keywords" content="xSwarm, Buzz, marketplace, products, services, SaaS, apps, tools">
+    <title>xSwarm Buzz | Community Product Showcase</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-cyan: #00d9ff;
+            --accent-cyan-dim: #0099bb;
+            --border-color: #1a2332;
+            --code-bg: #0f1419;
+            --link-color: #00d9ff;
+            --link-hover: #00ffcc;
+            --success-green: #00ff88;
+            --warning-yellow: #ffcc00;
+            --error-red: #ff4444;
+            --purple-accent: #9d4edd;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+            line-height: 1.7;
+        }
+
+        .terminal-header {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            color: var(--accent-cyan);
+            white-space: pre;
+            display: inline-block;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: var(--accent-cyan);
+            font-size: 2rem;
+            margin: 1rem 0;
+        }
+
+        h1::before {
+            content: '$ ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .search-bar {
+            background-color: var(--code-bg);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .search-input-wrapper {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.75rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .search-button {
+            padding: 0.75rem 2rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-dim));
+            border: none;
+            border-radius: 4px;
+            color: var(--bg-darker);
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .search-button:hover {
+            background: linear-gradient(135deg, var(--link-hover), var(--accent-cyan));
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-select {
+            padding: 0.5rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+        }
+
+        .featured-section {
+            margin-bottom: 3rem;
+        }
+
+        .section-title {
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent-cyan-dim);
+        }
+
+        .section-title::before {
+            content: '>> ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .featured-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .listings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .listing-card {
+            background-color: var(--code-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .listing-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .listing-card.featured {
+            border-color: var(--success-green);
+            background: linear-gradient(135deg, var(--code-bg) 0%, rgba(0, 255, 136, 0.05) 100%);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: -12px;
+            right: 15px;
+            background-color: var(--success-green);
+            color: var(--bg-darker);
+            padding: 0.2rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .listing-image {
+            width: 100%;
+            height: 150px;
+            background-color: var(--bg-darker);
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            object-fit: cover;
+        }
+
+        .listing-image.placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .listing-title {
+            color: var(--accent-cyan);
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .listing-description {
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .listing-meta {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .listing-tag {
+            padding: 0.25rem 0.75rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .listing-tag.category {
+            border-color: var(--accent-cyan-dim);
+            color: var(--accent-cyan);
+        }
+
+        .listing-tag.price {
+            border-color: var(--success-green);
+            color: var(--success-green);
+        }
+
+        .listing-stats {
+            display: flex;
+            gap: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-bottom: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .listing-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-dim));
+            color: var(--bg-darker);
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--link-hover), var(--accent-cyan));
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--bg-darker);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            color: var(--text-primary);
+            border-color: var(--accent-cyan-dim);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state h3 {
+            color: var(--accent-cyan);
+            margin-bottom: 1rem;
+        }
+
+        footer {
+            background-color: var(--bg-darker);
+            border-top: 2px solid var(--accent-cyan-dim);
+            padding: 2rem 1rem;
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--link-hover);
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 0.5rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .featured-grid,
+            .listings-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .search-input-wrapper {
+                flex-direction: column;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-select {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="terminal-header">
+        <div class="logo">██╗  ██╗███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
+╚██╗██╔╝██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
+ ╚███╔╝ ███████╗██║ █╗ ██║███████║██████╔╝██╔████╔██║
+ ██╔██╗ ╚════██║██║███╗██║██╔══██║██╔══██╗██║╚██╔╝██║
+██╔╝ ██╗███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝</div>
+        <h1>xSwarm Buzz</h1>
+        <p class="subtitle">Discover Innovative Products & Services from the xSwarm Community</p>
+    </header>
+
+    <div class="container">
+        <!-- Search and Filters -->
+        <div class="search-bar">
+            <div class="search-input-wrapper">
+                <input type="text" id="searchInput" class="search-input" placeholder="Search products and services...">
+                <button id="searchButton" class="search-button">Search</button>
+            </div>
+            <div class="filters">
+                <select id="categoryFilter" class="filter-select">
+                    <option value="">All Categories</option>
+                </select>
+                <select id="priceTypeFilter" class="filter-select">
+                    <option value="">All Price Types</option>
+                    <option value="free">Free</option>
+                    <option value="freemium">Freemium</option>
+                    <option value="paid">Paid</option>
+                    <option value="custom">Custom Pricing</option>
+                </select>
+                <select id="sortFilter" class="filter-select">
+                    <option value="created_desc">Newest First</option>
+                    <option value="created_asc">Oldest First</option>
+                    <option value="views_desc">Most Viewed</option>
+                    <option value="clicks_desc">Most Clicked</option>
+                    <option value="title_asc">Alphabetical</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Featured Listings -->
+        <div id="featuredSection" class="featured-section">
+            <h2 class="section-title">Featured Products</h2>
+            <div id="featuredGrid" class="featured-grid"></div>
+        </div>
+
+        <!-- All Listings -->
+        <div class="listings-section">
+            <h2 class="section-title">All Listings</h2>
+            <div id="listingsGrid" class="listings-grid"></div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="loading" style="display: none;">
+            <p>Loading listings...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="empty-state" style="display: none;">
+            <h3>No listings found</h3>
+            <p>Try adjusting your filters or search terms</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>
+            <strong style="color: var(--accent-cyan);">xSwarm Buzz</strong> - Community Product Showcase
+        </p>
+        <p style="margin-top: 0.5rem;">
+            <a href="index.html">Home</a> •
+            <a href="features.html">Features</a> •
+            <a href="https://xswarm.ai">xSwarm.ai</a>
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.85rem;">
+            © 2025 xSwarm. All rights reserved.
+        </p>
+    </footer>
+
+    <script>
+        // API configuration
+        const API_BASE_URL = 'https://webhooks.xswarm.ai';
+
+        // State
+        let allListings = [];
+        let categories = [];
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCategories();
+            await loadListings();
+
+            // Event listeners
+            document.getElementById('searchButton').addEventListener('click', handleSearch);
+            document.getElementById('searchInput').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') handleSearch();
+            });
+            document.getElementById('categoryFilter').addEventListener('change', handleSearch);
+            document.getElementById('priceTypeFilter').addEventListener('change', handleSearch);
+            document.getElementById('sortFilter').addEventListener('change', handleSearch);
+        });
+
+        // Load categories
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/buzz/categories`);
+                const data = await response.json();
+
+                if (data.success) {
+                    categories = data.categories;
+                    const select = document.getElementById('categoryFilter');
+
+                    data.categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = `${cat.name} (${cat.approved_listings})`;
+                        select.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Failed to load categories:', error);
+            }
+        }
+
+        // Load listings
+        async function loadListings() {
+            const search = document.getElementById('searchInput').value;
+            const category = document.getElementById('categoryFilter').value;
+            const priceType = document.getElementById('priceTypeFilter').value;
+            const sort = document.getElementById('sortFilter').value;
+
+            const params = new URLSearchParams();
+            if (search) params.append('search', search);
+            if (category) params.append('category', category);
+            if (priceType) params.append('price_type', priceType);
+            if (sort) params.append('sort', sort);
+            params.append('limit', '100');
+
+            try {
+                showLoading();
+
+                const response = await fetch(`${API_BASE_URL}/buzz/listings?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    allListings = data.listings;
+                    renderListings();
+                } else {
+                    showEmptyState();
+                }
+            } catch (error) {
+                console.error('Failed to load listings:', error);
+                showEmptyState();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Render listings
+        function renderListings() {
+            const featured = allListings.filter(l => l.featured);
+            const regular = allListings.filter(l => !l.featured);
+
+            renderFeatured(featured);
+            renderRegular(regular);
+
+            if (allListings.length === 0) {
+                showEmptyState();
+            } else {
+                hideEmptyState();
+            }
+        }
+
+        // Render featured listings
+        function renderFeatured(listings) {
+            const grid = document.getElementById('featuredGrid');
+            const section = document.getElementById('featuredSection');
+
+            if (listings.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+
+            section.style.display = 'block';
+            grid.innerHTML = listings.map(listing => createListingCard(listing, true)).join('');
+        }
+
+        // Render regular listings
+        function renderRegular(listings) {
+            const grid = document.getElementById('listingsGrid');
+            grid.innerHTML = listings.map(listing => createListingCard(listing, false)).join('');
+        }
+
+        // Create listing card HTML
+        function createListingCard(listing, isFeatured) {
+            const categoryInfo = categories.find(c => c.id === listing.category);
+            const categoryName = categoryInfo ? categoryInfo.name : listing.category;
+
+            const priceTypeLabels = {
+                free: 'Free',
+                freemium: 'Freemium',
+                paid: 'Paid',
+                custom: 'Custom'
+            };
+
+            const imageHtml = listing.image_url
+                ? `<img src="${listing.image_url}" alt="${listing.title}" class="listing-image">`
+                : `<div class="listing-image placeholder">[No Image]</div>`;
+
+            return `
+                <div class="listing-card ${isFeatured ? 'featured' : ''}" onclick="viewListing('${listing.id}')">
+                    ${isFeatured ? '<span class="featured-badge">FEATURED</span>' : ''}
+                    ${imageHtml}
+                    <div class="listing-title">${escapeHtml(listing.title)}</div>
+                    <div class="listing-description">${escapeHtml(listing.description)}</div>
+                    <div class="listing-meta">
+                        <span class="listing-tag category">${categoryName}</span>
+                        <span class="listing-tag price">${priceTypeLabels[listing.price_type]}</span>
+                    </div>
+                    <div class="listing-stats">
+                        <span class="stat-item">👁 ${listing.view_count} views</span>
+                        <span class="stat-item">🔗 ${listing.click_count} clicks</span>
+                    </div>
+                    <div class="listing-actions">
+                        <button class="btn btn-primary" onclick="event.stopPropagation(); visitProduct('${listing.id}')">
+                            Visit Product
+                        </button>
+                        <button class="btn btn-secondary" onclick="event.stopPropagation(); reportListing('${listing.id}')">
+                            Report
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // View listing (tracks view)
+        async function viewListing(listingId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/buzz/listings/${listingId}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    // Could show a modal with full details
+                    alert(`Listing: ${data.listing.title}\n\n${data.listing.description}`);
+                }
+            } catch (error) {
+                console.error('Failed to view listing:', error);
+            }
+        }
+
+        // Visit product (tracks click and redirects)
+        async function visitProduct(listingId) {
+            window.location.href = `${API_BASE_URL}/buzz/listings/${listingId}/click`;
+        }
+
+        // Report listing
+        async function reportListing(listingId) {
+            if (!confirm('Report this listing as inappropriate?')) return;
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/buzz/listings/${listingId}/report`, {
+                    method: 'POST',
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(data.message);
+                } else {
+                    alert(data.error || 'Failed to report listing');
+                }
+            } catch (error) {
+                console.error('Failed to report listing:', error);
+                alert('Failed to report listing');
+            }
+        }
+
+        // Handle search
+        function handleSearch() {
+            loadListings();
+        }
+
+        // Show/hide loading
+        function showLoading() {
+            document.getElementById('loadingState').style.display = 'block';
+            document.getElementById('featuredSection').style.display = 'none';
+            document.getElementById('listingsGrid').innerHTML = '';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingState').style.display = 'none';
+        }
+
+        // Show/hide empty state
+        function showEmptyState() {
+            document.getElementById('emptyState').style.display = 'block';
+            document.getElementById('featuredSection').style.display = 'none';
+        }
+
+        function hideEmptyState() {
+            document.getElementById('emptyState').style.display = 'none';
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

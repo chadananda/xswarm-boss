@@ -55,9 +55,20 @@ Thumbs.db
 Desktop.ini
 
 # Temporary files
+tmp/
 *.tmp
 *.temp
 .cache/
+
+# Old page folders (consolidated into admin-pages/)
+signup-page/
+privacy-page/
+terms-page/
+
+# Build artifacts (Cloudflare Wrangler)
+.wrangler/
+.wrangler-test/
+wrangler-output/
 
 # User configuration
 config.toml  # User-specific config
@@ -95,3 +106,36 @@ logs/
 # Backup files
 *.bak
 *.backup
+scripts/bin/
+
+# Python virtual environments (don't commit venvs)
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# HuggingFace model cache (models downloaded at runtime)
+.cache/huggingface/
+~/.cache/huggingface/
+
+# Git LFS (local cache - objects stored in R2)
+.git/lfs/tmp/
+
+# Test files (exclude from repo unless in tests/ directory)
+test-*.js
+!tests/**/*.js
+
+# Documentation (temporary files)
+*.md.bak
+*.md.tmp
+
+# Development environment files
+.dev.vars
+.dev.env
+
+# Claude Code artifacts
+.claude/agents/
+.claude/settings.local.json
