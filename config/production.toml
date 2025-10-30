@@ -1,0 +1,387 @@
+# xSwarm Production Configuration
+# IMPORTANT: This file is SAFE to commit to git (contains NO secrets)
+# All secrets must go in .env file or Cloudflare Workers secrets
+#
+# Usage:
+#   1. Copy this file to your project root: cp config/production.toml config.toml
+#   2. Edit values to match your production environment
+#   3. Secrets go in .env (NEVER commit .env)
+#   4. Deploy: pnpm deploy:server && cargo build --release
+
+# =============================================================================
+# Environment Configuration
+# =============================================================================
+# NOTE: This is set automatically by deployment context
+# - Cloudflare Workers: Auto-detected as "production"
+# - Local dev: Auto-detected as "development"
+# - Override: Set ENVIRONMENT env var
+#
+# environment = "production"  # Uncomment to force production mode
+
+# =============================================================================
+# Server Connection (Rust Client → Node.js Server)
+# =============================================================================
+# The Rust client connects to the Node.js server (Cloudflare Workers) to:
+# - Get identity and user configuration
+# - Report health status
+# - Sync supervisor state
+#
+[server]
+# Production: Your deployed Cloudflare Workers URL
+host = "xswarm-webhooks.your-subdomain.workers.dev"
+# OR custom domain:
+# host = "api.yourdomain.com"
+
+port = 443
+api_base = "/api"
+use_https = true  # MUST be true for production
+
+# Auth token for Rust client → Server authentication
+# IMPORTANT: Set XSWARM_AUTH_TOKEN in .env (secret)
+# Generate: openssl rand -hex 32
+
+# =============================================================================
+# Admin User Configuration
+# =============================================================================
+# This is the SINGLE admin user configured in TOML (not in database)
+# All other users are stored in Turso database with limited permissions
+#
+[admin]
+username = "admin"
+name = "Admin User"
+
+# Real contact info for admin
+email = "admin@yourdomain.com"
+phone = "+15551234567"  # Your actual phone number
+
+# xSwarm assigned numbers (provisioned via Twilio)
+xswarm_email = "admin@xswarm.ai"
+xswarm_phone = "+18001234567"  # Your toll-free number
+
+# AI preferences
+persona = "boss"
+wake_word = "hey boss"
+subscription_tier = "admin"
+
+# Admin permissions (regular users do NOT have these)
+access_level = "superadmin"
+can_provision_numbers = true
+can_view_all_users = true
+can_manage_subscriptions = true
+can_manage_config = true
+can_access_all_channels = true
+
+# =============================================================================
+# Twilio Configuration (Voice & SMS)
+# =============================================================================
+[twilio]
+# Account SID (NOT a secret, just an identifier)
+# Get from: console.twilio.com
+account_sid = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Test account (for staging/testing environments)
+test_account_sid = "ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+test_receive_number = "+15559876543"
+test_send_number = "+15551234567"
+test_receive_webhook = "https://demo.twilio.com/welcome/voice/"
+
+# Auth tokens are SECRETS - store in .env:
+# TWILIO_AUTH_TOKEN_LIVE=your_live_token
+# TWILIO_AUTH_TOKEN_TEST=your_test_token
+
+# =============================================================================
+# Stripe Configuration (Payments & Subscriptions)
+# =============================================================================
+[stripe]
+# Publishable keys (safe for client-side, not secret)
+# Get from: dashboard.stripe.com/apikeys
+publishable_key_test = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+publishable_key_live = "***REMOVED***xxxxxxxxxxxxxxxx"
+
+# Secret keys are SECRETS - store in .env:
+# STRIPE_SECRET_KEY_TEST=sk_test_...
+# STRIPE_SECRET_KEY_LIVE=sk_live_...
+# STRIPE_WEBHOOK_SECRET_TEST=whsec_...
+# STRIPE_WEBHOOK_SECRET_LIVE=whsec_...
+
+# Product Price IDs (create in Stripe Dashboard)
+[stripe.prices]
+# Base subscription: $9.99/month
+premium = "price_1Oxxxxxxxxxxxxxxxxxxxxx"
+
+# Metered usage (pay-as-you-go)
+voice = "price_1Oxxxxxxxxxxxxxxxxxxxxx"    # Voice minutes
+sms = "price_1Oxxxxxxxxxxxxxxxxxxxxx"      # SMS messages
+phone = "price_1Oxxxxxxxxxxxxxxxxxxxxx"    # Additional phone numbers
+
+# =============================================================================
+# SendGrid Configuration (Email)
+# =============================================================================
+[sendgrid]
+# Your custom domain for sending emails
+domain = "yourdomain.com"
+# Emails will be sent from: noreply@yourdomain.com, boss@yourdomain.com, etc.
+
+# Test email addresses (for development/testing)
+test_user_email = "testuser@example.com"
+test_xswarm_email = "testuser@yourdomain.com"
+
+# API keys are SECRETS - store in .env:
+# SENDGRID_API_KEY_TEST=SG.xxx...
+# SENDGRID_API_KEY_LIVE=SG.xxx...
+
+# =============================================================================
+# Turso Database Configuration (User Data)
+# =============================================================================
+[turso]
+# Database identifier
+database_name = "xswarm-production"
+
+# Turso organization name
+organization = "your-org-name"
+
+# Database URL (NOT a secret, public endpoint)
+database_url = "libsql://xswarm-production-your-org.turso.io"
+
+# Auth token is SECRET - store in .env:
+# TURSO_AUTH_TOKEN=eyJhbGciOi...
+
+# Primary region (where database is created)
+# Options: pdx, iad, fra, nrt, syd, etc.
+# Choose closest to your users or Rust client location
+primary_region = "pdx"  # AWS US West 2 (Portland)
+
+# Replica regions (edge caching for global users)
+# Leave empty [] if all users in one region
+replica_regions = ["iad", "fra"]  # US East, Europe
+
+# Local embedded replica (for Rust client local cache)
+[turso.local_replica]
+enabled = true
+sync_interval_seconds = 60
+local_db_path = "/var/lib/xswarm/users.db"  # Production path
+
+# Backup configuration
+[turso.backup]
+enabled = true
+retention_days = 30  # Point-in-time recovery window
+
+# Manual backups (optional, Turso does automatic backups)
+manual_backup_enabled = false
+backup_schedule = "0 2 * * *"  # Daily at 2 AM UTC (cron format)
+
+# =============================================================================
+# Cloudflare R2 Storage (Assets & Backups)
+# =============================================================================
+[storage]
+# Provider: R2 (Cloudflare), S3 (AWS), or custom S3-compatible
+provider = "r2"
+
+# Single bucket (organize with prefixes like folders)
+bucket_name = "xswarm-production"
+
+# Prefixes for organization
+assets_prefix = "assets/"
+backups_prefix = "backups/"
+
+# Region (for R2, use "auto" for automatic placement)
+region = "auto"
+
+# R2 endpoint (get from Cloudflare R2 dashboard)
+# Format: https://<account-id>.r2.cloudflarestorage.com
+endpoint = "https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com"
+
+# Public URL for serving assets (optional, use R2 custom domain)
+# public_url = "https://assets.yourdomain.com"
+
+# Access keys are SECRETS - store in .env:
+# S3_ACCESS_KEY_ID=your_r2_access_key
+# S3_SECRET_ACCESS_KEY=your_r2_secret_key
+
+# Backup retention
+[storage.backup]
+enabled = true
+retention_days = 90
+backup_schedule = "0 3 * * *"  # Daily at 3 AM UTC
+
+# =============================================================================
+# Feature Flags (Enable/Disable Channels)
+# =============================================================================
+[features]
+voice_enabled = true
+sms_enabled = true
+email_enabled = true
+stripe_enabled = true
+direct_line_enabled = false  # Azure Bot Framework (optional)
+
+# =============================================================================
+# AI Provider Configuration
+# =============================================================================
+[ai]
+# Default AI providers
+default_text_provider = "anthropic"  # Claude
+default_voice_provider = "moshi"     # MOSHI voice model
+
+# Model configuration
+[ai.models]
+# Anthropic (Claude)
+anthropic_model = "claude-sonnet-4-5-20250929"
+
+# MOSHI voice model
+# Options:
+#   - kyutai/moshika-mlx-q4 (Apple Silicon, 4-bit quantized)
+#   - kyutai/moshiko-mlx-q4 (Alternative voice)
+#   - kyutai/moshika-pytorch-bf16 (Linux CUDA, bfloat16)
+moshi_model = "kyutai/moshika-mlx-q4"
+
+# OpenAI (for embeddings only)
+openai_embedding_model = "text-embedding-3-small"
+
+# API keys are SECRETS - store in .env:
+# ANTHROPIC_API_KEY=sk-ant-...
+# OPENAI_API_KEY=sk-...
+
+# =============================================================================
+# Voice Configuration
+# =============================================================================
+[voice]
+# Default settings for new users
+default_persona = "boss"
+default_wake_word = "hey boss"
+
+# Audio settings (MOSHI requires 24kHz)
+sample_rate = 24000
+include_personality = true
+
+# Voice bridge settings
+[voice.bridge]
+# WebSocket server for Rust ↔ Python communication
+host = "127.0.0.1"
+port = 9998
+
+# Supervisor WebSocket
+[voice.supervisor]
+host = "127.0.0.1"
+port = 9999
+
+# =============================================================================
+# Subscription Tiers & Pricing
+# =============================================================================
+[subscription.free]
+tier = "free"
+email_limit = 100          # emails per day
+voice_minutes = 0          # no voice on free tier
+sms_messages = 0           # no SMS on free tier
+phone_numbers = 0          # no phone on free tier
+
+[subscription.premium]
+tier = "premium"
+price = 9.99               # USD per month
+
+# Included quotas
+email_limit = -1           # unlimited
+voice_minutes_included = 100
+sms_messages_included = 100
+phone_numbers_included = 1
+
+# Overage rates (pay-as-you-go)
+voice_overage_rate = 0.013     # per minute ($0.013)
+sms_overage_rate = 0.0075      # per message ($0.0075)
+phone_overage_rate = 2.00      # per number per month ($2.00)
+
+# =============================================================================
+# Monitoring & Logging
+# =============================================================================
+[monitoring]
+# Log level: debug, info, warn, error
+log_level = "info"
+
+# Enable metrics collection
+metrics_enabled = true
+
+# Health check endpoints
+health_check_enabled = true
+
+# Sentry error tracking (optional)
+# sentry_enabled = false
+# sentry_dsn = "https://xxx@sentry.io/xxx"  # Set in .env: SENTRY_DSN
+
+# =============================================================================
+# Security Settings
+# =============================================================================
+[security]
+# Rate limiting (requests per minute per user)
+rate_limit_voice = 10      # Max 10 calls/minute
+rate_limit_sms = 20        # Max 20 SMS/minute
+rate_limit_api = 100       # Max 100 API requests/minute
+
+# CORS settings (for web dashboard)
+cors_enabled = true
+cors_origins = ["https://yourdomain.com", "https://app.yourdomain.com"]
+
+# IP whitelist for admin API (optional)
+# admin_ip_whitelist = ["192.168.1.100", "203.0.113.0/24"]
+
+# =============================================================================
+# Performance Tuning
+# =============================================================================
+[performance]
+# MOSHI inference settings
+moshi_max_concurrent_calls = 10  # Adjust based on GPU VRAM
+moshi_batch_size = 1             # Keep at 1 for lowest latency
+moshi_use_gpu = true             # false to force CPU (not recommended)
+
+# Database connection pool
+db_pool_size = 10
+db_pool_timeout_seconds = 30
+
+# WebSocket settings
+ws_keepalive_seconds = 30
+ws_timeout_seconds = 300
+
+# =============================================================================
+# Development Settings (Disable in Production)
+# =============================================================================
+[development]
+debug = false                    # MUST be false in production
+use_test_credentials = false     # MUST be false in production
+server_port = 8787               # Ignored in Cloudflare Workers
+server_host = "localhost"        # Ignored in Cloudflare Workers
+
+# =============================================================================
+# Test User (For Staging Environment Only)
+# =============================================================================
+# This section should be REMOVED or DISABLED in production
+# Use only for staging/testing environments
+#
+# [test_user]
+# email = "testuser@example.com"
+# phone = "+15551234567"
+# subscription_tier = "premium"
+# persona = "boss"
+# wake_word = "hey boss"
+# xswarm_email = "testuser@yourdomain.com"
+# xswarm_phone = "+18005551001"
+
+# =============================================================================
+# Production Checklist
+# =============================================================================
+# Before deploying to production, ensure:
+#
+# ✓ All secrets moved to .env (not in this file)
+# ✓ Admin email/phone updated to real values
+# ✓ Stripe price IDs created and configured
+# ✓ Twilio account SID updated
+# ✓ SendGrid domain verified
+# ✓ Turso database created and URL updated
+# ✓ R2 bucket created and endpoint updated
+# ✓ Server host set to deployed Workers URL
+# ✓ use_https = true
+# ✓ debug = false
+# ✓ use_test_credentials = false
+# ✓ [test_user] section removed/disabled
+# ✓ CORS origins set to production domains
+# ✓ Rate limits configured appropriately
+# ✓ Monitoring/metrics enabled
+#
+# =============================================================================

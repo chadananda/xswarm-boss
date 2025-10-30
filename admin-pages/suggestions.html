@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Submit feature requests and feedback for xSwarm AI Assistant">
+    <meta name="keywords" content="xSwarm, feedback, feature requests, suggestions">
+    <meta name="author" content="xSwarm">
+    <title>Suggestions & Feedback | xSwarm AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-cyan: #00d9ff;
+            --accent-cyan-dim: #0099bb;
+            --border-color: #1a2332;
+            --code-bg: #0f1419;
+            --link-color: #00d9ff;
+            --link-hover: #00ffcc;
+            --success-green: #00ff88;
+            --warning-yellow: #ffcc00;
+            --error-red: #ff4444;
+            --purple-accent: #9d4edd;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .terminal-header {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            white-space: pre;
+            display: inline-block;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: var(--accent-cyan);
+            font-size: 2rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        h1::before {
+            content: '$ ';
+            color: var(--accent-cyan-dim);
+        }
+
+        h2 {
+            color: var(--success-green);
+            font-size: 1.5rem;
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        h2::before {
+            content: '> ';
+            color: var(--accent-cyan);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        nav {
+            text-align: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: var(--code-bg);
+            border: 1px solid var(--accent-cyan-dim);
+            border-radius: 4px;
+        }
+
+        nav a {
+            color: var(--link-color);
+            text-decoration: none;
+            margin: 0 1rem;
+            border-bottom: 1px dotted var(--link-color);
+            transition: all 0.2s ease;
+        }
+
+        nav a:hover {
+            color: var(--link-hover);
+            border-bottom-color: var(--link-hover);
+        }
+
+        .form-section {
+            background-color: var(--code-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        label span {
+            color: var(--error-red);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 0.95rem;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 5px rgba(0, 217, 255, 0.3);
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .char-count {
+            text-align: right;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.25rem;
+        }
+
+        .char-count.warning {
+            color: var(--warning-yellow);
+        }
+
+        button {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-dim));
+            color: var(--bg-darker);
+            border: none;
+            padding: 0.75rem 2rem;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.5);
+            transform: translateY(-2px);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .filters {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background-color: var(--code-bg);
+            border-radius: 4px;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .suggestions-grid {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .suggestion-card {
+            background-color: var(--code-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.2);
+        }
+
+        .suggestion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .suggestion-title {
+            color: var(--accent-cyan);
+            font-size: 1.2rem;
+            font-weight: bold;
+            flex: 1;
+        }
+
+        .suggestion-votes {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: var(--bg-darker);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .suggestion-votes:hover {
+            background-color: var(--border-color);
+        }
+
+        .suggestion-votes.voted {
+            background-color: var(--success-green);
+            color: var(--bg-darker);
+        }
+
+        .vote-icon {
+            font-size: 1.2rem;
+        }
+
+        .vote-count {
+            font-weight: bold;
+        }
+
+        .suggestion-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge.category {
+            background-color: var(--border-color);
+            color: var(--accent-cyan);
+        }
+
+        .badge.status-new {
+            background-color: var(--warning-yellow);
+            color: var(--bg-darker);
+        }
+
+        .badge.status-reviewed {
+            background-color: var(--accent-cyan);
+            color: var(--bg-darker);
+        }
+
+        .badge.status-in_progress {
+            background-color: var(--warning-yellow);
+            color: var(--bg-darker);
+        }
+
+        .badge.status-completed {
+            background-color: var(--success-green);
+            color: var(--bg-darker);
+        }
+
+        .suggestion-description {
+            color: var(--text-secondary);
+            line-height: 1.6;
+            margin-bottom: 0.5rem;
+        }
+
+        .suggestion-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        .alert.success {
+            background-color: rgba(0, 255, 136, 0.1);
+            border: 1px solid var(--success-green);
+            color: var(--success-green);
+        }
+
+        .alert.error {
+            background-color: rgba(255, 68, 68, 0.1);
+            border: 1px solid var(--error-red);
+            color: var(--error-red);
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .search-box input {
+            padding-right: 3rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+
+        .empty-state .icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--accent-cyan);
+        }
+
+        @media (max-width: 768px) {
+            .suggestion-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .filter-group {
+                width: 100%;
+            }
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+            margin-top: 4rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="terminal-header">
+        <div class="logo">
+ __  __ ____
+|  \/  / ___|_      ____ _ _ __ _ __ __
+| |\/| \___ \ \ /\ / / _` | '__| '_ \` |
+| |  | |___) \ V  V / (_| | |  | | | | |
+|_|  |_|____/ \_/\_/ \__,_|_|  |_| |_| |
+        </div>
+        <h1>Suggestions & Feedback</h1>
+        <p class="subtitle">Help us build a better xSwarm</p>
+    </header>
+
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="features.html">Features</a>
+        <a href="suggestions.html">Suggestions</a>
+        <a href="privacy.html">Privacy</a>
+        <a href="terms.html">Terms</a>
+    </nav>
+
+    <div class="container">
+        <div id="alert-container"></div>
+
+        <!-- Submit Suggestion Form -->
+        <section class="form-section">
+            <h2>Submit Your Suggestion</h2>
+            <form id="suggestion-form">
+                <div class="form-group">
+                    <label for="category">Category <span>*</span></label>
+                    <select id="category" name="category" required>
+                        <option value="">Select a category...</option>
+                        <option value="feature_request">Feature Request</option>
+                        <option value="bug_report">Bug Report</option>
+                        <option value="improvement">Improvement</option>
+                        <option value="general">General Feedback</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="title">Title <span>*</span></label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        maxlength="100"
+                        placeholder="Brief description of your suggestion"
+                        required
+                    />
+                    <div class="char-count"><span id="title-count">0</span>/100</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description <span>*</span></label>
+                    <textarea
+                        id="description"
+                        name="description"
+                        maxlength="2000"
+                        placeholder="Provide detailed information about your suggestion..."
+                        required
+                    ></textarea>
+                    <div class="char-count"><span id="description-count">0</span>/2000</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email (for anonymous submissions) <span>*</span></label>
+                    <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        placeholder="your@email.com"
+                        required
+                    />
+                    <small style="color: var(--text-secondary);">We'll use this to notify you about updates</small>
+                </div>
+
+                <button type="submit" id="submit-btn">Submit Suggestion</button>
+            </form>
+        </section>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label for="filter-category">Filter by Category</label>
+                <select id="filter-category">
+                    <option value="">All Categories</option>
+                    <option value="feature_request">Feature Request</option>
+                    <option value="bug_report">Bug Report</option>
+                    <option value="improvement">Improvement</option>
+                    <option value="general">General Feedback</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="filter-status">Filter by Status</label>
+                <select id="filter-status">
+                    <option value="">All Statuses</option>
+                    <option value="new">New</option>
+                    <option value="reviewed">Reviewed</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="sort">Sort By</label>
+                <select id="sort">
+                    <option value="upvotes">Most Voted</option>
+                    <option value="created_at">Most Recent</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="search-box">
+            <input
+                type="text"
+                id="search"
+                placeholder="Search suggestions..."
+            />
+            <span class="search-icon">🔍</span>
+        </div>
+
+        <!-- Suggestions List -->
+        <section>
+            <h2>Community Suggestions</h2>
+            <div id="suggestions-container" class="suggestions-grid">
+                <div class="loading">Loading suggestions...</div>
+            </div>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 xSwarm AI Assistant. All rights reserved.</p>
+    </footer>
+
+    <script>
+        const API_BASE = '/api';
+        let currentUser = null;
+
+        // Character counters
+        document.getElementById('title').addEventListener('input', (e) => {
+            document.getElementById('title-count').textContent = e.target.value.length;
+        });
+
+        document.getElementById('description').addEventListener('input', (e) => {
+            const count = e.target.value.length;
+            const countEl = document.getElementById('description-count');
+            countEl.textContent = count;
+            countEl.parentElement.classList.toggle('warning', count > 1800);
+        });
+
+        // Show alert
+        function showAlert(message, type = 'success') {
+            const container = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            container.appendChild(alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Submit suggestion
+        document.getElementById('suggestion-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+
+            const formData = {
+                category: document.getElementById('category').value,
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                email: document.getElementById('email').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/suggestions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to submit suggestion');
+                }
+
+                showAlert('Thank you! Your suggestion has been submitted successfully.', 'success');
+                document.getElementById('suggestion-form').reset();
+                document.getElementById('title-count').textContent = '0';
+                document.getElementById('description-count').textContent = '0';
+                loadSuggestions();
+            } catch (error) {
+                showAlert(error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Submit Suggestion';
+            }
+        });
+
+        // Load suggestions
+        async function loadSuggestions() {
+            const category = document.getElementById('filter-category').value;
+            const status = document.getElementById('filter-status').value;
+            const sort = document.getElementById('sort').value;
+            const search = document.getElementById('search').value;
+
+            const params = new URLSearchParams();
+            if (category) params.append('category', category);
+            if (status) params.append('status', status);
+            if (sort) params.append('sort', sort);
+            if (search) params.append('search', search);
+
+            const container = document.getElementById('suggestions-container');
+            container.innerHTML = '<div class="loading">Loading suggestions...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/suggestions?${params}`);
+                if (!response.ok) throw new Error('Failed to load suggestions');
+
+                const data = await response.json();
+                displaySuggestions(data.suggestions);
+            } catch (error) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="icon">⚠️</div>
+                    <p>Failed to load suggestions. Please try again later.</p>
+                </div>`;
+            }
+        }
+
+        // Display suggestions
+        function displaySuggestions(suggestions) {
+            const container = document.getElementById('suggestions-container');
+
+            if (suggestions.length === 0) {
+                container.innerHTML = `<div class="empty-state">
+                    <div class="icon">📭</div>
+                    <p>No suggestions found. Be the first to submit one!</p>
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = suggestions.map(s => `
+                <div class="suggestion-card">
+                    <div class="suggestion-header">
+                        <div class="suggestion-title">${escapeHtml(s.title)}</div>
+                        <div class="suggestion-votes ${s.user_voted ? 'voted' : ''}" data-id="${s.id}">
+                            <span class="vote-icon">▲</span>
+                            <span class="vote-count">${s.upvotes}</span>
+                        </div>
+                    </div>
+                    <div class="suggestion-meta">
+                        <span class="badge category">${formatCategory(s.category)}</span>
+                        <span class="badge status-${s.status}">${formatStatus(s.status)}</span>
+                    </div>
+                    <div class="suggestion-description">${escapeHtml(s.description)}</div>
+                    <div class="suggestion-footer">
+                        <span>Submitted by ${escapeHtml(s.submitted_by)}</span>
+                        <span>${formatDate(s.created_at)}</span>
+                    </div>
+                </div>
+            `).join('');
+
+            // Add vote click handlers
+            container.querySelectorAll('.suggestion-votes').forEach(el => {
+                el.addEventListener('click', () => handleVote(el.dataset.id));
+            });
+        }
+
+        // Handle voting
+        async function handleVote(suggestionId) {
+            showAlert('Voting is currently disabled for anonymous users. Please sign in to vote.', 'error');
+        }
+
+        // Utility functions
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatCategory(category) {
+            return category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatStatus(status) {
+            return status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            return date.toLocaleDateString();
+        }
+
+        // Event listeners for filters
+        document.getElementById('filter-category').addEventListener('change', loadSuggestions);
+        document.getElementById('filter-status').addEventListener('change', loadSuggestions);
+        document.getElementById('sort').addEventListener('change', loadSuggestions);
+
+        // Debounced search
+        let searchTimeout;
+        document.getElementById('search').addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(loadSuggestions, 500);
+        });
+
+        // Initial load
+        loadSuggestions();
+    </script>
+</body>
+</html>

@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sign up for xSwarm AI Assistant - Voice-First AI Assistant for Developers">
+    <meta name="keywords" content="xSwarm, AI assistant, voice assistant, developer tools, signup">
+    <meta name="author" content="xSwarm">
+    <title>Sign Up | xSwarm AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-cyan: #00d9ff;
+            --accent-cyan-dim: #0099bb;
+            --border-color: #1a2332;
+            --code-bg: #0f1419;
+            --link-color: #00d9ff;
+            --link-hover: #00ffcc;
+            --success-green: #00ff88;
+            --warning-yellow: #ffcc00;
+            --error-red: #ff4444;
+            --purple-accent: #9d4edd;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+            line-height: 1.7;
+            padding: 0;
+            margin: 0;
+        }
+
+        .terminal-header {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            color: var(--accent-cyan);
+            white-space: pre;
+            display: inline-block;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        h1 {
+            color: var(--accent-cyan);
+            font-size: 2rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+
+        h1::before {
+            content: '$ ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            margin-bottom: 2rem;
+        }
+
+        nav {
+            text-align: center;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: var(--code-bg);
+            border: 1px solid var(--accent-cyan-dim);
+            border-radius: 4px;
+        }
+
+        nav a {
+            color: var(--link-color);
+            text-decoration: none;
+            margin: 0 1rem;
+            border-bottom: 1px dotted var(--link-color);
+            transition: all 0.2s ease;
+        }
+
+        nav a:hover {
+            color: var(--link-hover);
+            border-bottom-color: var(--link-hover);
+        }
+
+        .pricing-section {
+            margin: 2rem 0;
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .pricing-card {
+            background-color: var(--code-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            text-align: center;
+        }
+
+        .pricing-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+        }
+
+        .pricing-card.selected {
+            border-color: var(--success-green);
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        .pricing-card.recommended {
+            border-color: var(--accent-cyan);
+        }
+
+        .recommended-badge {
+            position: absolute;
+            top: -12px;
+            right: 15px;
+            background-color: var(--success-green);
+            color: var(--bg-darker);
+            padding: 0.2rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .enterprise-badge {
+            position: absolute;
+            top: -12px;
+            right: 15px;
+            background-color: var(--purple-accent);
+            color: white;
+            padding: 0.2rem 0.8rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .pricing-card.enterprise-card {
+            border-color: var(--purple-accent);
+        }
+
+        .pricing-card.enterprise-card:hover {
+            border-color: var(--purple-accent);
+            box-shadow: 0 0 15px rgba(157, 78, 221, 0.3);
+        }
+
+        .plan-name {
+            color: var(--accent-cyan);
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            color: var(--success-green);
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .plan-price span {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .plan-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+
+        .form-section {
+            background-color: var(--code-bg);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .form-section h2 {
+            color: var(--accent-cyan);
+            font-size: 1.6rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .form-section h2::before {
+            content: '>> ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group label .required {
+            color: var(--error-red);
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .form-group input.error {
+            border-color: var(--error-red);
+        }
+
+        .form-group .error-message {
+            color: var(--error-red);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .form-group .error-message.show {
+            display: block;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .security-callout {
+            background: linear-gradient(135deg, #001a1a 0%, #003333 100%);
+            border: 2px solid var(--success-green);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .security-callout h3 {
+            color: var(--success-green);
+            font-size: 1.1rem;
+            margin: 0 0 1rem 0;
+            text-align: center;
+        }
+
+        .security-callout p, .security-callout ul {
+            color: var(--text-primary);
+            margin: 0.75rem 0;
+            line-height: 1.6;
+        }
+
+        .security-callout ul {
+            margin-left: 1.5rem;
+        }
+
+        .security-callout strong {
+            color: var(--success-green);
+        }
+
+        .sms-consent-box {
+            background: linear-gradient(135deg, #332200 0%, #1a1100 100%);
+            border: 2px solid var(--warning-yellow);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .sms-consent-box h3 {
+            color: var(--warning-yellow);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .sms-consent-box h3::before {
+            content: '📱 ';
+        }
+
+        .checkbox-group {
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: flex-start;
+            cursor: pointer;
+            margin: 0.75rem 0;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            margin-right: 0.75rem;
+            cursor: pointer;
+            margin-top: 0.25rem;
+        }
+
+        .checkbox-label span {
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .checkbox-label a {
+            color: var(--link-color);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--link-color);
+        }
+
+        .checkbox-label a:hover {
+            color: var(--link-hover);
+            border-bottom-color: var(--link-hover);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 1rem 2rem;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-dim));
+            border: none;
+            border-radius: 8px;
+            color: var(--bg-darker);
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 1.5rem;
+        }
+
+        .submit-button:hover {
+            background: linear-gradient(135deg, var(--link-hover), var(--accent-cyan));
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .submit-button:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .privacy-summary {
+            background-color: var(--code-bg);
+            border-left: 4px solid var(--accent-cyan);
+            padding: 1.5rem;
+            margin: 2rem 0;
+            border-radius: 4px;
+        }
+
+        .privacy-summary h3 {
+            color: var(--accent-cyan);
+            margin-bottom: 1rem;
+        }
+
+        .privacy-summary p {
+            margin: 0.5rem 0;
+            color: var(--text-primary);
+        }
+
+        .privacy-summary a {
+            color: var(--link-color);
+            text-decoration: none;
+            border-bottom: 1px dotted var(--link-color);
+        }
+
+        .privacy-summary a:hover {
+            color: var(--link-hover);
+            border-bottom-color: var(--link-hover);
+        }
+
+        footer {
+            background-color: var(--bg-darker);
+            border-top: 2px solid var(--accent-cyan-dim);
+            padding: 2rem 1rem;
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent-cyan);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            color: var(--link-hover);
+        }
+
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 0.6rem;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-section {
+                padding: 1.5rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="terminal-header">
+        <div class="logo">██╗  ██╗███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
+╚██╗██╔╝██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
+ ╚███╔╝ ███████╗██║ █╗ ██║███████║██████╔╝██╔████╔██║
+ ██╔██╗ ╚════██║██║███╗██║██╔══██║██╔══██╗██║╚██╔╝██║
+██╔╝ ██╗███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝</div>
+        <h1>Sign Up for xSwarm AI Assistant</h1>
+        <p class="subtitle">Your Personal Voice-First AI Assistant for Development</p>
+    </header>
+
+    <div class="container">
+        <nav>
+            <a href="features.html">Features</a> |
+            <a href="privacy.html">Privacy Policy</a> |
+            <a href="terms.html">Terms of Service</a>
+        </nav>
+
+        <!-- Pricing Selection -->
+        <section class="pricing-section">
+            <h2 style="color: var(--accent-cyan); font-size: 1.5rem; margin-bottom: 1rem; text-align: center;">Choose Your Plan</h2>
+
+            <div class="pricing-grid">
+                <div class="pricing-card" data-plan="ai_buddy">
+                    <div class="plan-name">AI Buddy</div>
+                    <div class="plan-price">$0<span>/month</span></div>
+                    <div class="plan-description">Email only • 100/day limit</div>
+                </div>
+
+                <div class="pricing-card recommended" data-plan="ai_secretary">
+                    <span class="recommended-badge">MOST POPULAR</span>
+                    <div class="plan-name">AI Secretary</div>
+                    <div class="plan-price">$40<span>/month</span></div>
+                    <div class="plan-description">Email + SMS + Voice</div>
+                </div>
+
+                <div class="pricing-card" data-plan="ai_project_manager">
+                    <div class="plan-name">AI Project Manager</div>
+                    <div class="plan-price">$280<span>/month</span></div>
+                    <div class="plan-description">Team tools + Marketing</div>
+                </div>
+
+                <div class="pricing-card enterprise-card" data-plan="ai_cto">
+                    <span class="enterprise-badge">ENTERPRISE</span>
+                    <div class="plan-name">AI CTO</div>
+                    <div class="plan-price" style="color: var(--purple-accent);">Custom<span></span></div>
+                    <div class="plan-description">Unlimited everything</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Enterprise Contact Section -->
+        <section id="enterpriseSection" class="form-section hidden">
+            <h2>Enterprise Plan - Contact Sales</h2>
+            <div style="text-align: center; padding: 2rem;">
+                <p style="font-size: 1.2rem; color: var(--text-primary); margin-bottom: 1.5rem;">
+                    The AI CTO Enterprise plan includes unlimited usage, dedicated infrastructure, and custom integrations tailored to your organization's needs.
+                </p>
+                <p style="font-size: 1.1rem; color: var(--text-secondary); margin-bottom: 2rem;">
+                    Our sales team will work with you to create a custom solution that fits your requirements.
+                </p>
+                <a href="mailto:enterprise@xswarm.ai" class="submit-button" style="max-width: 400px; margin: 0 auto; display: block; background: linear-gradient(135deg, var(--purple-accent), #7209b7);">
+                    Contact Enterprise Sales
+                </a>
+                <p style="margin-top: 1.5rem; color: var(--text-secondary);">
+                    Or call us at: <strong style="color: var(--accent-cyan);">+1 (555) 123-4567</strong>
+                </p>
+            </div>
+        </section>
+
+        <!-- Signup Form -->
+        <section id="signupFormSection" class="form-section">
+            <h2>Create Your Account</h2>
+
+            <form id="signupForm" novalidate>
+                <!-- Name Fields -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name <span class="required">*</span></label>
+                        <input type="text" id="firstName" name="firstName" required>
+                        <div class="error-message">Please enter your first name</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="lastName">Last Name <span class="required">*</span></label>
+                        <input type="text" id="lastName" name="lastName" required>
+                        <div class="error-message">Please enter your last name</div>
+                    </div>
+                </div>
+
+                <!-- Email -->
+                <div class="form-group">
+                    <label for="email">Email Address <span class="required">*</span></label>
+                    <input type="email" id="email" name="email" required>
+                    <div class="error-message">Please enter a valid email address</div>
+                </div>
+
+                <!-- Plan Selection -->
+                <div class="form-group">
+                    <label for="plan">Selected Plan <span class="required">*</span></label>
+                    <select id="plan" name="plan" required>
+                        <option value="">-- Select a plan --</option>
+                        <option value="ai_buddy">AI Buddy (Free) - $0/month</option>
+                        <option value="ai_secretary">AI Secretary - $40/month</option>
+                        <option value="ai_project_manager">AI Project Manager - $280/month</option>
+                        <option value="ai_cto">AI CTO (Enterprise) - Custom Pricing</option>
+                    </select>
+                    <div class="error-message">Please select a plan</div>
+                </div>
+
+                <!-- Phone Number (conditional) -->
+                <div id="phoneGroup" class="form-group hidden">
+                    <label for="phone">Phone Number <span class="required">*</span></label>
+                    <input type="tel" id="phone" name="phone" placeholder="+1 (555) 123-4567">
+                    <div class="error-message">Please enter a valid phone number</div>
+
+                    <!-- Security Callout -->
+                    <div class="security-callout">
+                        <h3>🔒 Your Phone ↔ YOUR AI Assistant Phone</h3>
+                        <p><strong>SMS and voice communication is strictly limited to your phone number and your assigned AI Assistant phone number.</strong></p>
+                        <ul>
+                            <li><strong>Isolated Communication:</strong> Only YOUR phone can communicate with YOUR AI Assistant phone</li>
+                            <li><strong>No Cross-User Access:</strong> Other users cannot contact your AI Assistant phone/email</li>
+                            <li><strong>Complete Privacy:</strong> Your communication channel is completely separate from all other users</li>
+                        </ul>
+                        <p style="text-align: center; font-weight: bold;">Your AI Assistant only talks to YOU.</p>
+                    </div>
+                </div>
+
+                <!-- SMS Consent (conditional) -->
+                <div id="smsConsentSection" class="hidden">
+                    <div class="sms-consent-box">
+                        <h3>SMS Communication Consent</h3>
+                        <p>By providing your phone number, you consent to receive automated SMS messages from your xSwarm AI Assistant.</p>
+                        <p><strong>You'll receive:</strong> Service notifications, AI assistant messages, and important account alerts.</p>
+                        <p><strong>Your rights:</strong> Message rates may apply. Reply STOP to opt out, HELP for assistance.</p>
+
+                        <div class="checkbox-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="smsConsent" name="smsConsent">
+                                <span>
+                                    <strong>I consent to receive SMS messages</strong> from my xSwarm AI Assistant. I understand standard message rates may apply and I can opt out anytime.
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Terms and Privacy Acceptance -->
+                <div class="checkbox-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreeTerms" name="agreeTerms" required>
+                        <span>
+                            I agree to the <a href="terms.html" target="_blank">Terms of Service</a> <span class="required">*</span>
+                        </span>
+                    </label>
+
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="agreePrivacy" name="agreePrivacy" required>
+                        <span>
+                            I acknowledge the <a href="privacy.html" target="_blank">Privacy Policy</a> <span class="required">*</span>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="submit-button" id="submitButton">
+                    Create My AI Assistant Account
+                </button>
+            </form>
+        </section>
+
+        <!-- Privacy Summary -->
+        <div class="privacy-summary">
+            <h3>🔒 Privacy & Security Summary</h3>
+            <p><strong>Zero Communication Data Retention:</strong> We do NOT store your voice calls, SMS messages, or emails - ever!</p>
+            <p><strong>Paired Security:</strong> Your phone ↔ Your AI Assistant phone. Your email ↔ Your AI Assistant email. Completely isolated.</p>
+            <p><strong>What We Do Collect:</strong> Only account information (payment, credentials) and basic website analytics.</p>
+            <p>Read our full <a href="privacy.html">Privacy Policy</a> and <a href="terms.html">Terms of Service</a> for complete details.</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>
+            <strong style="color: var(--accent-cyan);">xSwarm AI Assistant</strong> - Voice-First AI Assistant for Developers
+        </p>
+        <p style="margin-top: 0.5rem;">
+            <a href="features.html">Features</a> •
+            <a href="privacy.html">Privacy Policy</a> •
+            <a href="terms.html">Terms of Service</a> •
+            <a href="https://xswarm.ai">Home</a> •
+            <a href="https://github.com/chadananda/xSwarm-boss">GitHub</a> •
+            <a href="mailto:support@xswarm.ai">Contact</a>
+        </p>
+        <p style="margin-top: 1rem; font-size: 0.85rem;">
+            © 2025 xSwarm. All rights reserved.
+        </p>
+    </footer>
+
+    <script>
+        // Plan selection logic
+        const pricingCards = document.querySelectorAll('.pricing-card');
+        const planSelect = document.getElementById('plan');
+        const phoneGroup = document.getElementById('phoneGroup');
+        const smsConsentSection = document.getElementById('smsConsentSection');
+        const phoneInput = document.getElementById('phone');
+        const smsConsentCheckbox = document.getElementById('smsConsent');
+        const form = document.getElementById('signupForm');
+        const signupFormSection = document.getElementById('signupFormSection');
+        const enterpriseSection = document.getElementById('enterpriseSection');
+
+        // Handle URL parameters for plan pre-selection
+        function getUrlParameter(name) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(name);
+        }
+
+        // Map URL parameter values to plan values
+        const planMapping = {
+            'free': 'ai_buddy',
+            'personal': 'ai_secretary',
+            'professional': 'ai_project_manager',
+            'enterprise': 'ai_cto'
+        };
+
+        // Initialize with URL parameter if present
+        const urlPlan = getUrlParameter('plan');
+        if (urlPlan && planMapping[urlPlan]) {
+            const mappedPlan = planMapping[urlPlan];
+            planSelect.value = mappedPlan;
+
+            // Select the corresponding card
+            pricingCards.forEach(card => {
+                if (card.dataset.plan === mappedPlan) {
+                    card.classList.add('selected');
+                }
+            });
+
+            updateFormFields(mappedPlan);
+        }
+
+        // Handle pricing card clicks
+        pricingCards.forEach(card => {
+            card.addEventListener('click', function() {
+                pricingCards.forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                const planValue = this.dataset.plan;
+                planSelect.value = planValue;
+                updateFormFields(planValue);
+            });
+        });
+
+        // Handle plan select change
+        planSelect.addEventListener('change', function() {
+            const planValue = this.value;
+            pricingCards.forEach(card => {
+                if (card.dataset.plan === planValue) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
+            });
+            updateFormFields(planValue);
+        });
+
+        function updateFormFields(planValue) {
+            // Show enterprise contact section for AI CTO plan
+            if (planValue === 'ai_cto') {
+                signupFormSection.classList.add('hidden');
+                enterpriseSection.classList.remove('hidden');
+                return;
+            } else {
+                signupFormSection.classList.remove('hidden');
+                enterpriseSection.classList.add('hidden');
+            }
+
+            // Phone/SMS required for all paid plans except free (ai_buddy)
+            const requiresPhone = planValue !== 'ai_buddy' && planValue !== '' && planValue !== 'ai_cto';
+
+            if (requiresPhone) {
+                phoneGroup.classList.remove('hidden');
+                smsConsentSection.classList.remove('hidden');
+                phoneInput.required = true;
+                smsConsentCheckbox.required = true;
+            } else {
+                phoneGroup.classList.add('hidden');
+                smsConsentSection.classList.add('hidden');
+                phoneInput.required = false;
+                smsConsentCheckbox.required = false;
+                phoneInput.value = '';
+                smsConsentCheckbox.checked = false;
+            }
+        }
+
+        // Form validation
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function validatePhone(phone) {
+            const digits = phone.replace(/\D/g, '');
+            return digits.length >= 10;
+        }
+
+        function showError(fieldId, show = true) {
+            const field = document.getElementById(fieldId);
+            const errorMessage = field.parentElement.querySelector('.error-message');
+
+            if (show) {
+                field.classList.add('error');
+                errorMessage.classList.add('show');
+            } else {
+                field.classList.remove('error');
+                errorMessage.classList.remove('show');
+            }
+        }
+
+        // Form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            let isValid = true;
+
+            // Validate first name
+            if (!document.getElementById('firstName').value.trim()) {
+                showError('firstName', true);
+                isValid = false;
+            } else {
+                showError('firstName', false);
+            }
+
+            // Validate last name
+            if (!document.getElementById('lastName').value.trim()) {
+                showError('lastName', true);
+                isValid = false;
+            } else {
+                showError('lastName', false);
+            }
+
+            // Validate email
+            const email = document.getElementById('email').value;
+            if (!validateEmail(email)) {
+                showError('email', true);
+                isValid = false;
+            } else {
+                showError('email', false);
+            }
+
+            // Validate plan selection
+            if (!planSelect.value) {
+                showError('plan', true);
+                isValid = false;
+            } else {
+                showError('plan', false);
+            }
+
+            // Validate phone if required
+            if (phoneInput.required) {
+                if (!validatePhone(phoneInput.value)) {
+                    showError('phone', true);
+                    isValid = false;
+                } else {
+                    showError('phone', false);
+                }
+
+                // Validate SMS consent if required
+                if (!smsConsentCheckbox.checked) {
+                    alert('Please provide SMS consent for communication features.');
+                    isValid = false;
+                }
+            }
+
+            // Validate terms acceptance
+            if (!document.getElementById('agreeTerms').checked) {
+                alert('Please agree to the Terms of Service.');
+                isValid = false;
+            }
+
+            if (!document.getElementById('agreePrivacy').checked) {
+                alert('Please acknowledge the Privacy Policy.');
+                isValid = false;
+            }
+
+            if (isValid) {
+                // In production, this would submit to your backend
+                alert('Account created successfully! (This is a demo - no actual signup occurred)');
+
+                // Log the form data (for development/testing)
+                const formData = new FormData(form);
+                const data = Object.fromEntries(formData);
+                console.log('Signup data:', data);
+
+                // In production, you would:
+                // 1. Send data to backend API
+                // 2. Process payment via Stripe
+                // 3. Create account in database
+                // 4. Send confirmation email/SMS
+                // 5. Redirect to dashboard
+            }
+        });
+
+        // Real-time validation
+        document.getElementById('email').addEventListener('blur', function() {
+            if (this.value && !validateEmail(this.value)) {
+                showError('email', true);
+            } else {
+                showError('email', false);
+            }
+        });
+
+        document.getElementById('phone').addEventListener('blur', function() {
+            if (this.required && this.value && !validatePhone(this.value)) {
+                showError('phone', true);
+            } else {
+                showError('phone', false);
+            }
+        });
+    </script>
+</body>
+</html>

@@ -6,6 +6,10 @@ authors = ["xSwarm Contributors"]
 description = "AI Orchestration Layer for Multi-Project Development"
 license = "MIT"
 
+[lib]
+name = "xswarm"
+path = "src/lib.rs"
+
 [[bin]]
 name = "xswarm"
 path = "src/main.rs"
@@ -18,20 +22,38 @@ serde_json = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+chrono-english = { workspace = true }
+chrono-tz = { workspace = true }
+dateparser = { workspace = true }
 
 # CLI
-clap = { version = "4.4", features = ["derive", "env"] }
+clap = { workspace = true }
 
 # TUI
-ratatui = "0.25"
-crossterm = "0.27"
+ratatui = { workspace = true }
+crossterm = { workspace = true }
 
 # Configuration
-toml = "0.8"
+toml = { workspace = true }
 dirs = "5.0"
 
 # Networking
-tokio-tungstenite = "0.21"
+tokio-tungstenite = { workspace = true }
+futures-util = { workspace = true }
+url = "2.5"
+
+# Voice/Audio dependencies
+moshi = { workspace = true }
+candle = { workspace = true }
+candle-nn = { workspace = true }
+candle-transformers = { workspace = true }
+sentencepiece = { workspace = true }
+hf-hub = { workspace = true }
+rubato = { workspace = true }
+base64 = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+git2 = { workspace = true }
 
 # Documentation indexing
 walkdir = "2.4"
@@ -39,3 +61,11 @@ scraper = "0.18"
 
 # HTTP client for AI APIs
 reqwest = { version = "0.11", features = ["json"] }
+
+[[example]]
+name = "test_projects"
+path = "../../examples/test_projects.rs"
+
+[[example]]
+name = "test_project_manager"
+path = "../../examples/test_project_manager.rs"

@@ -1,0 +1,16 @@
+[lfs]
+	# Git LFS configuration for xSwarm repository
+	# Uses Cloudflare Workers + R2 for LFS storage
+	#
+	# This config is committed to the repository and provides read-only access.
+	# For write access, see planning/GIT_LFS_SETUP.md
+
+	# LFS server endpoint (Cloudflare Workers)
+	url = https://xswarm-webhooks.chadananda.workers.dev/lfs
+
+	# Use basic transfer for compatibility
+	transfer = basic
+
+	# Batch API endpoint (default: /objects/batch)
+	# This is appended to the url above
+	batch = true

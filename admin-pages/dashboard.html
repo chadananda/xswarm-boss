@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="xSwarm AI Assistant Dashboard - Manage your AI assistant subscription">
+    <title>Dashboard | xSwarm AI Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-darker: #050810;
+            --text-primary: #e0e0e0;
+            --text-secondary: #a0a0a0;
+            --accent-cyan: #00d9ff;
+            --accent-cyan-dim: #0099bb;
+            --border-color: #1a2332;
+            --code-bg: #0f1419;
+            --link-color: #00d9ff;
+            --link-hover: #00ffcc;
+            --success-green: #00ff88;
+            --warning-yellow: #ffcc00;
+            --error-red: #ff4444;
+            --purple-accent: #9d4edd;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
+            line-height: 1.6;
+        }
+
+        .terminal-header {
+            background-color: var(--bg-darker);
+            border-bottom: 2px solid var(--accent-cyan);
+            padding: 1.5rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-email {
+            color: var(--text-secondary);
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background-color: var(--border-color);
+            color: var(--text-primary);
+            border: 1px solid var(--accent-cyan-dim);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background-color: var(--accent-cyan-dim);
+            color: var(--bg-darker);
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .tab-nav {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--code-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tab-button:hover {
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan-dim);
+        }
+
+        .tab-button.active {
+            background-color: var(--bg-dark);
+            color: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            border-bottom: 2px solid var(--bg-dark);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card {
+            background-color: var(--code-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card h2 {
+            color: var(--accent-cyan);
+            font-size: 1.4rem;
+            margin-bottom: 1rem;
+        }
+
+        .card h2::before {
+            content: '> ';
+            color: var(--accent-cyan-dim);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--code-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-card.warning {
+            border-color: var(--warning-yellow);
+        }
+
+        .stat-card.error {
+            border-color: var(--error-red);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            color: var(--accent-cyan);
+            font-size: 2rem;
+            font-weight: bold;
+        }
+
+        .stat-subtext {
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            background-color: var(--border-color);
+            height: 8px;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--accent-cyan), var(--success-green));
+            height: 100%;
+            transition: width 0.3s;
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, var(--warning-yellow), var(--error-red));
+        }
+
+        .alert {
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            border-left: 4px solid;
+        }
+
+        .alert.info {
+            background-color: rgba(0, 217, 255, 0.1);
+            border-color: var(--accent-cyan);
+        }
+
+        .alert.warning {
+            background-color: rgba(255, 204, 0, 0.1);
+            border-color: var(--warning-yellow);
+        }
+
+        .alert.error {
+            background-color: rgba(255, 68, 68, 0.1);
+            border-color: var(--error-red);
+        }
+
+        .alert.success {
+            background-color: rgba(0, 255, 136, 0.1);
+            border-color: var(--success-green);
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+            transition: all 0.2s;
+            display: inline-block;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-cyan-dim));
+            color: var(--bg-darker);
+            font-weight: bold;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--link-hover), var(--accent-cyan));
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.3);
+        }
+
+        .btn-secondary {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+            border: 1px solid var(--accent-cyan-dim);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--accent-cyan-dim);
+            color: var(--bg-darker);
+        }
+
+        .btn-danger {
+            background-color: var(--error-red);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #ff6666;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        thead {
+            background-color: var(--bg-darker);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            color: var(--accent-cyan);
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: rgba(0, 217, 255, 0.05);
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .badge-success {
+            background-color: var(--success-green);
+            color: var(--bg-darker);
+        }
+
+        .badge-warning {
+            background-color: var(--warning-yellow);
+            color: var(--bg-darker);
+        }
+
+        .badge-error {
+            background-color: var(--error-red);
+            color: white;
+        }
+
+        .badge-info {
+            background-color: var(--accent-cyan);
+            color: var(--bg-darker);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--bg-darker);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--text-primary);
+            font-family: 'Courier New', monospace;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 1.5rem 0;
+        }
+
+        .plan-card {
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: all 0.3s;
+        }
+
+        .plan-card.current {
+            border-color: var(--success-green);
+            background-color: rgba(0, 255, 136, 0.05);
+        }
+
+        .plan-card:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 15px rgba(0, 217, 255, 0.2);
+        }
+
+        .plan-name {
+            font-size: 1.3rem;
+            color: var(--accent-cyan);
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            font-size: 2rem;
+            color: var(--success-green);
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+
+        .plan-features {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .plan-features li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+        }
+
+        .plan-features li::before {
+            content: '✓ ';
+            color: var(--success-green);
+            margin-right: 0.5rem;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal.active {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--code-bg);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            color: var(--accent-cyan);
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: var(--error-red);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tab-nav {
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="terminal-header">
+        <div class="header-content">
+            <div class="logo">xSWARM DASHBOARD</div>
+            <div class="user-info">
+                <span class="user-email" id="userEmail">Loading...</span>
+                <button class="logout-btn" onclick="handleLogout()">Logout</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <div class="dashboard-container">
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-button active" onclick="showTab('overview')">Overview</button>
+            <button class="tab-button" onclick="showTab('usage')">Usage Analytics</button>
+            <button class="tab-button" onclick="showTab('subscription')">Subscription</button>
+            <button class="tab-button" onclick="showTab('billing')">Billing History</button>
+            <button class="tab-button" onclick="showTab('teams')" id="teamsTab" class="hidden">Team Management</button>
+            <button class="tab-button" onclick="showTab('buzz')" id="buzzTab" class="hidden">Buzz Listings</button>
+            <button class="tab-button" onclick="showTab('suggestions')">Suggestions</button>
+            <button class="tab-button" onclick="showTab('settings')">Settings</button>
+        </nav>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="tab-content active">
+            <div id="alertsContainer"></div>
+
+            <div class="stats-grid">
+                <div class="stat-card" id="voiceStatCard">
+                    <div class="stat-label">Voice Minutes</div>
+                    <div class="stat-value" id="voiceMinutes">-</div>
+                    <div class="stat-subtext" id="voiceLimit">of - used</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="voiceProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card" id="smsStatCard">
+                    <div class="stat-label">SMS Messages</div>
+                    <div class="stat-value" id="smsMessages">-</div>
+                    <div class="stat-subtext" id="smsLimit">of - used</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="smsProgress" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Emails Sent</div>
+                    <div class="stat-value" id="emailCount">-</div>
+                    <div class="stat-subtext">this period</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Overage Charges</div>
+                    <div class="stat-value" id="overageCharges">$0.00</div>
+                    <div class="stat-subtext">this period</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Current Plan</h2>
+                <div class="plan-card current">
+                    <div class="plan-name" id="currentPlanName">Loading...</div>
+                    <div class="plan-price" id="currentPlanPrice">$-/month</div>
+                    <ul class="plan-features" id="currentPlanFeatures">
+                        <li>Loading...</li>
+                    </ul>
+                    <button class="btn btn-primary" onclick="showTab('subscription')" style="margin-top: 1rem;">Manage Subscription</button>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Billing Period</h2>
+                <p><strong>Period:</strong> <span id="billingPeriod">Loading...</span></p>
+                <p><strong>Days Remaining:</strong> <span id="daysRemaining">-</span></p>
+                <p><strong>Next Billing Date:</strong> <span id="nextBillingDate">-</span></p>
+            </div>
+        </div>
+
+        <!-- Usage Analytics Tab -->
+        <div id="usage" class="tab-content">
+            <div class="card">
+                <h2>Voice Minutes</h2>
+                <div class="chart-container">
+                    <canvas id="voiceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>SMS Messages</h2>
+                <div class="chart-container">
+                    <canvas id="smsChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Email Volume</h2>
+                <div class="chart-container">
+                    <canvas id="emailChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Monthly Comparison</h2>
+                <div id="comparisonData">
+                    <div class="loading">Loading comparison data</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Management Tab -->
+        <div id="subscription" class="tab-content">
+            <div class="card">
+                <h2>Your Subscription</h2>
+                <div id="subscriptionDetails">
+                    <div class="loading">Loading subscription details</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Upgrade Options</h2>
+                <div id="upgradeOptions">
+                    <div class="loading">Loading upgrade options</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing History Tab -->
+        <div id="billing" class="tab-content">
+            <div class="card">
+                <h2>Upcoming Charge</h2>
+                <div id="upcomingCharge">
+                    <div class="loading">Loading billing information</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Payment History</h2>
+                <div class="table-container">
+                    <table id="billingTable">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Invoice</th>
+                            </tr>
+                        </thead>
+                        <tbody id="billingTableBody">
+                            <tr>
+                                <td colspan="5" class="loading">Loading billing history</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Management Tab (Pro+ only) -->
+        <div id="teams" class="tab-content">
+            <div class="card">
+                <h2>Team Overview</h2>
+                <p>Team management features are available on AI Project Manager and AI CTO plans.</p>
+                <div id="teamsList">
+                    <div class="loading">Loading teams</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Buzz Listings Tab (Pro+ only) -->
+        <div id="buzz" class="tab-content">
+            <div class="card">
+                <h2>Buzz Marketing Platform</h2>
+                <p>Create and manage your buzz listings here.</p>
+                <a href="buzz.html" class="btn btn-primary">Manage Buzz Listings</a>
+            </div>
+        </div>
+
+        <!-- Suggestions Tab -->
+        <div id="suggestions" class="tab-content">
+            <div class="card">
+                <h2>Your Suggestions</h2>
+                <p>View and manage your submitted suggestions.</p>
+                <a href="suggestions.html" class="btn btn-primary">View All Suggestions</a>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="card">
+                <h2>Profile Settings</h2>
+                <form id="profileForm" onsubmit="handleProfileUpdate(event)">
+                    <div class="form-group">
+                        <label for="profileName">Display Name</label>
+                        <input type="text" id="profileName" placeholder="Your name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="profilePersona">AI Persona</label>
+                        <select id="profilePersona">
+                            <option value="boss">Boss</option>
+                            <option value="hal-9000">HAL-9000</option>
+                            <option value="jarvis">JARVIS</option>
+                            <option value="glados">GLaDOS</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="profileWakeWord">Wake Word</label>
+                        <input type="text" id="profileWakeWord" placeholder="hey boss">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+
+            <div class="card">
+                <h2>Security</h2>
+                <button class="btn btn-secondary" onclick="showPasswordModal()">Change Password</button>
+            </div>
+
+            <div class="card">
+                <h2>Danger Zone</h2>
+                <button class="btn btn-danger" onclick="showCancelModal()">Cancel Subscription</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cancel Subscription Modal -->
+    <div id="cancelModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Cancel Subscription</h3>
+                <button class="close-btn" onclick="closeCancelModal()">&times;</button>
+            </div>
+            <p>Are you sure you want to cancel your subscription? You will lose access to premium features at the end of your current billing period.</p>
+            <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+                <button class="btn btn-danger" onclick="confirmCancel()">Yes, Cancel</button>
+                <button class="btn btn-secondary" onclick="closeCancelModal()">No, Keep It</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentTab = 'overview';
+        let dashboardData = null;
+        let usageData = null;
+        let billingData = null;
+        let subscriptionData = null;
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDashboard();
+        });
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+
+            // Activate button
+            event.target.classList.add('active');
+
+            currentTab = tabName;
+
+            // Load data for tab if needed
+            if (tabName === 'usage' && !usageData) {
+                loadUsageAnalytics();
+            } else if (tabName === 'billing' && !billingData) {
+                loadBillingHistory();
+            } else if (tabName === 'subscription' && !subscriptionData) {
+                loadSubscriptionDetails();
+            }
+        }
+
+        // Load main dashboard data
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/dashboard/overview', {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load dashboard');
+                }
+
+                dashboardData = await response.json();
+                renderOverview(dashboardData);
+
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+                showError('Failed to load dashboard data');
+            }
+        }
+
+        // Render overview tab
+        function renderOverview(data) {
+            // Update user email
+            document.getElementById('userEmail').textContent = data.user.email;
+
+            // Update stats
+            document.getElementById('voiceMinutes').textContent = data.stats.voice_minutes_used;
+            document.getElementById('voiceLimit').textContent = `of ${data.stats.voice_minutes_limit === -1 ? '∞' : data.stats.voice_minutes_limit} used`;
+
+            document.getElementById('smsMessages').textContent = data.stats.sms_used;
+            document.getElementById('smsLimit').textContent = `of ${data.stats.sms_limit === -1 ? '∞' : data.stats.sms_limit} used`;
+
+            document.getElementById('emailCount').textContent = data.stats.emails_sent;
+            document.getElementById('overageCharges').textContent = `$${data.stats.total_overage_cost.toFixed(2)}`;
+
+            // Update progress bars
+            if (data.stats.voice_minutes_limit > 0) {
+                const voicePercent = (data.stats.voice_minutes_used / data.stats.voice_minutes_limit) * 100;
+                document.getElementById('voiceProgress').style.width = `${Math.min(voicePercent, 100)}%`;
+                if (voicePercent >= 80) {
+                    document.getElementById('voiceProgress').classList.add('warning');
+                    document.getElementById('voiceStatCard').classList.add('warning');
+                }
+            }
+
+            if (data.stats.sms_limit > 0) {
+                const smsPercent = (data.stats.sms_used / data.stats.sms_limit) * 100;
+                document.getElementById('smsProgress').style.width = `${Math.min(smsPercent, 100)}%`;
+                if (smsPercent >= 80) {
+                    document.getElementById('smsProgress').classList.add('warning');
+                    document.getElementById('smsStatCard').classList.add('warning');
+                }
+            }
+
+            // Update plan info
+            document.getElementById('currentPlanName').textContent = data.plan.name;
+            document.getElementById('currentPlanPrice').textContent = data.plan.price === null ? 'Custom' : `$${data.plan.price}/month`;
+
+            const featuresHtml = data.plan.features.map(f => `<li>${f}</li>`).join('');
+            document.getElementById('currentPlanFeatures').innerHTML = featuresHtml;
+
+            // Update billing period
+            const periodStart = new Date(data.billing_period.start).toLocaleDateString();
+            const periodEnd = new Date(data.billing_period.end).toLocaleDateString();
+            document.getElementById('billingPeriod').textContent = `${periodStart} - ${periodEnd}`;
+            document.getElementById('daysRemaining').textContent = data.billing_period.days_remaining;
+            document.getElementById('nextBillingDate').textContent = periodEnd;
+
+            // Show alerts
+            renderAlerts(data.alerts);
+
+            // Show/hide premium tabs
+            if (data.plan.name.includes('Project Manager') || data.plan.name.includes('CTO')) {
+                document.getElementById('teamsTab').classList.remove('hidden');
+                document.getElementById('buzzTab').classList.remove('hidden');
+            }
+        }
+
+        // Render alerts
+        function renderAlerts(alerts) {
+            const container = document.getElementById('alertsContainer');
+            if (!alerts || alerts.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+            const html = alerts.map(alert => `
+                <div class="alert ${alert.type}">
+                    <strong>${alert.category.toUpperCase()}:</strong> ${alert.message}
+                </div>
+            `).join('');
+
+            container.innerHTML = html;
+        }
+
+        // Load usage analytics
+        async function loadUsageAnalytics() {
+            try {
+                const response = await fetch('/api/dashboard/usage', {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load usage analytics');
+                }
+
+                usageData = await response.json();
+                renderUsageCharts(usageData);
+                renderComparison(usageData.comparative);
+
+            } catch (error) {
+                console.error('Error loading usage analytics:', error);
+                showError('Failed to load usage analytics');
+            }
+        }
+
+        // Render usage charts
+        function renderUsageCharts(data) {
+            // Voice chart
+            const voiceCtx = document.getElementById('voiceChart').getContext('2d');
+            new Chart(voiceCtx, {
+                type: 'line',
+                data: data.charts.voice,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#1a2332' },
+                        },
+                        x: {
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#1a2332' },
+                        },
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0' } },
+                    },
+                },
+            });
+
+            // SMS chart
+            const smsCtx = document.getElementById('smsChart').getContext('2d');
+            new Chart(smsCtx, {
+                type: 'line',
+                data: data.charts.sms,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#1a2332' },
+                        },
+                        x: {
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#1a2332' },
+                        },
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0' } },
+                    },
+                },
+            });
+
+            // Email chart
+            const emailCtx = document.getElementById('emailChart').getContext('2d');
+            new Chart(emailCtx, {
+                type: 'line',
+                data: data.charts.email,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#1a2332' },
+                        },
+                        x: {
+                            ticks: { color: '#a0a0a0' },
+                            grid: { color: '#1a2332' },
+                        },
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#e0e0e0' } },
+                    },
+                },
+            });
+        }
+
+        // Render comparison data
+        function renderComparison(data) {
+            if (!data) {
+                document.getElementById('comparisonData').innerHTML = '<p>Not enough data for comparison yet.</p>';
+                return;
+            }
+
+            const html = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Voice Minutes Change</div>
+                        <div class="stat-value">${data.changes.voice_percent > 0 ? '+' : ''}${data.changes.voice_percent}%</div>
+                        <div class="stat-subtext">${data.changes.voice_minutes > 0 ? '+' : ''}${data.changes.voice_minutes} minutes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">SMS Change</div>
+                        <div class="stat-value">${data.changes.sms_percent > 0 ? '+' : ''}${data.changes.sms_percent}%</div>
+                        <div class="stat-subtext">${data.changes.sms_messages > 0 ? '+' : ''}${data.changes.sms_messages} messages</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Email Change</div>
+                        <div class="stat-value">${data.changes.email_percent > 0 ? '+' : ''}${data.changes.email_percent}%</div>
+                        <div class="stat-subtext">${data.changes.email_count > 0 ? '+' : ''}${data.changes.email_count} emails</div>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('comparisonData').innerHTML = html;
+        }
+
+        // Load subscription details
+        async function loadSubscriptionDetails() {
+            try {
+                const response = await fetch('/api/dashboard/subscription', {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load subscription details');
+                }
+
+                subscriptionData = await response.json();
+                renderSubscriptionDetails(subscriptionData);
+
+            } catch (error) {
+                console.error('Error loading subscription:', error);
+                showError('Failed to load subscription details');
+            }
+        }
+
+        // Render subscription details
+        function renderSubscriptionDetails(data) {
+            const detailsHtml = `
+                <p><strong>Plan:</strong> ${data.current_plan.name}</p>
+                <p><strong>Price:</strong> $${data.current_plan.price}/month</p>
+                <p><strong>Next Billing:</strong> ${new Date(data.billing.next_billing_date).toLocaleDateString()}</p>
+            `;
+            document.getElementById('subscriptionDetails').innerHTML = detailsHtml;
+
+            // Render upgrade options
+            if (data.upgrade_options.length === 0) {
+                document.getElementById('upgradeOptions').innerHTML = '<p>You are on the highest tier!</p>';
+            } else {
+                const optionsHtml = data.upgrade_options.map(option => `
+                    <div class="plan-card">
+                        <div class="plan-name">${option.name}</div>
+                        <div class="plan-price">$${option.price}/month</div>
+                        <ul class="plan-features">
+                            ${option.features.map(f => `<li>${f}</li>`).join('')}
+                        </ul>
+                        <button class="btn btn-primary" onclick="handleUpgrade('${option.tier}')" style="margin-top: 1rem;">
+                            Upgrade to ${option.name}
+                        </button>
+                    </div>
+                `).join('');
+
+                document.getElementById('upgradeOptions').innerHTML = optionsHtml;
+            }
+        }
+
+        // Load billing history
+        async function loadBillingHistory() {
+            try {
+                const response = await fetch('/api/dashboard/billing', {
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to load billing history');
+                }
+
+                billingData = await response.json();
+                renderBillingHistory(billingData);
+
+            } catch (error) {
+                console.error('Error loading billing:', error);
+                showError('Failed to load billing history');
+            }
+        }
+
+        // Render billing history
+        function renderBillingHistory(data) {
+            // Upcoming charge
+            const upcomingHtml = `
+                <p><strong>Base Price:</strong> $${data.upcoming.base_price.toFixed(2)}</p>
+                <p><strong>Overage Charges:</strong> $${data.upcoming.overage_charges.toFixed(2)}</p>
+                <p><strong>Total:</strong> <span style="color: var(--success-green); font-size: 1.5rem; font-weight: bold;">$${data.upcoming.total.toFixed(2)}</span></p>
+                <p><strong>Billing Date:</strong> ${new Date(data.upcoming.billing_date).toLocaleDateString()}</p>
+            `;
+            document.getElementById('upcomingCharge').innerHTML = upcomingHtml;
+
+            // Payment history
+            if (data.history.length === 0) {
+                document.getElementById('billingTableBody').innerHTML = '<tr><td colspan="5">No billing history yet</td></tr>';
+            } else {
+                const rowsHtml = data.history.map(record => `
+                    <tr>
+                        <td>${new Date(record.created_at).toLocaleDateString()}</td>
+                        <td>${record.description || 'Subscription charge'}</td>
+                        <td>$${(record.amount / 100).toFixed(2)}</td>
+                        <td><span class="badge badge-${record.status === 'paid' ? 'success' : 'warning'}">${record.status}</span></td>
+                        <td>${record.invoice_url ? `<a href="${record.invoice_url}" target="_blank" class="btn btn-secondary" style="padding: 0.5rem 1rem;">Download</a>` : '-'}</td>
+                    </tr>
+                `).join('');
+
+                document.getElementById('billingTableBody').innerHTML = rowsHtml;
+            }
+        }
+
+        // Handle upgrade
+        async function handleUpgrade(tier) {
+            try {
+                const response = await fetch('/api/dashboard/upgrade', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                    body: JSON.stringify({ target_tier: tier }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to initiate upgrade');
+                }
+
+                const data = await response.json();
+
+                // Redirect to Stripe Checkout
+                window.location.href = data.checkout_url;
+
+            } catch (error) {
+                console.error('Error upgrading:', error);
+                showError('Failed to initiate upgrade');
+            }
+        }
+
+        // Handle profile update
+        async function handleProfileUpdate(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('profileName').value;
+            const persona = document.getElementById('profilePersona').value;
+            const wake_word = document.getElementById('profileWakeWord').value;
+
+            try {
+                const response = await fetch('/api/dashboard/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                    body: JSON.stringify({ name, persona, wake_word }),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
+                }
+
+                alert('Profile updated successfully!');
+                await loadDashboard();
+
+            } catch (error) {
+                console.error('Error updating profile:', error);
+                showError('Failed to update profile');
+            }
+        }
+
+        // Modal functions
+        function showCancelModal() {
+            document.getElementById('cancelModal').classList.add('active');
+        }
+
+        function closeCancelModal() {
+            document.getElementById('cancelModal').classList.remove('active');
+        }
+
+        async function confirmCancel() {
+            try {
+                const response = await fetch('/api/dashboard/cancel', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${getToken()}`,
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to cancel subscription');
+                }
+
+                alert('Your subscription will be cancelled at the end of the current billing period.');
+                closeCancelModal();
+                await loadDashboard();
+
+            } catch (error) {
+                console.error('Error cancelling subscription:', error);
+                showError('Failed to cancel subscription');
+            }
+        }
+
+        // Utility functions
+        function getToken() {
+            return localStorage.getItem('auth_token') || '';
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/admin-pages/index.html';
+        }
+
+        function showError(message) {
+            alert(message);
+        }
+    </script>
+</body>
+</html>

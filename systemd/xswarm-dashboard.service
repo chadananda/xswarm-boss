@@ -1,0 +1,55 @@
+[Unit]
+Description=xSwarm Supervisor Dashboard - Real-Time Monitoring TUI
+Documentation=https://github.com/xswarm-dev/xswarm-boss
+After=network-online.target xswarm-voice.service
+Wants=network-online.target
+Requires=xswarm-voice.service
+
+[Service]
+Type=simple
+User=xswarm
+Group=xswarm
+WorkingDirectory=/opt/xswarm
+
+# Environment
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="RUST_LOG=info"
+Environment="RUST_BACKTRACE=1"
+
+# Load secrets from .env file
+EnvironmentFile=/opt/xswarm/.env
+
+# Binary location
+ExecStart=/opt/xswarm/target/release/xswarm-dashboard
+
+# Restart policy
+Restart=always
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Resource limits (dashboard is lightweight)
+MemoryMax=1G
+MemoryHigh=512M
+CPUQuota=100%         # 1 CPU core
+TasksMax=256
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/xswarm /var/log/xswarm
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=xswarm-dashboard
+
+# Graceful shutdown
+TimeoutStopSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

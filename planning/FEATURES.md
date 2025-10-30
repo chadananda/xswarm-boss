@@ -25,11 +25,15 @@ xSwarm is a **voice-based system assistant** focused on:
 - [x] Theme system (pluggable YAML-based)
 - [x] Audio training automation script
 - [x] Multi-machine architecture (Overlord/Vassal model)
-- [x] MOSHI voice integration (planned)
+- [x] MOSHI voice integration (infrastructure ready)
+- [x] Python voice bridge package (packages/voice)
+- [x] Config updated for MOSHI (24kHz, moshika-mlx-q4)
+- [x] MOSHI MLX installed and tested on Apple Silicon
 
 ### 🚧 In Progress
 
-- [ ] Voice interface with MOSHI
+- [x] Python bridge to MOSHI MLX (structure complete, implementation TODO)
+- [ ] Voice interface with MOSHI (Rust client integration)
 - [ ] MCP server for Claude Code integration
 - [ ] 4-layer memory system
 - [ ] WebSocket coordination between machines
@@ -41,8 +45,12 @@ xSwarm is a **voice-based system assistant** focused on:
 ### 1.1 Voice Interface (High Priority)
 
 **MOSHI Integration**
-- [ ] Python bridge to MOSHI MLX
-- [ ] Audio I/O with `cpal` crate
+- [x] Python bridge to MOSHI MLX (packages/voice - structure ready)
+- [x] MOSHI MLX installed (v0.3.0, kyutai/moshika-mlx-q4)
+- [x] Config updated (24kHz sample rate, moshi provider)
+- [ ] Complete MOSHI model integration in bridge.py
+- [ ] WebSocket server implementation
+- [ ] Audio I/O with `cpal` crate (Rust side)
 - [ ] Wake word detection (theme-specific)
 - [ ] Voice activity detection (VAD)
 - [ ] Real-time voice synthesis

@@ -1,0 +1,64 @@
+# Git LFS file tracking for xSwarm
+# Large files stored in Cloudflare R2 via custom LFS server
+# ============================================
+# Model Weights & Checkpoints
+# ============================================
+*.safetensors filter=lfs diff=lfs merge=lfs -text
+*.bin filter=lfs diff=lfs merge=lfs -text
+*.pt filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
+*.onnx filter=lfs diff=lfs merge=lfs -text
+*.ckpt filter=lfs diff=lfs merge=lfs -text
+*.h5 filter=lfs diff=lfs merge=lfs -text
+*.pkl filter=lfs diff=lfs merge=lfs -text
+*.pickle filter=lfs diff=lfs merge=lfs -text
+# ============================================
+# Theme Assets & Media
+# ============================================
+*.apng filter=lfs diff=lfs merge=lfs -text
+packages/personas/**/*.wav filter=lfs diff=lfs merge=lfs -text
+packages/personas/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+packages/personas/**/*.m4a filter=lfs diff=lfs merge=lfs -text
+packages/personas/**/*.flac filter=lfs diff=lfs merge=lfs -text
+packages/personas/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+# ============================================
+# Compiled Binaries (>10MB threshold)
+# ============================================
+# Note: .gitignore already excludes most binaries
+# Only track large release binaries if needed
+# *.dylib filter=lfs diff=lfs merge=lfs -text
+# *.so filter=lfs diff=lfs merge=lfs -text
+# *.dll filter=lfs diff=lfs merge=lfs -text
+# ============================================
+# Embeddings & Vector Databases
+# ============================================
+*.faiss filter=lfs diff=lfs merge=lfs -text
+*.index filter=lfs diff=lfs merge=lfs -text
+*.npy filter=lfs diff=lfs merge=lfs -text
+*.npz filter=lfs diff=lfs merge=lfs -text
+# ============================================
+# Archives (if committing large assets)
+# ============================================
+# *.tar.gz filter=lfs diff=lfs merge=lfs -text
+# *.zip filter=lfs diff=lfs merge=lfs -text
+# *.7z filter=lfs diff=lfs merge=lfs -text
+# ============================================
+# Large Data Files
+# ============================================
+*.parquet filter=lfs diff=lfs merge=lfs -text
+*.arrow filter=lfs diff=lfs merge=lfs -text
+# ============================================
+# LFS Exceptions
+# ============================================
+# Exclude test fixtures and small example files
+!tests/fixtures/**/*.wav
+!tests/fixtures/**/*.mp3
+!examples/**/*.bin
+# ============================================
+# Notes
+# ============================================
+# - LFS pointers are small text files (~100 bytes)
+# - Actual files stored in R2: s3://bucket/lfs/objects/<sha256>
+# - Clone is fast (downloads pointers only)
+# - `git lfs pull` downloads actual files when needed
+# - Configure endpoint in .lfsconfig (read-only) and .git/config (read-write)

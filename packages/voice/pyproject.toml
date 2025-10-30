@@ -1,0 +1,44 @@
+[project]
+name = "xswarm-voice"
+version = "0.1.0"
+description = "MOSHI voice interface bridge for xSwarm"
+authors = [
+    {name = "xSwarm Team"}
+]
+requires-python = ">=3.10"
+dependencies = [
+    "moshi_mlx>=0.1.0",
+    "numpy>=1.24.0",
+    "websockets>=12.0",
+    "scipy>=1.11.0",      # For audio resampling (Twilio 8kHz ↔ MOSHI 24kHz)
+    "tomli>=2.0.0",       # For parsing persona config.toml files
+    # NOTE: sounddevice NOT required!
+    # Audio I/O is handled by Rust (cpal), not Python.
+    # We only process audio data as numpy arrays.
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "mypy>=1.0.0",
+]
+# Optional: For standalone CLI testing (not needed for bridge)
+standalone = [
+    "sounddevice>=0.5.0",  # Only if you want to run moshi_mlx.local
+]
+
+[build-system]
+requires = ["setuptools>=68.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ['py310']
+
+[tool.mypy]
+python_version = "3.10"
+strict = true

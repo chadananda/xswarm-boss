@@ -20,7 +20,16 @@
       "WebFetch(domain:freesvg.org)",
       "WebFetch(domain:medium.com)",
       "WebFetch(domain:www.edenai.co)",
-      "WebFetch(domain:docs.lumalabs.ai)"
+      "WebFetch(domain:docs.lumalabs.ai)",
+      "WebFetch(domain:docs.stripe.com)",
+      "WebFetch(domain:kyutai.org)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//tmp/moshi-fresh/rust/**)",
+      "Read(//tmp/**)",
+      "WebFetch(domain:www.twilio.com)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:docs.sendgrid.com)",
+      "WebFetch(domain:xswarm.ai)"
     ],
     "deny": [],
     "ask": []

@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_voice_client_stub() {
-        let client = VoiceClient::new("openai_realtime".to_string());
+        let client = VoiceClient::new("moshi".to_string());
         assert!(!client.is_available());
     }
 }
