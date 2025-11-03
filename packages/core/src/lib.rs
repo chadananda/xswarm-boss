@@ -19,7 +19,8 @@ mod audio;
 pub mod local_audio;
 pub mod audio_output;
 pub mod permissions;
-pub mod tts;
+pub mod tts;  // Text-to-Speech synthesis
+pub mod stt;  // Speech-to-Text transcription
 pub mod greeting;  // MOSHI greeting generation (direct speech)
 pub mod memory_conditioner;  // MOSHI memory conditioning (natural incorporation)
 pub mod voice;
