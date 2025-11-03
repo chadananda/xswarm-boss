@@ -11,7 +11,7 @@ use std::collections::HashMap;
 pub struct EmbeddingEngine {
     model: String,
     api_key: Option<String>,
-    cache: std::cell::RefCell<EmbeddingCache>,
+    cache: std::sync::RwLock<EmbeddingCache>,
 }
 
 /// Simple in-memory cache for embeddings
@@ -44,22 +44,28 @@ impl EmbeddingEngine {
         Ok(Self {
             model,
             api_key,
-            cache: std::cell::RefCell::new(EmbeddingCache::new(1000)), // Cache up to 1000 embeddings
+            cache: std::sync::RwLock::new(EmbeddingCache::new(1000)), // Cache up to 1000 embeddings
         })
     }
 
     /// Generate an embedding for the given text
     pub async fn generate(&self, text: &str) -> Result<Vec<f32>> {
         // Check cache first
-        if let Some(cached) = self.cache.borrow().get(text) {
-            return Ok(cached);
+        {
+            let cache = self.cache.read().unwrap();
+            if let Some(cached) = cache.get(text) {
+                return Ok(cached);
+            }
         }
 
         // Generate new embedding via API
         let embedding = self.generate_from_api(text).await?;
 
         // Store in cache
-        self.cache.borrow_mut().put(text.to_string(), embedding.clone());
+        {
+            let mut cache = self.cache.write().unwrap();
+            cache.put(text.to_string(), embedding.clone());
+        }
 
         Ok(embedding)
     }
