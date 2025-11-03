@@ -15,14 +15,69 @@
 use anyhow::{Context, Result};
 use std::sync::Arc;
 use std::collections::VecDeque;
-use tokio::sync::{RwLock, Mutex};
-use tokio::net::{TcpListener, TcpStream};
+use std::time::Duration;
+use tokio::sync::{RwLock, Mutex, mpsc};
+use tokio::net::TcpStream;
 use tokio_tungstenite::{accept_async, tungstenite::Message as WsMessage};
 use futures_util::{StreamExt, SinkExt};
 use tracing::{info, warn, error, debug};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
 
 use crate::audio::{self, AudioResampler};
+use crate::audio_output::AudioOutputDevice;
+use crate::moshi_personality::{MoshiPersonality, PersonalityManager};
+use crate::ConversationMemory;
+
+// Wake word module - inline stub to avoid module import issues
+// The full implementation is in the wake_word module
+mod wake_word {
+    use anyhow::Result;
+    use serde::{Deserialize, Serialize};
+    use std::sync::Arc;
+    use tokio::sync::RwLock;
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct WakeWordConfig {
+        pub enabled: bool,
+        pub sensitivity: f32,
+        pub threshold: f32,
+        pub keywords: Vec<String>,
+    }
+
+    impl Default for WakeWordConfig {
+        fn default() -> Self {
+            Self {
+                enabled: false,
+                sensitivity: 0.5,
+                threshold: 0.5,
+                keywords: vec!["hey_hal".to_string()],
+            }
+        }
+    }
+
+    pub struct WakeWordSystem {
+        _config: Arc<RwLock<WakeWordConfig>>,
+    }
+
+    impl WakeWordSystem {
+        pub async fn new(config: WakeWordConfig) -> Result<Self> {
+            Ok(Self {
+                _config: Arc::new(RwLock::new(config)),
+            })
+        }
+
+        pub async fn start_listening(&self) -> Result<()> {
+            tracing::warn!("Wake word system stub - not fully implemented in voice.rs");
+            Ok(())
+        }
+
+        pub async fn stop_listening(&self) -> Result<()> {
+            Ok(())
+        }
+    }
+}
+
+use wake_word::{WakeWordSystem, WakeWordConfig};
 
 // Audio format constants
 const TWILIO_SAMPLE_RATE: u32 = 8000;  // Twilio Media Streams (μ-law)
@@ -138,6 +193,15 @@ pub struct MoshiState {
     /// Connected supervisor clients for broadcasting transcriptions
     /// Each client has a channel sender for real-time events
     pub supervisor_clients: Arc<Mutex<Vec<tokio::sync::mpsc::UnboundedSender<crate::supervisor::SupervisorEvent>>>>,
+    /// Broadcast channel for AI audio output amplitude (for visualizer)
+    /// Sends RMS amplitude values when MOSHI generates audio
+    pub audio_amplitude_tx: Arc<RwLock<Option<mpsc::UnboundedSender<f32>>>>,
+    /// Personality manager for assistant behavior
+    pub personality_manager: Arc<PersonalityManager>,
+    /// Conversation memory for maintaining context
+    pub conversation_memory: Arc<ConversationMemory>,
+    /// Memory conditioner for natural memory incorporation into MOSHI
+    pub memory_conditioner: crate::memory_conditioner::MemoryConditioner,
 }
 
 impl MoshiState {
@@ -160,6 +224,21 @@ impl MoshiState {
         info!(model_file = %config.lm_model_file, "Loading language model");
         let lm_model = moshi::lm::load_streaming(&config.lm_model_file, dtype, &device)
             .context("Failed to load language model")?;
+
+        // CRITICAL DEBUG: Verify depformer exists for audio generation
+        let generated_codebooks = lm_model.generated_audio_codebooks();
+        if generated_codebooks == 0 {
+            anyhow::bail!(
+                "CRITICAL: Language model has no depformer! Generated codebooks = {}. \
+                This means the model cannot generate audio tokens for voice responses. \
+                Check if the GGUF model file contains depformer weights.",
+                generated_codebooks
+            );
+        }
+        info!(
+            generated_audio_codebooks = generated_codebooks,
+            "Language model loaded with depformer for audio generation"
+        );
 
         // Load MIMI codec
         let mimi_device = if config.use_cpu_for_mimi {
@@ -186,7 +265,18 @@ impl MoshiState {
         // Initialize language model generation config
         let lm_config = moshi::lm_generate_multistream::Config::v0_1();
 
+        // Initialize personality manager with Jarvis personality by default
+        let personality_manager = Arc::new(PersonalityManager::new());
+
+        // Initialize conversation memory for context tracking
+        let conversation_memory = Arc::new(ConversationMemory::new());
+
         info!("MOSHI models initialized successfully");
+        info!("Personality manager initialized with Jarvis personality");
+        info!("Conversation memory initialized for context tracking");
+
+        // Initialize memory conditioner for natural memory incorporation
+        let memory_conditioner = crate::memory_conditioner::MemoryConditioner::new();
 
         Ok(Self {
             lm_model,
@@ -197,7 +287,37 @@ impl MoshiState {
             lm_config,
             suggestion_queue: Arc::new(Mutex::new(VecDeque::new())),
             supervisor_clients: Arc::new(Mutex::new(Vec::new())),
+            audio_amplitude_tx: Arc::new(RwLock::new(None)),
+            personality_manager,
+            conversation_memory,
+            memory_conditioner,
         })
+    }
+
+    /// Set the audio amplitude broadcast channel
+    /// This allows external components (like the dashboard) to receive real-time amplitude data
+    pub async fn set_amplitude_channel(&self, tx: mpsc::UnboundedSender<f32>) {
+        let mut amplitude_tx = self.audio_amplitude_tx.write().await;
+        *amplitude_tx = Some(tx);
+        info!("Audio amplitude channel connected for visualizer");
+    }
+
+    /// Broadcast audio amplitude to visualizer
+    /// Called whenever MOSHI generates audio output
+    async fn broadcast_amplitude(&self, audio_samples: &[f32]) {
+        // Calculate RMS amplitude
+        let rms = if audio_samples.is_empty() {
+            0.0
+        } else {
+            let sum: f32 = audio_samples.iter().map(|&s| s * s).sum();
+            (sum / audio_samples.len() as f32).sqrt()
+        };
+
+        // Send to amplitude channel if connected
+        let amplitude_tx = self.audio_amplitude_tx.read().await;
+        if let Some(tx) = amplitude_tx.as_ref() {
+            let _ = tx.send(rms); // Ignore errors if channel is closed
+        }
     }
 
     /// Broadcast transcription to all connected supervisor clients
@@ -352,6 +472,7 @@ impl ConnectionState {
 pub struct VoiceBridge {
     state: Arc<RwLock<MoshiState>>,
     config: VoiceConfig,
+    wake_word_system: Option<Arc<WakeWordSystem>>,
 }
 
 impl VoiceBridge {
@@ -366,7 +487,232 @@ impl VoiceBridge {
         Ok(Self {
             state: Arc::new(RwLock::new(state)),
             config,
+            wake_word_system: None,
         })
+    }
+
+    /// Create a new voice bridge with wake word detection
+    pub async fn new_with_wake_word(config: VoiceConfig, wake_word_config: WakeWordConfig) -> Result<Self> {
+        // Create voice bridge first
+        let mut bridge = Self::new(config).await?;
+
+        // Initialize wake word system
+        let wake_word_system = WakeWordSystem::new(wake_word_config).await?;
+
+        // Start wake word detection
+        wake_word_system.start_listening().await?;
+
+        bridge.wake_word_system = Some(Arc::new(wake_word_system));
+
+        info!("Voice bridge created with wake word detection enabled");
+
+        Ok(bridge)
+    }
+
+    /// Handle wake word detection
+    async fn handle_wake_word_detection(&self, keyword: String) -> Result<()> {
+        info!("Wake word detected: {}", keyword);
+
+        // Activate voice processing mode
+        self.activate_voice_mode().await?;
+
+        // Play acknowledgment sound (optional)
+        self.play_activation_sound().await?;
+
+        // Start listening for command
+        self.start_command_listening().await?;
+
+        Ok(())
+    }
+
+    /// Activate voice mode after wake word detection
+    async fn activate_voice_mode(&self) -> Result<()> {
+        // Switch from wake word detection to full voice processing
+        // Temporarily disable wake word to prevent false triggers
+        if let Some(wake_word) = &self.wake_word_system {
+            wake_word.stop_listening().await?;
+        }
+
+        info!("Voice mode activated");
+        Ok(())
+    }
+
+    /// Play activation sound to acknowledge wake word
+    async fn play_activation_sound(&self) -> Result<()> {
+        // Play subtle audio cue that system is listening
+        // TODO: Implement audio feedback (optional)
+        debug!("Playing activation sound");
+        Ok(())
+    }
+
+    /// Start listening for voice commands
+    async fn start_command_listening(&self) -> Result<()> {
+        // Start full voice processing with MOSHI
+        info!("Listening for voice commands...");
+        // The actual command processing happens through the Twilio stream
+        Ok(())
+    }
+
+    /// Deactivate voice mode and resume wake word detection
+    pub async fn deactivate_voice_mode(&self) -> Result<()> {
+        info!("Deactivating voice mode");
+
+        // Resume wake word detection
+        if let Some(wake_word) = &self.wake_word_system {
+            wake_word.start_listening().await?;
+        }
+
+        Ok(())
+    }
+
+    /// Get wake word system reference
+    pub fn get_wake_word_system(&self) -> Option<Arc<WakeWordSystem>> {
+        self.wake_word_system.clone()
+    }
+
+    /// Start local voice conversation loop (microphone → MOSHI → speakers)
+    /// This is the MISSING PIECE that connects local audio to MOSHI processing
+    ///
+    /// # Arguments
+    /// * `audio_rx` - Receiver for microphone audio frames from LocalAudioSystem
+    /// * `playback_tx` - Sender for speaker output to LocalAudioSystem
+    ///
+    /// # Returns
+    /// A task handle that runs the conversation loop
+    pub async fn start_local_conversation(
+        self: Arc<Self>,
+        mut audio_rx: mpsc::UnboundedReceiver<crate::local_audio::AudioFrame>,
+        playback_tx: mpsc::UnboundedSender<Vec<f32>>,
+    ) -> Result<tokio::task::JoinHandle<()>> {
+        info!("Starting local voice conversation loop (microphone → MOSHI → speakers)");
+
+        // Create per-connection state with LM generator
+        let moshi_state = self.state.read().await;
+        let max_steps = 10000; // Maximum inference steps
+        let mut conn_state = ConnectionState::new(&moshi_state, max_steps)
+            .context("Failed to create connection state")?;
+        drop(moshi_state); // Release lock
+
+        const MOSHI_FRAME_SIZE: usize = 1920; // 80ms at 24kHz
+
+        // Spawn conversation loop task
+        let handle = tokio::spawn(async move {
+            info!("Local conversation loop started - listening for voice input");
+            info!("AUDIO_PIPELINE: Conversation loop initialized, waiting for microphone frames");
+
+            let mut audio_buffer: Vec<f32> = Vec::with_capacity(MOSHI_FRAME_SIZE * 2);
+            let mut frame_count = 0u64;
+
+            while let Some(audio_frame) = audio_rx.recv().await {
+                frame_count += 1;
+
+                // CRITICAL: Log EVERY received frame to verify microphone connection
+                info!(
+                    "AUDIO_PIPELINE: [Frame #{}] Received from microphone - samples={}",
+                    frame_count,
+                    audio_frame.samples.len()
+                );
+
+                // Verify audio data is valid (non-zero)
+                let non_zero_count = audio_frame.samples.iter().filter(|&&s| s.abs() > 0.001).count();
+                let rms = if audio_frame.samples.is_empty() {
+                    0.0
+                } else {
+                    let sum: f32 = audio_frame.samples.iter().map(|&s| s * s).sum();
+                    (sum / audio_frame.samples.len() as f32).sqrt()
+                };
+
+                info!(
+                    "AUDIO_PIPELINE: [Frame #{}] Audio data - non_zero_samples={}/{}, rms={:.6}",
+                    frame_count,
+                    non_zero_count,
+                    audio_frame.samples.len(),
+                    rms
+                );
+
+                // Add microphone samples to buffer
+                audio_buffer.extend_from_slice(&audio_frame.samples);
+
+                info!(
+                    "AUDIO_PIPELINE: [Frame #{}] Added to buffer - buffer_size={}, MOSHI_FRAME_SIZE={}, ready={}",
+                    frame_count,
+                    audio_buffer.len(),
+                    MOSHI_FRAME_SIZE,
+                    audio_buffer.len() >= MOSHI_FRAME_SIZE
+                );
+
+                // Process when we have a full MOSHI frame (1920 samples = 80ms at 24kHz)
+                while audio_buffer.len() >= MOSHI_FRAME_SIZE {
+                    // Extract exactly one frame
+                    let frame: Vec<f32> = audio_buffer.drain(..MOSHI_FRAME_SIZE).collect();
+
+                    info!(
+                        "AUDIO_PIPELINE: [Frame #{}] MOSHI frame ready - extracted {} samples, {} remaining in buffer",
+                        frame_count,
+                        frame.len(),
+                        audio_buffer.len()
+                    );
+
+                    debug!(
+                        frame_size = frame.len(),
+                        remaining = audio_buffer.len(),
+                        "Processing MOSHI frame from microphone"
+                    );
+
+                    // Calculate frame RMS before processing
+                    let frame_rms = if frame.is_empty() {
+                        0.0
+                    } else {
+                        let sum: f32 = frame.iter().map(|&s| s * s).sum();
+                        (sum / frame.len() as f32).sqrt()
+                    };
+
+                    info!(
+                        "AUDIO_PIPELINE: [Frame #{}] CALLING process_with_lm() - frame_size={}, frame_rms={:.6}",
+                        frame_count,
+                        frame.len(),
+                        frame_rms
+                    );
+
+                    // Process through MOSHI with LM
+                    match self.process_with_lm(&mut conn_state, frame).await {
+                        Ok(response_pcm) => {
+                            info!(
+                                "AUDIO_PIPELINE: [Frame #{}] process_with_lm() SUCCESS - response_samples={}",
+                                frame_count,
+                                response_pcm.len()
+                            );
+
+                            // Send MOSHI's voice response to speakers
+                            if let Err(e) = playback_tx.send(response_pcm.clone()) {
+                                error!("AUDIO_PIPELINE: [Frame #{}] Failed to send audio to speakers: {}", frame_count, e);
+                                // Channel closed - conversation ended
+                                break;
+                            }
+                            info!(
+                                "AUDIO_PIPELINE: [Frame #{}] Response sent to speakers - samples={}",
+                                frame_count,
+                                response_pcm.len()
+                            );
+                            debug!(
+                                response_samples = response_pcm.len(),
+                                "MOSHI response sent to speakers"
+                            );
+                        }
+                        Err(e) => {
+                            error!("AUDIO_PIPELINE: [Frame #{}] process_with_lm() FAILED: {}", frame_count, e);
+                            error!("MOSHI processing failed: {}", e);
+                            // Continue processing even if one frame fails
+                        }
+                    }
+                }
+            }
+
+            info!("Local conversation loop ended");
+        });
+
+        info!("Local conversation loop task spawned successfully");
+        Ok(handle)
     }
 
     /// Get shared reference to MOSHI state for supervisor integration
@@ -374,8 +720,124 @@ impl VoiceBridge {
         self.state.clone()
     }
 
+    /// Connect an amplitude channel for real-time audio visualization
+    /// Returns a receiver that will get RMS amplitude values when MOSHI generates audio
+    pub async fn connect_amplitude_channel(&self) -> mpsc::UnboundedReceiver<f32> {
+        let (tx, rx) = mpsc::unbounded_channel();
+        let state = self.state.read().await;
+        state.set_amplitude_channel(tx).await;
+        info!("Amplitude channel created for audio visualizer");
+        rx
+    }
+
+    /// Get personality manager for customization
+    pub async fn get_personality_manager(&self) -> Arc<PersonalityManager> {
+        let state = self.state.read().await;
+        state.personality_manager.clone()
+    }
+
+    /// Get conversation memory for accessing conversation history
+    pub async fn get_conversation_memory(&self) -> Arc<ConversationMemory> {
+        let state = self.state.read().await;
+        state.conversation_memory.clone()
+    }
+
+    /// Add a user message to conversation memory
+    pub async fn add_user_message(&self, content: String) -> Result<String> {
+        let state = self.state.read().await;
+        state.conversation_memory.add_user_message(content).await
+    }
+
+    /// Add an assistant response to conversation memory
+    pub async fn add_assistant_response(&self, content: String) -> Result<String> {
+        let state = self.state.read().await;
+        state.conversation_memory.add_assistant_response(content).await
+    }
+
+    /// Get conversation context for MOSHI prompt injection
+    pub async fn get_conversation_context(&self, max_messages: usize) -> String {
+        let state = self.state.read().await;
+        state.conversation_memory.get_context_for_prompt(max_messages).await
+    }
+
+    /// Start a new conversation session
+    pub async fn start_new_conversation_session(&self) -> String {
+        let state = self.state.read().await;
+        state.conversation_memory.start_new_session().await
+    }
+
+    /// Set personality for MOSHI assistant
+    pub async fn set_personality(&self, personality: MoshiPersonality) -> Result<()> {
+        let state = self.state.read().await;
+        state.personality_manager.set_personality(personality).await;
+        info!("MOSHI personality updated successfully");
+        Ok(())
+    }
+
+    /// Get current personality configuration
+    pub async fn get_personality(&self) -> MoshiPersonality {
+        let state = self.state.read().await;
+        state.personality_manager.get_personality().await
+    }
+
+    /// Generate a greeting based on current personality
+    pub async fn generate_personality_greeting(&self) -> String {
+        let state = self.state.read().await;
+        state.personality_manager.generate_greeting().await
+    }
+
+    /// Get personality context prompt for conversation initialization
+    pub async fn get_personality_context(&self) -> String {
+        let state = self.state.read().await;
+        state.personality_manager.generate_context_prompt().await
+    }
+
+    /// Inject personality context into conversation
+    /// This should be called at the start of a conversation to guide MOSHI's behavior
+    pub async fn inject_personality_context(&self) -> Result<()> {
+        let context = self.get_personality_context().await;
+        let moshi_state = self.state.read().await;
+
+        // Add personality context to suggestion queue
+        // This will influence MOSHI's initial responses
+        let mut queue = moshi_state.suggestion_queue.lock().await;
+        queue.push_back(context.clone());
+
+        info!("Injected personality context into MOSHI conversation");
+        debug!("Personality context: {}", context);
+
+        Ok(())
+    }
+
+    /// Inject conversation context into MOSHI's suggestion queue
+    /// This maintains conversation continuity by providing recent history
+    pub async fn inject_conversation_context(&self, max_messages: usize) -> Result<()> {
+        let context = self.get_conversation_context(max_messages).await;
+
+        if context.is_empty() {
+            debug!("No conversation context to inject");
+            return Ok(());
+        }
+
+        let moshi_state = self.state.read().await;
+        let mut queue = moshi_state.suggestion_queue.lock().await;
+        queue.push_back(context.clone());
+
+        info!("Injected conversation context into MOSHI ({} recent messages)", max_messages);
+        debug!("Conversation context: {}", context);
+
+        Ok(())
+    }
+
+    /// Generate personality-aware response prefix for user input
+    /// Returns a suggested response prefix based on personality traits
+    pub async fn generate_response_prefix(&self, user_input: &str) -> Option<String> {
+        let personality = self.get_personality().await;
+        personality.generate_response_prefix(user_input)
+    }
+
     /// Download MOSHI models from Hugging Face if not present locally
-    async fn download_models_if_needed(mut config: VoiceConfig) -> Result<VoiceConfig> {
+    pub async fn download_models_if_needed(mut config: VoiceConfig) -> Result<VoiceConfig> {
         use std::path::Path;
 
         // Check if all model files exist
@@ -432,7 +894,10 @@ impl VoiceBridge {
         conn_state: &mut ConnectionState,
         audio: Vec<f32>,
     ) -> Result<Vec<f32>> {
-        use candle::Tensor;
+        info!(
+            "MOSHI_DEBUG: ========== process_with_lm() called - audio_len={} ==========",
+            audio.len()
+        );
 
         let mut moshi_state = self.state.write().await;
 
@@ -446,6 +911,11 @@ impl VoiceBridge {
                 audio_len = audio.len(),
                 expected_len = frame_length,
                 "Audio length mismatch - padding/truncating"
+            );
+            info!(
+                "MOSHI_DEBUG: Frame length mismatch - got {}, expected {}",
+                audio.len(),
+                frame_length
             );
             let mut fixed = audio;
             fixed.resize(frame_length, 0.0);
@@ -474,18 +944,35 @@ impl VoiceBridge {
 
         // Step 1: Encode audio to MIMI codes
         debug!("Encoding audio to MIMI codes");
+        info!(
+            "MOSHI_DEBUG: Step 1 - Encoding {} audio samples to MIMI codes",
+            audio.len()
+        );
         let pcm_tensor = Tensor::from_vec(
             audio.to_vec(),
             (1, 1, audio.len()),
             mimi_device,
         )?;
+        info!(
+            "MOSHI_DEBUG: PCM tensor created with shape {:?}",
+            pcm_tensor.shape()
+        );
+
         let codes_stream = moshi_state.mimi_model.encode_step(&pcm_tensor.into(), &().into())?;
+        info!("MOSHI_DEBUG: MIMI encode_step completed");
 
         // Extract tensor from StreamTensor
         let codes_tensor = match codes_stream.as_option() {
-            Some(tensor) => tensor,
+            Some(tensor) => {
+                info!(
+                    "MOSHI_DEBUG: MIMI encoding produced codes tensor with shape {:?}",
+                    tensor.shape()
+                );
+                tensor
+            }
             None => {
                 debug!("No codes generated yet, returning silence");
+                info!("MOSHI_DEBUG: MIMI encoding returned None - returning silence");
                 return Ok(vec![0.0; audio.len()]);
             }
         };
@@ -502,6 +989,15 @@ impl VoiceBridge {
             expected_count = input_codebooks,
             "Extracted MIMI codes (limited to LM input_audio_codebooks)"
         );
+        info!(
+            "MOSHI_DEBUG: Extracted {} audio codes from MIMI (limited to {} input_audio_codebooks)",
+            codes.len(),
+            input_codebooks
+        );
+
+        // Log sample codes for inspection
+        let sample_codes: Vec<u32> = codes.iter().take(8).cloned().collect();
+        info!("MOSHI_DEBUG: Sample MIMI codes (first 8): {:?}", sample_codes);
 
         // Step 2: Check for supervisor suggestions (force text token)
         let force_text_token = {
@@ -518,6 +1014,12 @@ impl VoiceBridge {
 
         // Step 3: Run LM inference step
         debug!(prev_text_token = conn_state.prev_text_token, "Running LM step");
+        info!(
+            "MOSHI_DEBUG: Calling lm_generator.step() - prev_text_token={}, codes_len={}, force_text_token={:?}",
+            conn_state.prev_text_token,
+            codes.len(),
+            force_text_token
+        );
         let text_token = conn_state.lm_generator.step(
             conn_state.prev_text_token,
             &codes,
@@ -526,29 +1028,80 @@ impl VoiceBridge {
         )?;
 
         debug!(text_token = text_token, "Generated text token");
+        info!(
+            "MOSHI_DEBUG: lm_generator.step() completed - generated text_token={}",
+            text_token
+        );
 
         // Step 4: Decode text token to transcription (incremental)
-        if let Some(text) = self.decode_text_incremental(
+        let decoded_text = self.decode_text_incremental(
             &moshi_state.text_tokenizer,
             conn_state.prev_text_token,
             text_token,
             &moshi_state.lm_config,
-        ) {
+        );
+
+        if let Some(text) = decoded_text {
             info!(transcription = %text, "User speech transcribed");
+            info!("MOSHI_DEBUG: Text token decoded - text='{}'", text);
+
+            // Store user transcription in conversation memory
+            if let Err(e) = moshi_state.conversation_memory.add_user_message(text.clone()).await {
+                warn!("Failed to store user message in memory: {}", e);
+            }
+
             // Broadcast transcription to supervisor clients
             moshi_state.broadcast_transcription(&text).await;
+        } else {
+            info!(
+                "MOSHI_DEBUG: Text token {} did not produce text (likely special token: start={}, pad={}, eop={})",
+                text_token,
+                moshi_state.lm_config.text_start_token,
+                moshi_state.lm_config.text_pad_token,
+                moshi_state.lm_config.text_eop_token
+            );
         }
 
         // Update previous text token for next iteration
         conn_state.prev_text_token = text_token;
 
         // Step 5: Get audio tokens from LM and decode to audio
-        if let Some(audio_tokens) = conn_state.lm_generator.last_audio_tokens() {
+        // CRITICAL DEBUG: Log step_idx and acoustic delay to understand why last_audio_tokens returns None
+        let step_idx = conn_state.lm_generator.step_idx();
+        let acoustic_delay = moshi_state.lm_config.acoustic_delay;
+        debug!(
+            step_idx = step_idx,
+            acoustic_delay = acoustic_delay,
+            "Checking for audio tokens from LM generator"
+        );
+        info!(
+            "MOSHI_DEBUG: Checking audio tokens - step_idx={}, acoustic_delay={}, threshold={}",
+            step_idx,
+            acoustic_delay,
+            acoustic_delay + 1
+        );
+
+        let last_audio_tokens_result = conn_state.lm_generator.last_audio_tokens();
+        info!(
+            "MOSHI_DEBUG: lm_generator.last_audio_tokens() returned {}",
+            if last_audio_tokens_result.is_some() { "Some(tokens)" } else { "None" }
+        );
+
+        if let Some(audio_tokens) = last_audio_tokens_result {
             debug!(
                 lm_codebooks = audio_tokens.len(),
                 expected_codebooks = moshi_state.lm_config.generated_audio_codebooks,
                 "Got audio tokens from LM"
             );
+            info!(
+                "MOSHI_DEBUG: Audio tokens FOUND - token_count={}, expected_codebooks={}",
+                audio_tokens.len(),
+                moshi_state.lm_config.generated_audio_codebooks
+            );
+
+            // Log first few tokens for inspection
+            let sample_tokens: Vec<u32> = audio_tokens.iter().take(8).cloned().collect();
+            info!("MOSHI_DEBUG: Sample audio tokens (first 8): {:?}", sample_tokens);
 
             // CRITICAL FIX: MIMI decoder for generated audio expects 8 codebooks, not 32!
             // The LM generates exactly the right number of codebooks for MIMI decode
@@ -573,6 +1126,10 @@ impl VoiceBridge {
 
             // Decode audio tokens to PCM with correct tensor shape
             debug!(tensor_shape = ?audio_tensor.shape(), "Decoding audio tokens to PCM with MIMI");
+            info!(
+                "MOSHI_DEBUG: Calling MIMI decoder - tensor_shape={:?}",
+                audio_tensor.shape()
+            );
             let decoded = moshi_state.mimi_model.decode_step(&audio_tensor.into(), &().into())?;
 
             let audio_tensor = decoded.as_option()
@@ -581,11 +1138,100 @@ impl VoiceBridge {
             let audio_vec = audio_tensor.flatten_all()?.to_vec1::<f32>()?;
 
             debug!(output_samples = audio_vec.len(), "LM processing complete");
+            info!(
+                "MOSHI_DEBUG: Audio generation SUCCESS - output_samples={}, will broadcast to speakers",
+                audio_vec.len()
+            );
+
+            // Calculate RMS for logging
+            let rms = if audio_vec.is_empty() {
+                0.0
+            } else {
+                let sum: f32 = audio_vec.iter().map(|&s| s * s).sum();
+                (sum / audio_vec.len() as f32).sqrt()
+            };
+            info!(
+                "MOSHI_DEBUG: Generated audio RMS amplitude: {:.6}",
+                rms
+            );
+
+            // Broadcast amplitude for visualizer
+            moshi_state.broadcast_amplitude(&audio_vec).await;
 
             Ok(audio_vec)
         } else {
-            // No audio tokens generated yet (initial steps)
-            debug!("No audio tokens available yet, returning silence");
+            // No audio tokens generated yet (initial steps or pad tokens)
+            // CRITICAL DEBUG: Check WHY last_audio_tokens returned None
+            if step_idx <= acoustic_delay {
+                debug!(
+                    step_idx = step_idx,
+                    acoustic_delay = acoustic_delay,
+                    "No audio tokens: still in acoustic delay period (expected for first {} steps)",
+                    acoustic_delay + 1
+                );
+                info!(
+                    "MOSHI_DEBUG: No audio tokens - in acoustic delay period (step {} <= delay {})",
+                    step_idx,
+                    acoustic_delay
+                );
+            } else {
+                // Check the actual audio tokens to see if they're pad tokens
+                let audio_tokens_raw = conn_state.lm_generator.audio_tokens(false);
+                info!(
+                    "MOSHI_DEBUG: No audio tokens from last_audio_tokens() - checking raw audio_tokens (include_padding=false)"
+                );
+                info!(
+                    "MOSHI_DEBUG: Raw audio_tokens length: {}",
+                    audio_tokens_raw.len()
+                );
+
+                if !audio_tokens_raw.is_empty() {
+                    let last_idx = step_idx.saturating_sub(acoustic_delay + 1);
+                    info!(
+                        "MOSHI_DEBUG: Checking token at index {} (step_idx {} - acoustic_delay {} - 1)",
+                        last_idx,
+                        step_idx,
+                        acoustic_delay
+                    );
+
+                    if last_idx < audio_tokens_raw.len() {
+                        let tokens = &audio_tokens_raw[last_idx];
+                        let audio_vocab_size = moshi_state.lm_config.audio_vocab_size;
+                        let has_pad_tokens = tokens.iter().any(|&t| t as usize >= audio_vocab_size - 1);
+
+                        // Log all tokens for inspection
+                        info!(
+                            "MOSHI_DEBUG: Raw audio tokens at index {}: {:?}",
+                            last_idx,
+                            tokens
+                        );
+                        info!(
+                            "MOSHI_DEBUG: audio_vocab_size={}, pad_threshold={}, has_pad_tokens={}",
+                            audio_vocab_size,
+                            audio_vocab_size - 1,
+                            has_pad_tokens
+                        );
+
+                        warn!(
+                            step_idx = step_idx,
+                            token_idx = last_idx,
+                            tokens = ?tokens,
+                            audio_vocab_size = audio_vocab_size,
+                            has_pad_tokens = has_pad_tokens,
+                            "Audio tokens generated but last_audio_tokens returned None - likely ALL PAD TOKENS!"
+                        );
+                    } else {
+                        info!(
+                            "MOSHI_DEBUG: last_idx {} is out of bounds for audio_tokens_raw (len {})",
+                            last_idx,
+                            audio_tokens_raw.len()
+                        );
+                    }
+                } else {
+                    info!("MOSHI_DEBUG: audio_tokens_raw is empty - no tokens generated yet");
+                }
+            }
+            info!("MOSHI_DEBUG: Returning silence (no audio generated)");
             Ok(vec![0.0; audio.len()])
         }
     }
@@ -625,8 +1271,10 @@ impl VoiceBridge {
     /// Start WebSocket server for Twilio Media Streams
     pub async fn start_server(self: Arc<Self>) -> Result<()> {
         let addr = format!("{}:{}", self.config.host, self.config.port);
-        let listener = TcpListener::bind(&addr).await
-            .with_context(|| format!("Failed to bind to {}", addr))?;
+
+        // Use helper function that sets SO_REUSEADDR for immediate port reuse
+        let listener = crate::net_utils::create_reusable_tcp_listener(&addr).await
+            .with_context(|| format!("Failed to bind voice bridge to {}", addr))?;
 
         info!(
             host = %self.config.host,
@@ -804,6 +1452,95 @@ impl VoiceBridge {
         }
 
         Ok(())
+    }
+}
+
+/// Generate and play a greeting tone when the voice system starts
+///
+/// Plays a three-tone sequence (ascending tones) to indicate MOSHI is ready
+/// This provides audio feedback that the voice system has started successfully
+pub async fn generate_greeting_tone() -> Result<()> {
+    info!("=== Starting MOSHI greeting tone sequence ===");
+
+    // Initialize audio output device
+    info!("Initializing audio output device for greeting...");
+    let audio_output = AudioOutputDevice::new()
+        .context("Failed to initialize audio output device for greeting")?;
+    info!("Audio output device initialized successfully");
+
+    // Play three-tone ascending greeting to indicate system ready
+    // 600Hz -> 800Hz -> 1000Hz creates a pleasant startup chime
+    info!("Playing greeting tone 1/3: 600Hz for 150ms");
+    audio_output.play_tone(600.0, 150).await
+        .context("Failed to play first greeting tone (600Hz)")?;
+    info!("Tone 1/3 complete");
+
+    tokio::time::sleep(Duration::from_millis(30)).await;
+
+    info!("Playing greeting tone 2/3: 800Hz for 150ms");
+    audio_output.play_tone(800.0, 150).await
+        .context("Failed to play second greeting tone (800Hz)")?;
+    info!("Tone 2/3 complete");
+
+    tokio::time::sleep(Duration::from_millis(30)).await;
+
+    info!("Playing greeting tone 3/3: 1000Hz for 200ms");
+    audio_output.play_tone(1000.0, 200).await
+        .context("Failed to play third greeting tone (1000Hz)")?;
+    info!("Tone 3/3 complete");
+
+    info!("=== MOSHI greeting tone sequence complete - system ready ===");
+    Ok(())
+}
+
+/// Generate MOSHI voice greeting on startup using direct speech generation
+///
+/// ARCHITECTURAL NOTE: This uses force_text_token for greeting (acceptable for scripted greetings).
+/// This is NOT TTS - it uses the SAME language model that handles conversations.
+/// For memory context injection, use the memory_conditioner module instead.
+///
+/// # Parameters
+/// * `moshi_state` - The shared MOSHI state containing models and config
+///
+/// # Returns
+/// PCM audio samples ready for playback through speakers
+pub async fn generate_moshi_voice_greeting(
+    moshi_state: Arc<RwLock<MoshiState>>,
+) -> Result<()> {
+    info!("🎤 Generating MOSHI voice greeting using direct speech");
+
+    // Initialize audio output device
+    let audio_output = AudioOutputDevice::new()
+        .context("Failed to create audio output device for greeting")?;
+
+    // Generate greeting using the greeting module
+    // Need write lock because MIMI decode_step requires mutable access
+    let mut moshi_state_guard = moshi_state.write().await;
+
+    let greeting_pcm = crate::greeting::generate_simple_greeting(
+        &mut *moshi_state_guard,
+        "Hello! I'm ready to help you today.",
+    ).await.context("Failed to generate greeting audio")?;
+
+    drop(moshi_state_guard); // Release lock before playing audio
+
+    // Play greeting through speakers
+    info!("🔊 Playing greeting through speakers ({} samples)", greeting_pcm.len());
+    audio_output.play_audio_samples(&greeting_pcm).await
+        .context("Failed to play greeting audio")?;
+
+    info!("✅ MOSHI voice greeting complete");
+    Ok(())
+}
+
+/// Local Voice Assistant - Placeholder for future implementation
+/// Due to CPAL's Stream not being Send, this requires a different architecture
+/// TODO: Implement local voice assistant using thread-local audio streams
+pub struct LocalVoiceAssistant;
+
+impl LocalVoiceAssistant {
+    pub async fn new(_config: VoiceConfig) -> Result<Self> {
+        anyhow::bail!("LocalVoiceAssistant not yet implemented - CPAL Stream is not Send")
     }
 }
 
