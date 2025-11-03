@@ -831,6 +831,11 @@ impl LmModel {
         self.text_emb.embeddings().dtype()
     }
 
+    /// Get reference to text embedding layer for memory conditioning
+    pub fn text_embeddings(&self) -> &MaybeQuantizedEmbedding {
+        &self.text_emb
+    }
+
     pub fn forward(
         &mut self,
         text_ids: Option<Tensor>,
