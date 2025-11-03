@@ -10,9 +10,8 @@
 
 use anyhow::{Context, Result};
 use std::sync::Arc;
-use std::collections::VecDeque;
 use tokio::sync::{RwLock, Mutex};
-use tokio::net::{TcpListener, TcpStream};
+use tokio::net::TcpStream;
 use tokio_tungstenite::{accept_async, tungstenite::Message as WsMessage};
 use futures_util::{StreamExt, SinkExt};
 use tracing::{info, warn, error, debug};
@@ -22,6 +21,7 @@ use chrono::Utc;
 use crate::voice::MoshiState;
 use crate::server_client::{ServerClient, UserIdentity};
 use crate::claude_code::{ClaudeCodeConnector, ClaudeCodeConfig};
+use crate::memory::{MemorySystem, MemoryConfig};
 
 /// Configuration for supervisor WebSocket server
 #[derive(Debug, Clone)]
@@ -280,6 +280,7 @@ pub struct SupervisorServer {
     last_injection_time: Arc<Mutex<std::time::Instant>>,
     server_client: Option<Arc<ServerClient>>,
     claude_code_connector: Option<Arc<ClaudeCodeConnector>>,
+    memory_system: Option<Arc<MemorySystem>>,
 }
 
 impl SupervisorServer {
@@ -291,6 +292,7 @@ impl SupervisorServer {
             last_injection_time: Arc::new(Mutex::new(std::time::Instant::now())),
             server_client: None,
             claude_code_connector: None,
+            memory_system: None,
         }
     }
 
@@ -306,6 +308,7 @@ impl SupervisorServer {
             last_injection_time: Arc::new(Mutex::new(std::time::Instant::now())),
             server_client: Some(server_client),
             claude_code_connector: None,
+            memory_system: None,
         }
     }
 
@@ -313,6 +316,15 @@ impl SupervisorServer {
     pub fn with_claude_code(mut self, claude_code_config: ClaudeCodeConfig) -> Self {
         self.claude_code_connector = Some(Arc::new(ClaudeCodeConnector::new(claude_code_config)));
         self
+    }
+
+    /// Enable semantic memory integration
+    pub async fn with_memory_system(mut self, memory_config: MemoryConfig) -> Result<Self> {
+        let memory_system = MemorySystem::new(memory_config).await
+            .context("Failed to initialize memory system")?;
+        self.memory_system = Some(Arc::new(memory_system));
+        info!("Semantic memory system enabled for supervisor");
+        Ok(self)
     }
 
     /// Get user identity from server (if server client is configured)
@@ -341,7 +353,9 @@ impl SupervisorServer {
     /// Start the WebSocket server
     pub async fn start(self: Arc<Self>) -> Result<()> {
         let addr = format!("{}:{}", self.config.host, self.config.port);
-        let listener = TcpListener::bind(&addr).await
+
+        // Use helper function that sets SO_REUSEADDR for immediate port reuse
+        let listener = crate::net_utils::create_reusable_tcp_listener(&addr).await
             .with_context(|| format!("Failed to bind supervisor server to {}", addr))?;
 
         info!(
@@ -679,6 +693,57 @@ impl SupervisorServer {
         Ok(())
     }
 
+    /// Retrieve relevant memories and inject as context suggestion
+    async fn retrieve_and_inject_memories(
+        &self,
+        user_id: &str,
+        query: &str,
+        memory_system: &Arc<MemorySystem>,
+    ) -> Result<()> {
+        use uuid::Uuid;
+
+        // Parse user_id to UUID
+        let user_uuid = Uuid::parse_str(user_id)
+            .context("Failed to parse user_id as UUID")?;
+
+        // Query memory system for top 3 relevant memories
+        let memories = memory_system.retrieve_context(user_uuid, query, 3).await
+            .context("Failed to retrieve memory context")?;
+
+        if memories.is_empty() {
+            debug!(user_id = %user_id, "No relevant memories found");
+            return Ok(());
+        }
+
+        // Format memories into context string
+        let memory_texts: Vec<String> = memories.iter()
+            .map(|m| format!("[Memory: {}]", m.content))
+            .collect();
+        let context = memory_texts.join(" ");
+
+        info!(
+            user_id = %user_id,
+            memory_count = memories.len(),
+            context_length = context.len(),
+            "Retrieved semantic memories"
+        );
+
+        // Inject memory context into suggestion queue
+        let state = self.moshi_state.read().await;
+        let mut queue = state.suggestion_queue.lock().await;
+
+        // Add memory context as a suggestion (will be processed by memory_conditioner in voice.rs)
+        queue.push_back(context);
+
+        debug!(
+            user_id = %user_id,
+            queue_size = queue.len(),
+            "Memory context injected into suggestion queue"
+        );
+
+        Ok(())
+    }
+
     /// Handle voice transcription and route to Claude Code for Admin users
     pub async fn handle_voice_transcription(&self, user_id: &str, transcription: String) -> Result<Option<String>> {
         info!(
@@ -686,6 +751,35 @@ impl SupervisorServer {
             transcription = %transcription,
             "Processing voice transcription"
         );
+
+        // Query semantic memory for relevant context (if memory system is enabled)
+        if let Some(memory_system) = &self.memory_system {
+            // Retrieve relevant memories and inject as context
+            match self.retrieve_and_inject_memories(user_id, &transcription, memory_system).await {
+                Ok(_) => {
+                    debug!(user_id = %user_id, "Memory context retrieved and injected");
+                }
+                Err(e) => {
+                    warn!(error = ?e, user_id = %user_id, "Failed to retrieve memory context");
+                }
+            }
+
+            // Store this conversation in memory for future recall
+            if let Ok(user_uuid) = uuid::Uuid::parse_str(user_id) {
+                match memory_system.store_conversation(user_uuid, &transcription).await {
+                    Ok(session_id) => {
+                        debug!(
+                            user_id = %user_id,
+                            session_id = %session_id,
+                            "Stored voice transcription in memory"
+                        );
+                    }
+                    Err(e) => {
+                        warn!(error = ?e, user_id = %user_id, "Failed to store conversation in memory");
+                    }
+                }
+            }
+        }
 
         // Check if this is an Admin user (via server client if available)
         let is_admin = if let Some(client) = &self.server_client {
