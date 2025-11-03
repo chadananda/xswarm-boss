@@ -999,32 +999,45 @@ impl VoiceBridge {
         let sample_codes: Vec<u32> = codes.iter().take(8).cloned().collect();
         info!("MOSHI_DEBUG: Sample MIMI codes (first 8): {:?}", sample_codes);
 
-        // Step 2: Check for supervisor suggestions (force text token)
-        let force_text_token = {
+        // Step 2: Check for supervisor suggestions (use Condition::AddToInput for natural incorporation)
+        let suggestion_condition = {
             let mut queue = moshi_state.suggestion_queue.lock().await;
-            if let Some(_suggestion) = queue.pop_front() {
-                // TODO: Encode suggestion text to tokens
-                // For now, we just continue with generated text
-                info!("Supervisor suggestion received but text encoding not yet implemented");
-                None
+            if let Some(suggestion) = queue.pop_front() {
+                info!(suggestion = %suggestion, "Encoding supervisor suggestion with memory_conditioner");
+
+                // Use memory_conditioner to encode suggestion text into condition
+                // This provides natural incorporation rather than verbatim playback
+                match moshi_state.memory_conditioner.encode_memory(&suggestion, &moshi_state) {
+                    Ok(condition) => {
+                        info!("Suggestion condition created successfully");
+                        Some(condition)
+                    }
+                    Err(e) => {
+                        error!(error = %e, "Failed to encode suggestion");
+                        None
+                    }
+                }
             } else {
                 None
             }
         };
 
-        // Step 3: Run LM inference step
-        debug!(prev_text_token = conn_state.prev_text_token, "Running LM step");
+        // Step 3: Run LM inference step with suggestion condition
+        debug!(prev_text_token = conn_state.prev_text_token, has_suggestion = suggestion_condition.is_some(), "Running LM step");
         info!(
-            "MOSHI_DEBUG: Calling lm_generator.step() - prev_text_token={}, codes_len={}, force_text_token={:?}",
+            "MOSHI_DEBUG: Calling lm_generator.step_() - prev_text_token={}, codes_len={}, has_condition={}",
             conn_state.prev_text_token,
             codes.len(),
-            force_text_token
+            suggestion_condition.is_some()
         );
-        let text_token = conn_state.lm_generator.step(
-            conn_state.prev_text_token,
+
+        // Use step_() to pass condition for supervisor suggestions
+        let text_token = conn_state.lm_generator.step_(
+            Some(conn_state.prev_text_token),
             &codes,
-            force_text_token,
+            None, // No force_text_token (we use condition instead)
             None, // No cross-attention source
+            suggestion_condition.as_ref(), // Pass suggestion condition
         )?;
 
         debug!(text_token = text_token, "Generated text token");
