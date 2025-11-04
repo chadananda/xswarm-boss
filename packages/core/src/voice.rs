@@ -606,101 +606,24 @@ impl VoiceBridge {
             while let Some(audio_frame) = audio_rx.recv().await {
                 frame_count += 1;
 
-                // CRITICAL: Log EVERY received frame to verify microphone connection
-                info!(
-                    "AUDIO_PIPELINE: [Frame #{}] Received from microphone - samples={}",
-                    frame_count,
-                    audio_frame.samples.len()
-                );
-
-                // Verify audio data is valid (non-zero)
-                let non_zero_count = audio_frame.samples.iter().filter(|&&s| s.abs() > 0.001).count();
-                let rms = if audio_frame.samples.is_empty() {
-                    0.0
-                } else {
-                    let sum: f32 = audio_frame.samples.iter().map(|&s| s * s).sum();
-                    (sum / audio_frame.samples.len() as f32).sqrt()
-                };
-
-                info!(
-                    "AUDIO_PIPELINE: [Frame #{}] Audio data - non_zero_samples={}/{}, rms={:.6}",
-                    frame_count,
-                    non_zero_count,
-                    audio_frame.samples.len(),
-                    rms
-                );
-
-                // Add microphone samples to buffer
+                // Add microphone samples to buffer (no per-frame logging - floods TUI)
                 audio_buffer.extend_from_slice(&audio_frame.samples);
-
-                info!(
-                    "AUDIO_PIPELINE: [Frame #{}] Added to buffer - buffer_size={}, MOSHI_FRAME_SIZE={}, ready={}",
-                    frame_count,
-                    audio_buffer.len(),
-                    MOSHI_FRAME_SIZE,
-                    audio_buffer.len() >= MOSHI_FRAME_SIZE
-                );
 
                 // Process when we have a full MOSHI frame (1920 samples = 80ms at 24kHz)
                 while audio_buffer.len() >= MOSHI_FRAME_SIZE {
                     // Extract exactly one frame
                     let frame: Vec<f32> = audio_buffer.drain(..MOSHI_FRAME_SIZE).collect();
 
-                    info!(
-                        "AUDIO_PIPELINE: [Frame #{}] MOSHI frame ready - extracted {} samples, {} remaining in buffer",
-                        frame_count,
-                        frame.len(),
-                        audio_buffer.len()
-                    );
-
-                    debug!(
-                        frame_size = frame.len(),
-                        remaining = audio_buffer.len(),
-                        "Processing MOSHI frame from microphone"
-                    );
-
-                    // Calculate frame RMS before processing
-                    let frame_rms = if frame.is_empty() {
-                        0.0
-                    } else {
-                        let sum: f32 = frame.iter().map(|&s| s * s).sum();
-                        (sum / frame.len() as f32).sqrt()
-                    };
-
-                    info!(
-                        "AUDIO_PIPELINE: [Frame #{}] CALLING process_with_lm() - frame_size={}, frame_rms={:.6}",
-                        frame_count,
-                        frame.len(),
-                        frame_rms
-                    );
-
-                    // Process through MOSHI with LM
+                    // Process through MOSHI with LM (no per-frame logging)
                     match self.process_with_lm(&mut conn_state, frame).await {
                         Ok(response_pcm) => {
-                            info!(
-                                "AUDIO_PIPELINE: [Frame #{}] process_with_lm() SUCCESS - response_samples={}",
-                                frame_count,
-                                response_pcm.len()
-                            );
-
                             // Send MOSHI's voice response to speakers
-                            if let Err(e) = playback_tx.send(response_pcm.clone()) {
-                                error!("AUDIO_PIPELINE: [Frame #{}] Failed to send audio to speakers: {}", frame_count, e);
+                            if let Err(_e) = playback_tx.send(response_pcm.clone()) {
                                 // Channel closed - conversation ended
                                 break;
                             }
-                            info!(
-                                "AUDIO_PIPELINE: [Frame #{}] Response sent to speakers - samples={}",
-                                frame_count,
-                                response_pcm.len()
-                            );
-                            debug!(
-                                response_samples = response_pcm.len(),
-                                "MOSHI response sent to speakers"
-                            );
                         }
                         Err(e) => {
-                            error!("AUDIO_PIPELINE: [Frame #{}] process_with_lm() FAILED: {}", frame_count, e);
                             error!("MOSHI processing failed: {}", e);
                             // Continue processing even if one frame fails
                         }
