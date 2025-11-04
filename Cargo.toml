@@ -47,9 +47,10 @@ git2 = "0.19"
 # ML/AI dependencies (for MOSHI)
 candle = { version = "0.9.1", package = "candle-core" }
 candle-nn = "0.9.1"
-candle-transformers = "0.9.1"
+candle-transformers = "0.9.1"  # Whisper support built-in, no feature flag needed
 candle-flash-attn = "0.9.1"
 rayon = "1.8.1"
+once_cell = "1.21"
 
 # MOSHI-specific dependencies
 sentencepiece = "0.11.2"
@@ -101,8 +102,9 @@ tracing-appender = "0.2.3"
 tracing-chrome = "0.7.2"
 tui-logger = "0.11.2"
 vergen = { version = "8.3.1", features = ["build", "cargo", "git", "gitcl", "rustc", "si"] }
+socket2 = "0.5.5"
 
 [profile.release]
 lto = true
 codegen-units = 1
-strip = true
+strip = false
