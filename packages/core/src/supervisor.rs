@@ -340,6 +340,81 @@ impl SupervisorServer {
         Ok(self)
     }
 
+    /// Start background task to poll STT transcriptions and store in memory
+    ///
+    /// This task continuously checks for completed transcriptions from the STT engine
+    /// and stores them in the semantic memory system (if enabled).
+    pub fn start_stt_transcription_poller(self: &Arc<Self>) {
+        let stt_engine = match &self.stt_engine {
+            Some(engine) => engine.clone(),
+            None => {
+                debug!("STT engine not enabled, skipping transcription poller");
+                return;
+            }
+        };
+
+        let memory_system = self.memory_system.clone();
+        let server_client = self.server_client.clone();
+
+        tokio::spawn(async move {
+            info!("STT transcription poller started");
+
+            loop {
+                // Poll for transcription results
+                match stt_engine.get_transcription().await {
+                    Ok(Some(result)) => {
+                        info!(
+                            text_len = result.text.len(),
+                            user_id = %result.user_id,
+                            session_id = %result.session_id,
+                            confidence = result.confidence,
+                            processing_time_ms = result.processing_time_ms,
+                            "Transcription received from STT engine"
+                        );
+
+                        // Store in memory system if enabled
+                        if let Some(memory) = &memory_system {
+                            // Parse user_id as UUID (or generate a new one for voice sessions)
+                            let user_uuid = uuid::Uuid::parse_str(&result.user_id)
+                                .unwrap_or_else(|_| {
+                                    // If user_id isn't a UUID, generate a random one
+                                    // TODO: Consider using a consistent UUID per session_id
+                                    uuid::Uuid::new_v4()
+                                });
+
+                            match memory.store_conversation(user_uuid, &result.text).await {
+                                Ok(session_id) => {
+                                    info!(
+                                        session_id = %session_id,
+                                        user_id = %result.user_id,
+                                        "Stored transcription in semantic memory"
+                                    );
+                                }
+                                Err(e) => {
+                                    error!(
+                                        error = ?e,
+                                        user_id = %result.user_id,
+                                        "Failed to store transcription in memory"
+                                    );
+                                }
+                            }
+                        } else {
+                            debug!("Memory system not enabled, skipping transcription storage");
+                        }
+                    }
+                    Ok(None) => {
+                        // No transcription ready yet, sleep briefly
+                        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+                    }
+                    Err(e) => {
+                        error!(error = ?e, "Error polling STT transcriptions");
+                        tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+                    }
+                }
+            }
+        });
+    }
+
     /// Get user identity from server (if server client is configured)
     pub async fn get_user_identity(&self) -> Option<UserIdentity> {
         if let Some(client) = &self.server_client {
@@ -376,6 +451,9 @@ impl SupervisorServer {
             port = self.config.port,
             "Supervisor WebSocket server listening"
         );
+
+        // Start background task to poll STT transcriptions and store in memory
+        self.start_stt_transcription_poller();
 
         loop {
             match listener.accept().await {
