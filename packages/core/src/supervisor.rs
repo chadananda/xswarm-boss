@@ -22,6 +22,7 @@ use crate::voice::MoshiState;
 use crate::server_client::{ServerClient, UserIdentity};
 use crate::claude_code::{ClaudeCodeConnector, ClaudeCodeConfig};
 use crate::memory::{MemorySystem, MemoryConfig};
+use crate::stt::{SttEngine, SttConfig};
 
 /// Configuration for supervisor WebSocket server
 #[derive(Debug, Clone)]
@@ -281,6 +282,7 @@ pub struct SupervisorServer {
     server_client: Option<Arc<ServerClient>>,
     claude_code_connector: Option<Arc<ClaudeCodeConnector>>,
     memory_system: Option<Arc<MemorySystem>>,
+    stt_engine: Option<Arc<SttEngine>>,
 }
 
 impl SupervisorServer {
@@ -293,6 +295,7 @@ impl SupervisorServer {
             server_client: None,
             claude_code_connector: None,
             memory_system: None,
+            stt_engine: None,
         }
     }
 
@@ -309,6 +312,7 @@ impl SupervisorServer {
             server_client: Some(server_client),
             claude_code_connector: None,
             memory_system: None,
+            stt_engine: None,
         }
     }
 
@@ -324,6 +328,15 @@ impl SupervisorServer {
             .context("Failed to initialize memory system")?;
         self.memory_system = Some(Arc::new(memory_system));
         info!("Semantic memory system enabled for supervisor");
+        Ok(self)
+    }
+
+    /// Enable speech-to-text transcription
+    pub fn with_stt(mut self, stt_config: SttConfig) -> Result<Self> {
+        let stt_engine = SttEngine::with_config(stt_config)
+            .context("Failed to initialize STT engine")?;
+        self.stt_engine = Some(Arc::new(stt_engine));
+        info!("Speech-to-text (STT) engine enabled for supervisor");
         Ok(self)
     }
 
