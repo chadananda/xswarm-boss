@@ -82,7 +82,7 @@ use wake_word::{WakeWordSystem, WakeWordConfig};
 // Audio format constants
 const TWILIO_SAMPLE_RATE: u32 = 8000;  // Twilio Media Streams (μ-law)
 const MOSHI_SAMPLE_RATE: u32 = 24000;  // MOSHI native sample rate
-const MIMI_NUM_CODEBOOKS: usize = 32;   // MOSHI codec configuration (32 = full quality 4.4kbps, 8 = low quality 1.1kbps)
+const MIMI_NUM_CODEBOOKS: usize = 8;    // MOSHI codec configuration (must match LM generated_audio_codebooks)
 
 /// Twilio Media Stream protocol message types
 #[derive(Debug, serde::Deserialize)]
