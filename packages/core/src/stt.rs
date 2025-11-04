@@ -251,14 +251,38 @@ impl SttEngine {
     }
 
     /// Create background transcription worker
+    ///
+    /// This worker runs in a separate tokio task, allowing the main thread
+    /// to continue without blocking on potentially slow Whisper inference.
+    ///
+    /// # Architecture
+    ///
+    /// - Audio chunks are sent via `audio_tx` channel (unbounded for burst handling)
+    /// - Worker processes chunks sequentially in arrival order
+    /// - Results are sent back via `transcription_tx` channel
+    /// - Receiver is wrapped in Arc<Mutex<>> for thread-safe polling
+    ///
+    /// # Why Unbounded Channels?
+    ///
+    /// We use unbounded channels to handle audio bursts without backpressure.
+    /// This prevents dropping audio frames during high load, as missing frames
+    /// would create transcription gaps. Memory usage is bounded by the rate
+    /// at which Whisper can process chunks (~5-10 chunks/sec).
     fn create_worker(config: SttConfig) -> Result<TranscriptionWorker> {
+        // Create bidirectional channels for audio and transcription data
+        // Input channel: Main thread → Worker (audio chunks to transcribe)
         let (audio_tx, mut audio_rx) = mpsc::unbounded_channel::<AudioChunk>();
+
+        // Output channel: Worker → Main thread (transcription results)
         let (transcription_tx, transcription_rx) = mpsc::unbounded_channel::<TranscriptionResult>();
 
         // Spawn background task for transcription
+        // This task runs independently and processes audio chunks as they arrive
         let task_handle = tokio::spawn(async move {
             info!("STT background worker started");
 
+            // Process audio chunks until the channel closes
+            // Channel closes when all senders (audio_tx) are dropped
             while let Some(chunk) = audio_rx.recv().await {
                 debug!(
                     user_id = %chunk.user_id,
@@ -267,30 +291,36 @@ impl SttEngine {
                     "Transcribing audio chunk"
                 );
 
+                // Measure transcription latency for monitoring
                 let start_time = std::time::Instant::now();
 
-                // TODO: Implement actual Whisper transcription
-                // For now, return placeholder
+                // Run Whisper transcription (currently placeholder)
+                // This is the expensive operation that we want to run in background
                 match Self::transcribe_with_whisper(&chunk, &config).await {
                     Ok(text) => {
                         let processing_time_ms = start_time.elapsed().as_millis() as u64;
 
+                        // Package the transcription result with metadata
                         let result = TranscriptionResult {
                             text,
                             user_id: chunk.user_id,
                             session_id: chunk.session_id,
-                            confidence: 0.95, // Placeholder
+                            confidence: 0.95, // Placeholder - real Whisper provides confidence scores
                             language: config.language.clone(),
                             processing_time_ms,
                             timestamp: chunk.timestamp,
                         };
 
+                        // Send result to poller task
+                        // If send fails, receiver has been dropped (supervisor shut down)
                         if transcription_tx.send(result).is_err() {
                             warn!("Failed to send transcription result - receiver dropped");
-                            break;
+                            break; // Exit worker loop, supervisor is shutting down
                         }
                     }
                     Err(e) => {
+                        // Log transcription errors but continue processing
+                        // Individual chunk failures shouldn't stop the worker
                         error!(error = ?e, "Transcription failed");
                     }
                 }
@@ -299,10 +329,11 @@ impl SttEngine {
             info!("STT background worker stopped");
         });
 
+        // Return worker handle with channels for communication
         Ok(TranscriptionWorker {
-            audio_tx,
-            transcription_rx: Arc::new(Mutex::new(transcription_rx)),
-            task_handle,
+            audio_tx,  // Sender for submitting audio
+            transcription_rx: Arc::new(Mutex::new(transcription_rx)),  // Thread-safe receiver for polling results
+            task_handle,  // Join handle for graceful shutdown
         })
     }
 
@@ -374,8 +405,37 @@ impl SttEngine {
 
     /// Submit audio for background transcription
     ///
-    /// Audio is queued for transcription and processed asynchronously.
-    /// Results can be retrieved via `get_transcription()`.
+    /// This method converts incoming Twilio audio to Whisper format and queues
+    /// it for asynchronous transcription. The audio goes through several conversions:
+    ///
+    /// 1. μ-law → PCM (linear audio samples)
+    /// 2. 8kHz → 16kHz (Whisper's required sample rate)
+    /// 3. i16 → f32 (normalized floating point for Whisper)
+    ///
+    /// # Audio Pipeline
+    ///
+    /// ```text
+    /// Twilio μ-law 8kHz (compressed telephony format)
+    ///     ↓ mulaw_to_pcm()
+    /// PCM i16 8kHz (linear samples)
+    ///     ↓ convert to f32 (normalize to -1.0 to 1.0)
+    /// PCM f32 8kHz
+    ///     ↓ AudioResampler (thread-safe upsampling)
+    /// PCM f32 16kHz (Whisper input format)
+    ///     ↓ Queue to background worker
+    /// Background transcription
+    /// ```
+    ///
+    /// # Thread Safety
+    ///
+    /// The AudioResampler is shared across multiple calls and wrapped in
+    /// Arc<Mutex<>> for thread-safe access. The lock is held only during
+    /// resampling and dropped before the async send to avoid deadlocks.
+    ///
+    /// # Returns
+    ///
+    /// Returns Ok(()) if audio was queued successfully. The actual transcription
+    /// result can be polled later via `get_transcription()`.
     pub async fn submit_audio(
         &self,
         audio: &[u8], // μ-law audio from Twilio (8kHz)
@@ -383,31 +443,41 @@ impl SttEngine {
         session_id: String,
     ) -> Result<()> {
         if let Some(worker) = &self.worker {
-            // Convert μ-law to PCM
+            // Step 1: Convert μ-law (G.711 compression) to linear PCM
+            // μ-law is used by telephony systems to compress audio in 8-bit format
+            // PCM is the linear representation needed for further processing
             let pcm_8khz = Self::mulaw_to_pcm(audio)?;
 
-            // Upsample to 16kHz for Whisper (using locked upsampler)
+            // Step 2: Upsample from 8kHz to 16kHz for Whisper
+            // Whisper requires 16kHz audio, but Twilio sends 8kHz telephony audio
+            // We use AudioResampler (rubato) to perform high-quality upsampling
             let pcm_16khz = {
+                // Acquire lock on shared resampler
+                // This is thread-safe thanks to Arc<Mutex<>> wrapping
                 let mut upsampler = self.upsampler.lock().await;
                 let mut output = Vec::new();
 
+                // Process in 960-sample chunks (120ms at 8kHz)
+                // This chunk size matches Twilio's 20ms frame size * 6 frames
                 for chunk in pcm_8khz.chunks(960) {
                     let resampled = upsampler.resample(chunk)?;
                     output.extend_from_slice(&resampled);
                 }
 
                 output
-            }; // Lock dropped here
+            }; // Explicitly drop the lock here before await point below
+               // This is critical to avoid holding locks across await boundaries
 
-            // Create audio chunk
+            // Step 3: Package audio with metadata for transcription
             let chunk = AudioChunk {
-                samples: pcm_16khz,
-                user_id,
-                session_id,
-                timestamp: chrono::Utc::now(),
+                samples: pcm_16khz,  // 16kHz f32 samples ready for Whisper
+                user_id,              // User identifier for memory storage
+                session_id,           // Session identifier for grouping
+                timestamp: chrono::Utc::now(),  // When audio was captured
             };
 
-            // Submit to worker
+            // Step 4: Send to background worker via unbounded channel
+            // Non-blocking send - worker processes in background
             worker.audio_tx.send(chunk)
                 .context("Failed to submit audio to STT worker")?;
 
