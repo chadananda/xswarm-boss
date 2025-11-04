@@ -1,6 +1,6 @@
 [package]
 name = "xswarm"
-version = "0.1.0"
+version = "0.1.0-2025.11.2.2"
 edition = "2021"
 authors = ["xSwarm Contributors"]
 description = "AI Orchestration Layer for Multi-Project Development"
@@ -25,6 +25,7 @@ tracing-subscriber = { workspace = true }
 chrono-english = { workspace = true }
 chrono-tz = { workspace = true }
 dateparser = { workspace = true }
+once_cell = { workspace = true }
 
 # CLI
 clap = { workspace = true }
@@ -36,11 +37,14 @@ crossterm = { workspace = true }
 # Configuration
 toml = { workspace = true }
 dirs = "5.0"
+dotenv = "0.15"
+rpassword = "7.3"
 
 # Networking
 tokio-tungstenite = { workspace = true }
 futures-util = { workspace = true }
 url = "2.5"
+socket2 = { workspace = true }
 
 # Voice/Audio dependencies
 moshi = { workspace = true }
@@ -62,10 +66,26 @@ scraper = "0.18"
 # HTTP client for AI APIs
 reqwest = { version = "0.11", features = ["json"] }
 
+# Local database for semantic memory
+libsql = { version = "0.6", features = ["core", "replication"] }
+
+# Wake word detection
+oww-rs = "0.2.0"
+ort = "2.0.0-rc.10"  # ONNX Runtime
+shellexpand = "3.1"
+rand = { workspace = true }
+cpal = { workspace = true }
+
+# Clipboard support for dashboard
+arboard = "3.6"
+
+# Signal handling for proper terminal cleanup
+ctrlc = "3.4"
+
 [[example]]
 name = "test_projects"
-path = "../../examples/test_projects.rs"
+path = "../../docs/examples/test_projects.rs"
 
 [[example]]
 name = "test_project_manager"
-path = "../../examples/test_project_manager.rs"
+path = "../../docs/examples/test_project_manager.rs"
