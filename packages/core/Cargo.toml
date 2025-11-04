@@ -1,6 +1,6 @@
 [package]
 name = "xswarm"
-version = "0.1.0-2025.11.3.0"
+version = "0.1.0-2025.11.3.2"
 edition = "2021"
 authors = ["xSwarm Contributors"]
 description = "AI Orchestration Layer for Multi-Project Development"
