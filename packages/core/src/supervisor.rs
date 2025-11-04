@@ -344,7 +344,25 @@ impl SupervisorServer {
     ///
     /// This task continuously checks for completed transcriptions from the STT engine
     /// and stores them in the semantic memory system (if enabled).
+    ///
+    /// # Architecture
+    ///
+    /// - Runs in separate tokio task, independent of main supervisor loop
+    /// - Polls `stt_engine.get_transcription()` every 100ms
+    /// - Converts user_id to UUID (parses or generates new)
+    /// - Stores transcriptions via `memory.store_conversation()`
+    /// - Generates embeddings automatically for semantic search
+    ///
+    /// # Why Polling?
+    ///
+    /// We use polling instead of push notifications because:
+    /// 1. Simpler architecture - no callback complexity
+    /// 2. Controllable rate - prevents memory storage overload
+    /// 3. Easier error handling - isolated failures don't crash worker
+    /// 4. 100ms latency is acceptable for voice transcriptions
     pub fn start_stt_transcription_poller(self: &Arc<Self>) {
+        // Check if STT is enabled - if not, exit early
+        // This allows supervisor to run without STT for non-voice sessions
         let stt_engine = match &self.stt_engine {
             Some(engine) => engine.clone(),
             None => {
@@ -353,14 +371,19 @@ impl SupervisorServer {
             }
         };
 
+        // Clone Arc references for move into async task
+        // These are cheap clones (just incrementing reference counts)
         let memory_system = self.memory_system.clone();
         let server_client = self.server_client.clone();
 
+        // Spawn independent background task for polling transcriptions
+        // This task runs until the supervisor shuts down
         tokio::spawn(async move {
             info!("STT transcription poller started");
 
             loop {
-                // Poll for transcription results
+                // Non-blocking poll for completed transcriptions
+                // get_transcription() returns None if no transcription is ready
                 match stt_engine.get_transcription().await {
                     Ok(Some(result)) => {
                         info!(
@@ -372,16 +395,22 @@ impl SupervisorServer {
                             "Transcription received from STT engine"
                         );
 
-                        // Store in memory system if enabled
+                        // Store transcription in semantic memory if enabled
+                        // This creates embeddings and enables semantic search over conversations
                         if let Some(memory) = &memory_system {
-                            // Parse user_id as UUID (or generate a new one for voice sessions)
+                            // Parse user_id as UUID for memory system compatibility
+                            // Memory system requires UUID for user identity
+                            // If parsing fails (e.g., user_id is phone number), generate new UUID
                             let user_uuid = uuid::Uuid::parse_str(&result.user_id)
                                 .unwrap_or_else(|_| {
-                                    // If user_id isn't a UUID, generate a random one
-                                    // TODO: Consider using a consistent UUID per session_id
+                                    // Fallback: generate random UUID for this transcription
+                                    // TODO: Use deterministic UUID based on session_id
+                                    // This would maintain user identity across a voice session
                                     uuid::Uuid::new_v4()
                                 });
 
+                            // Store in memory with automatic embedding generation
+                            // This enables "what did the user say about X?" queries later
                             match memory.store_conversation(user_uuid, &result.text).await {
                                 Ok(session_id) => {
                                     info!(
