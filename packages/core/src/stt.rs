@@ -309,28 +309,67 @@ impl SttEngine {
     /// Transcribe audio chunk using Whisper (async)
     ///
     /// This is called from the background worker task.
+    ///
+    /// TODO: This is a placeholder implementation. The actual Whisper inference
+    /// needs to be implemented once the candle-transformers 0.9.1 API is researched.
     async fn transcribe_with_whisper(
         chunk: &AudioChunk,
         config: &SttConfig,
     ) -> Result<String> {
-        // TODO: Implement actual Whisper transcription
-        // This will use candle + Whisper model
-        //
-        // Steps:
-        // 1. Load Whisper model (cache it)
-        // 2. Prepare audio tensor (16kHz, mono, f32)
-        // 3. Run Whisper inference
-        // 4. Decode output tokens to text
-        // 5. Return transcribed text
-
         info!(
             model = %config.model_size,
             samples = chunk.samples.len(),
-            "Whisper transcription placeholder"
+            user_id = %chunk.user_id,
+            session_id = %chunk.session_id,
+            "Starting Whisper transcription"
         );
 
-        // Placeholder - will be implemented in Phase 3.2
-        anyhow::bail!("Whisper transcription not yet implemented - will be added in Phase 3.2")
+        // 1. Load Whisper model (with caching)
+        let _model = load_whisper_model(&config.model_size).await?;
+
+        info!(
+            model = %config.model_size,
+            "Whisper model loaded successfully"
+        );
+
+        // TODO: Implement actual Whisper inference once API is researched
+        // Steps needed:
+        // 2. Prepare audio tensor from chunk.samples (16kHz, mono, f32)
+        //    - Convert Vec<f32> to candle Tensor
+        //    - Normalize audio if needed
+        //    - Pad or chunk to Whisper's expected length (30s = 480,000 samples @ 16kHz)
+        //
+        // 3. Convert audio to mel spectrogram
+        //    - Use Whisper's mel filter bank
+        //    - Apply FFT and mel filtering
+        //
+        // 4. Run Whisper encoder
+        //    - Pass mel spectrogram through encoder
+        //    - Get encoder output features
+        //
+        // 5. Run Whisper decoder
+        //    - Initialize decoder with language token
+        //    - Decode tokens autoregressively
+        //    - Apply beam search or greedy decoding
+        //
+        // 6. Convert tokens to text
+        //    - Use Whisper's tokenizer to decode token IDs
+        //    - Return transcribed text
+
+        // Placeholder transcription for testing
+        let placeholder_text = format!(
+            "[PLACEHOLDER TRANSCRIPTION - {} samples from user {} in session {}]",
+            chunk.samples.len(),
+            chunk.user_id,
+            chunk.session_id
+        );
+
+        info!(
+            text_len = placeholder_text.len(),
+            "Whisper transcription complete (placeholder)"
+        );
+
+        Ok(placeholder_text)
     }
 
     /// Submit audio for background transcription
