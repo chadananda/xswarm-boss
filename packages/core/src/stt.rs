@@ -535,7 +535,9 @@ impl SttEngine {
     }
 
     /// Convert μ-law audio to PCM f32
-    fn mulaw_to_pcm(mulaw: &[u8]) -> Result<Vec<f32>> {
+    ///
+    /// Exposed for testing μ-law conversion independently
+    pub fn mulaw_to_pcm(mulaw: &[u8]) -> Result<Vec<f32>> {
         // Use audio module's mulaw_to_pcm which returns Vec<i16>
         let pcm_i16 = crate::audio::mulaw_to_pcm(mulaw);
 

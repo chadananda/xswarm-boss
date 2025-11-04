@@ -192,7 +192,7 @@ mod tests {
         let engine = EmbeddingEngine {
             model: "text-embedding-ada-002".to_string(),
             api_key: None,
-            cache: std::cell::RefCell::new(EmbeddingCache::new(100)),
+            cache: std::sync::RwLock::new(EmbeddingCache::new(100)),
         };
         assert_eq!(engine.embedding_dimension(), 1536);
     }
