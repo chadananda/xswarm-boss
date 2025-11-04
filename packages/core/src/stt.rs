@@ -19,8 +19,16 @@ use anyhow::{Context, Result};
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 use tracing::{info, debug, warn, error};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use once_cell::sync::Lazy;
 
 use crate::audio::AudioResampler;
+
+// Whisper model imports (TODO: will be used when implementing actual Whisper API)
+// use candle::Device;
+// use candle_nn;
+// use candle_transformers::models::whisper::{self as m, audio, Config};
 
 /// STT engine configuration
 #[derive(Debug, Clone)]
@@ -115,6 +123,95 @@ pub struct TranscriptionResult {
 
     /// Timestamp of original audio
     pub timestamp: chrono::DateTime<chrono::Utc>,
+}
+
+// TODO: Whisper model cache structure - needs candle-transformers 0.9.1 API research
+// The exact Model type and loading API differs from documentation.
+// This is a placeholder structure that compiles.
+type WhisperModelPlaceholder = String;
+
+static WHISPER_MODELS: Lazy<std::sync::RwLock<HashMap<String, Arc<WhisperModelPlaceholder>>>> =
+    Lazy::new(|| std::sync::RwLock::new(HashMap::new()));
+
+/// Load Whisper model from cache or download if needed
+///
+/// TODO: This is a placeholder implementation. The actual candle-transformers 0.9.1
+/// Whisper API needs to be researched. The Model type and loading functions differ
+/// from the original implementation plan.
+async fn load_whisper_model(model_size: &str) -> Result<Arc<WhisperModelPlaceholder>> {
+    // 1. Check cache first
+    {
+        let cache = WHISPER_MODELS.read().unwrap();
+        if let Some(model) = cache.get(model_size) {
+            info!(model_size, "Whisper model loaded from cache");
+            return Ok(model.clone());
+        }
+    }
+
+    info!(model_size, "Loading Whisper model (not in cache)...");
+
+    // 2. Download model files from HuggingFace if needed
+    let _model_dir = download_whisper_model(model_size).await?;
+
+    // TODO: Implement actual model loading once candle-transformers Whisper API is researched
+    // Steps needed:
+    // 1. Load Config from config.json
+    // 2. Load model weights using correct VarBuilder API
+    // 3. Create Whisper model instance
+    // 4. Return and cache the model
+
+    let placeholder_model = Arc::new(format!("whisper-{}", model_size));
+
+    info!(model_size, "Whisper model placeholder created (needs real implementation)");
+
+    // 5. Cache the placeholder model
+    {
+        let mut cache = WHISPER_MODELS.write().unwrap();
+        cache.insert(model_size.to_string(), placeholder_model.clone());
+    }
+
+    Ok(placeholder_model)
+}
+
+/// Download Whisper model from HuggingFace Hub
+async fn download_whisper_model(model_size: &str) -> Result<PathBuf> {
+    info!(model_size, "Downloading Whisper model from HuggingFace...");
+
+    // Use tokio::task::spawn_blocking since hf_hub API is sync
+    let model_size_str = model_size.to_string();
+
+    let model_dir = tokio::task::spawn_blocking(move || -> Result<PathBuf> {
+        use hf_hub::api::sync::Api;
+
+        let api = Api::new()?;
+        let repo = api.model(format!("openai/whisper-{}", model_size_str));
+
+        // Download required model files
+        let config_path = repo.get("config.json")?;
+        let weights_path = repo.get("model.safetensors")?;
+
+        // Get the directory containing the model files
+        let model_dir = config_path.parent()
+            .context("Failed to get model directory")?
+            .to_path_buf();
+
+        info!(
+            model_size = %model_size_str,
+            ?model_dir,
+            "Whisper model downloaded from HuggingFace"
+        );
+
+        // Verify both files exist
+        if !weights_path.exists() {
+            anyhow::bail!("Model weights not found after download");
+        }
+
+        Ok(model_dir)
+    })
+    .await
+    .context("Model download task failed")??;
+
+    Ok(model_dir)
 }
 
 impl SttEngine {
