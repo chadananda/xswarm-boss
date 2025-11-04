@@ -57,8 +57,8 @@ impl Default for SttConfig {
 pub struct SttEngine {
     config: SttConfig,
 
-    /// Audio resampler for 8kHz → 16kHz conversion
-    upsampler: AudioResampler,
+    /// Audio resampler for 8kHz → 16kHz conversion (thread-safe)
+    upsampler: Arc<Mutex<AudioResampler>>,
 
     /// Background transcription worker (if enabled)
     worker: Option<TranscriptionWorker>,
@@ -135,6 +135,9 @@ impl SttEngine {
         // Create upsampler for converting Twilio 8kHz to Whisper 16kHz
         let upsampler = AudioResampler::new(8000, 16000, 960) // 960 samples = 120ms at 8kHz
             .context("Failed to create STT upsampler")?;
+
+        // Wrap in Arc<Mutex<>> for thread-safe sharing
+        let upsampler = Arc::new(Mutex::new(upsampler));
 
         // Create background worker if enabled
         let worker = if config.background_transcription {
@@ -237,7 +240,7 @@ impl SttEngine {
     ///
     /// Audio is queued for transcription and processed asynchronously.
     /// Results can be retrieved via `get_transcription()`.
-    pub fn submit_audio(
+    pub async fn submit_audio(
         &self,
         audio: &[u8], // μ-law audio from Twilio (8kHz)
         user_id: String,
@@ -247,26 +250,32 @@ impl SttEngine {
             // Convert μ-law to PCM
             let pcm_8khz = Self::mulaw_to_pcm(audio)?;
 
-            // Upsample to 16kHz for Whisper
-            // Note: This requires a mutable reference to upsampler
-            // We'll need to refactor this to use internal mutability
-            // For now, return error
-            // TODO: Fix upsampler ownership (use Arc<Mutex<AudioResampler>>)
-            anyhow::bail!("Audio resampling requires mutable access - will be fixed in Phase 3.2");
+            // Upsample to 16kHz for Whisper (using locked upsampler)
+            let pcm_16khz = {
+                let mut upsampler = self.upsampler.lock().await;
+                let mut output = Vec::new();
+
+                for chunk in pcm_8khz.chunks(960) {
+                    let resampled = upsampler.resample(chunk)?;
+                    output.extend_from_slice(&resampled);
+                }
+
+                output
+            }; // Lock dropped here
 
             // Create audio chunk
-            // let chunk = AudioChunk {
-            //     samples: pcm_16khz,
-            //     user_id,
-            //     session_id,
-            //     timestamp: chrono::Utc::now(),
-            // };
+            let chunk = AudioChunk {
+                samples: pcm_16khz,
+                user_id,
+                session_id,
+                timestamp: chrono::Utc::now(),
+            };
 
             // Submit to worker
-            // worker.audio_tx.send(chunk)
-            //     .context("Failed to submit audio to STT worker")?;
+            worker.audio_tx.send(chunk)
+                .context("Failed to submit audio to STT worker")?;
 
-            // Ok(())
+            Ok(())
         } else {
             anyhow::bail!("Background transcription not enabled")
         }
@@ -288,14 +297,24 @@ impl SttEngine {
     ///
     /// This is useful for one-off transcriptions without background processing.
     pub async fn transcribe_sync(
-        &mut self,
+        &self,
         audio: &[u8], // μ-law audio from Twilio (8kHz)
     ) -> Result<String> {
         // Convert μ-law to PCM
         let pcm_8khz = Self::mulaw_to_pcm(audio)?;
 
-        // Upsample to 16kHz for Whisper
-        let pcm_16khz = self.upsample_audio(&pcm_8khz)?;
+        // Upsample to 16kHz for Whisper (using locked upsampler)
+        let pcm_16khz = {
+            let mut upsampler = self.upsampler.lock().await;
+            let mut output = Vec::new();
+
+            for chunk in pcm_8khz.chunks(960) {
+                let resampled = upsampler.resample(chunk)?;
+                output.extend_from_slice(&resampled);
+            }
+
+            output
+        }; // Lock dropped here
 
         // Create temporary chunk
         let chunk = AudioChunk {
@@ -320,20 +339,6 @@ impl SttEngine {
             .collect();
 
         Ok(pcm_f32)
-    }
-
-    /// Upsample audio from 8kHz to 16kHz
-    fn upsample_audio(&mut self, pcm_8khz: &[f32]) -> Result<Vec<f32>> {
-        // Process audio through resampler
-        // Note: AudioResampler expects chunks of specific size (960 samples)
-        let mut output = Vec::new();
-
-        for chunk in pcm_8khz.chunks(960) {
-            let resampled = self.upsampler.resample(chunk)?;
-            output.extend_from_slice(&resampled);
-        }
-
-        Ok(output)
     }
 }
 
