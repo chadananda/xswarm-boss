@@ -34,7 +34,7 @@ use std::time::Duration;
 use std::process::Command;
 use std::env;
 use std::io::{self, Write};
-use tracing::{info, warn, Level};
+use tracing::{error, info, warn, Level};
 use tracing_subscriber;
 
 #[derive(Parser)]
@@ -72,6 +72,10 @@ struct Cli {
     /// Development mode: rebuild and run with latest code
     #[arg(long)]
     dev: bool,
+
+    /// Run MOSHI audio test mode: send "hello" input, capture output, transcribe with Whisper API
+    #[arg(long)]
+    moshi_test: bool,
 }
 
 #[derive(Subcommand)]
@@ -672,6 +676,138 @@ fn dev_login() -> Result<bool> {
     Ok(false)
 }
 
+/// Run MOSHI test mode - automated voice testing without dashboard
+/// v0.1.0-2025.11.5.34: Load test audio, process through MOSHI, save response
+async fn run_moshi_test_mode() -> Result<()> {
+    use xswarm::moshi_test;
+
+    println!("🧪 MOSHI AUDIO TEST MODE");
+    println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    println!();
+    println!("This test will:");
+    println!("  1. Generate a simple test audio input");
+    println!("  2. Process it through MOSHI");
+    println!("  3. Transcribe the output with OpenAI Whisper API");
+    println!("  4. Check if the audio is intelligible");
+    println!("  5. If not, try next configuration automatically");
+    println!();
+
+    // Check for OPENAI_API_KEY
+    if std::env::var("OPENAI_API_KEY").is_err() {
+        eprintln!("❌ ERROR: OPENAI_API_KEY environment variable not set");
+        eprintln!();
+        eprintln!("Please set your OpenAI API key:");
+        eprintln!("  export OPENAI_API_KEY=sk-...");
+        eprintln!();
+        return Err(anyhow::anyhow!("OPENAI_API_KEY not set"));
+    }
+
+    // Load experiment history
+    let history = moshi_test::load_experiment_history();
+    moshi_test::print_experiment_history(&history);
+
+    // Check if we already found a working configuration
+    if let Some(success) = history.iter().find(|r| r.intelligible) {
+        println!("✅ Previously found working configuration: {}", success.config.name);
+        println!("   Transcription: \"{}\"", success.transcription);
+        println!();
+        println!("To test again, delete: ./tmp/experiments/");
+        return Ok(());
+    }
+
+    // Get next configuration to test
+    let config = match moshi_test::get_next_config_to_test(&history) {
+        Some(c) => c,
+        None => {
+            println!("❌ All configurations tested - none produced intelligible audio");
+            println!();
+            println!("Please review the experiment logs in: ./tmp/experiments/");
+            println!("This may indicate a deeper issue with the MOSHI audio pipeline.");
+            return Err(anyhow::anyhow!("All configurations failed"));
+        }
+    };
+
+    println!("🔧 Testing configuration: {}", config.name);
+    println!("   {}", config.description);
+    println!();
+
+    // Create tmp directory
+    std::fs::create_dir_all("./tmp")?;
+
+    // Step 1: Generate test audio if needed
+    let test_audio_path = "./tmp/test-user-hello.wav";
+    if !std::path::Path::new(test_audio_path).exists() {
+        println!("📝 Generating test audio...");
+        moshi_test::generate_test_audio(test_audio_path)?;
+        println!("✅ Test audio generated: {}", test_audio_path);
+        println!();
+    }
+
+    // Step 2: Initialize voice bridge and run MOSHI
+    println!("🔊 Initializing MOSHI voice models...");
+    println!("   (This may take 30-60 seconds for first-time model download)");
+    println!();
+
+    info!("MOSHI_TEST: Initializing voice bridge for testing...");
+
+    let voice_config = voice::VoiceConfig::default();
+    let voice_bridge = Arc::new(voice::VoiceBridge::new(voice_config.clone()).await?);
+
+    info!("MOSHI_TEST: Voice bridge initialized successfully");
+
+    println!("✅ MOSHI models loaded");
+    println!();
+    println!("🎤 Processing test audio through MOSHI...");
+    println!("   Input: {}", test_audio_path);
+    println!();
+
+    // Run MOSHI processing
+    voice_bridge.run_test_mode().await?;
+
+    let response_path = "./tmp/moshi-response.wav";
+    println!("✅ MOSHI generated response: {}", response_path);
+    println!();
+
+    // Step 3: Transcribe with Whisper API
+    println!("🔍 Transcribing with OpenAI Whisper API...");
+    let transcription = moshi_test::transcribe_with_whisper(response_path).await?;
+    println!("✅ Transcription complete");
+    println!();
+
+    // Step 4: Check intelligibility
+    let word_count = transcription.split_whitespace().count();
+    let intelligible = moshi_test::is_intelligible(&transcription);
+
+    // Step 5: Log result
+    let result = moshi_test::ExperimentResult {
+        timestamp: chrono::Utc::now().format("%Y%m%d_%H%M%S").to_string(),
+        config: config.clone(),
+        transcription: transcription.clone(),
+        word_count,
+        intelligible,
+        audio_path: response_path.to_string(),
+    };
+
+    moshi_test::log_experiment(&result)?;
+
+    // Step 6: Print report
+    moshi_test::print_test_report(&result);
+
+    if intelligible {
+        println!("🎉 SUCCESS! The audio pipeline is working correctly!");
+        println!();
+        println!("Configuration that worked: {}", config.name);
+        println!("{}", config.description);
+        println!();
+    } else {
+        println!("⏭️  Will try next configuration on next run.");
+        println!("   Run again: xswarm --moshi_test");
+        println!();
+    }
+
+    Ok(())
+}
+
 /// Run development mode with authentication bypass
 /// Prompts for credentials and launches dashboard in offline/dev mode
 async fn run_dev_mode_bypass() -> Result<()> {
@@ -795,6 +931,14 @@ async fn main() -> Result<()> {
 async fn run_application() -> Result<()> {
     let cli = Cli::parse();
 
+    // v0.1.0-2025.11.6.1: MOSHI_TEST_MODE - Check for test mode BEFORE any initialization
+    // This allows automated testing without dashboard or authentication
+    // Can be triggered via --moshi_test flag or MOSHI_TEST_MODE env var
+    if cli.moshi_test || std::env::var("MOSHI_TEST_MODE").is_ok() {
+        info!("MOSHI_TEST: Test mode enabled - running automated voice test");
+        return run_moshi_test_mode().await;
+    }
+
     // Handle global flags first
     if cli.quit {
         info!("Shutting down xSwarm daemon...");
@@ -810,6 +954,12 @@ async fn run_application() -> Result<()> {
         // TODO: Implement daemon restart logic
         println!("✅ xSwarm restarted");
         return Ok(());
+    }
+
+    if cli.dev {
+        info!("Development mode: Starting voice bridge and dashboard...");
+        // In dev mode, start voice bridge and dashboard together
+        return handle_dev_command(DevAction::VoiceBridge { skip_audio_check: false }).await;
     }
 
     if cli.setup {
@@ -1027,12 +1177,40 @@ async fn handle_dev_command(action: DevAction) -> Result<()> {
                 }
             });
 
-            println!("🎤 MOSHI Voice Bridge started!");
-            println!("Voice bridge: ws://{}:{}", voice_config.host, voice_config.port);
-            println!("Supervisor: ws://{}:{}", supervisor_config.host, supervisor_config.port);
-            println!("Press Ctrl+C to stop");
+            info!("Voice bridge and supervisor started - launching dashboard");
 
-            tokio::try_join!(voice_handle, supervisor_handle)?;
+            // Create dashboard configuration
+            let dashboard_config = dashboard::DashboardConfig::default();
+            let mut init_errors = Vec::new();
+
+            // Check microphone permission (already done above, but collect error if exists)
+            // The dashboard will show this error in the UI if permission was denied
+
+            // Create and run dashboard - it will run until user quits
+            // Voice bridge and supervisor continue running in background
+            match dashboard::Dashboard::new_with_errors(dashboard_config, init_errors) {
+                Ok(dashboard) => {
+                    // Dashboard.run() blocks until user quits
+                    // Voice bridge and supervisor tasks will be cancelled when main task ends
+                    match dashboard.run().await {
+                        Ok(_) => {
+                            info!("Dashboard exited normally");
+                        }
+                        Err(e) => {
+                            error!("Dashboard error: {}", e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to create dashboard: {}", e);
+                    // Fallback to text mode - wait for services
+                    println!("🎤 MOSHI Voice Bridge started!");
+                    println!("Voice bridge: ws://{}:{}", voice_config.host, voice_config.port);
+                    println!("Supervisor: ws://{}:{}", supervisor_config.host, supervisor_config.port);
+                    println!("Press Ctrl+C to stop");
+                    tokio::try_join!(voice_handle, supervisor_handle)?;
+                }
+            }
         }
 
         DevAction::Daemon { skip_audio_check } => {
