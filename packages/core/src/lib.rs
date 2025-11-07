@@ -25,6 +25,7 @@ pub mod greeting;  // MOSHI greeting generation (direct speech)
 pub mod memory_conditioner;  // MOSHI memory conditioning (natural incorporation)
 pub mod voice;
 pub mod moshi_personality;
+pub mod moshi_test;  // MOSHI audio testing with Whisper API
 pub mod supervisor;
 pub mod net_utils;
 
@@ -64,6 +65,7 @@ pub use moshi_personality::{
     InterruptHandling,
 };
 pub use audio_output::AudioOutputDevice;
+pub use voice::{GpuInfo, detect_gpu};
 
 // Force compilation of audio_output module
 #[cfg(test)]

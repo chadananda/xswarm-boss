@@ -1,6 +1,6 @@
 [package]
 name = "xswarm"
-version = "0.1.0-2025.11.3.3"
+version = "0.1.0-2025.11.5.12"
 edition = "2021"
 authors = ["xSwarm Contributors"]
 description = "AI Orchestration Layer for Multi-Project Development"
@@ -64,7 +64,7 @@ walkdir = "2.4"
 scraper = "0.18"
 
 # HTTP client for AI APIs
-reqwest = { version = "0.11", features = ["json"] }
+reqwest = { version = "0.11", features = ["json", "multipart"] }
 
 # Local database for semantic memory
 libsql = { version = "0.6", features = ["core", "replication"] }
@@ -81,6 +81,9 @@ arboard = "3.6"
 
 # Signal handling for proper terminal cleanup
 ctrlc = "3.4"
+
+# WAV file export for audio debugging
+hound = "3.5"
 
 [[example]]
 name = "test_projects"
