@@ -84,6 +84,58 @@ const TWILIO_SAMPLE_RATE: u32 = 8000;  // Twilio Media Streams (μ-law)
 const MOSHI_SAMPLE_RATE: u32 = 24000;  // MOSHI native sample rate
 const MIMI_NUM_CODEBOOKS: usize = 8;    // MOSHI codec configuration (must match LM generated_audio_codebooks)
 
+// Helper functions for WAV file I/O (used by MOSHI_TEST_MODE)
+/// Load a 24kHz 16-bit PCM WAV file and return samples as Vec<f32>
+fn load_wav_24khz(path: &str) -> Result<Vec<f32>> {
+    let mut reader = hound::WavReader::open(path)
+        .context(format!("Failed to open WAV file: {}", path))?;
+
+    let spec = reader.spec();
+
+    // Validate format
+    if spec.sample_rate != 24000 {
+        anyhow::bail!("WAV file must be 24kHz, got {}Hz", spec.sample_rate);
+    }
+    if spec.channels != 1 {
+        anyhow::bail!("WAV file must be mono, got {} channels", spec.channels);
+    }
+    if spec.bits_per_sample != 16 {
+        anyhow::bail!("WAV file must be 16-bit, got {} bits", spec.bits_per_sample);
+    }
+
+    // Read samples and convert to f32
+    let samples: Result<Vec<f32>> = reader.samples::<i16>()
+        .map(|s| s.map(|sample| sample as f32 / 32768.0).context("Failed to read WAV sample"))
+        .collect();
+
+    samples
+}
+
+/// Save Vec<f32> samples to a 24kHz 16-bit PCM WAV file
+fn save_wav_24khz(path: &str, samples: &[f32]) -> Result<()> {
+    let spec = hound::WavSpec {
+        channels: 1,
+        sample_rate: 24000,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+
+    let mut writer = hound::WavWriter::create(path, spec)
+        .context(format!("Failed to create WAV file: {}", path))?;
+
+    for &sample in samples {
+        // Clamp and convert to i16
+        let sample_i16 = (sample * 32767.0).clamp(-32768.0, 32767.0) as i16;
+        writer.write_sample(sample_i16)
+            .context("Failed to write WAV sample")?;
+    }
+
+    writer.finalize()
+        .context("Failed to finalize WAV file")?;
+
+    Ok(())
+}
+
 /// Twilio Media Stream protocol message types
 #[derive(Debug, serde::Deserialize)]
 #[serde(tag = "event")]
@@ -150,6 +202,51 @@ pub struct VoiceConfig {
     pub host: String,
     /// WebSocket server port
     pub port: u16,
+}
+
+/// GPU capability information for dashboard display
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct GpuInfo {
+    /// Whether CUDA (NVIDIA GPU) is available
+    pub cuda_available: bool,
+    /// Whether Metal (Apple Silicon GPU) is available
+    pub metal_available: bool,
+    /// Human-readable device type description
+    pub device_type: String,
+    /// Whether real-time MOSHI conversation is possible
+    pub realtime_capable: bool,
+    /// Recommendation message for the user
+    pub recommendation: String,
+}
+
+/// Detect GPU capabilities for dashboard display
+pub fn detect_gpu() -> GpuInfo {
+    let cuda_available = candle::utils::cuda_is_available();
+    let metal_available = candle::utils::metal_is_available();
+
+    let device_type = if cuda_available {
+        "CUDA (NVIDIA GPU)"
+    } else if metal_available {
+        "Metal (Apple Silicon GPU)"
+    } else {
+        "CPU only"
+    };
+
+    let realtime_capable = cuda_available || metal_available;
+
+    let recommendation = if realtime_capable {
+        "✅ GPU detected - Real-time MOSHI conversation is possible"
+    } else {
+        "⚠️ No GPU detected - MOSHI will be very slow (CPU only)"
+    };
+
+    GpuInfo {
+        cuda_available,
+        metal_available,
+        device_type: device_type.to_string(),
+        realtime_capable,
+        recommendation: recommendation.to_string(),
+    }
 }
 
 impl Default for VoiceConfig {
@@ -407,6 +504,8 @@ impl MoshiState {
 struct ConnectionState {
     /// Language model generator (stateful, per-connection)
     lm_generator: moshi::lm_generate_multistream::State,
+    /// Per-connection MIMI decoder (stateful, maintains temporal continuity)
+    mimi_decoder: moshi::mimi::Mimi,
     /// Previous text token for incremental decoding
     prev_text_token: u32,
     /// Audio buffer to accumulate chunks before processing
@@ -458,8 +557,13 @@ impl ConnectionState {
         let downsampler = AudioResampler::new(24000, 8000, 1920)
             .context("Failed to create downsampler")?;
 
+        // Clone MIMI decoder for this connection (maintains independent state)
+        // Following moshi-server pattern: each connection gets its own decoder instance
+        let mimi_decoder = moshi_state.mimi_model.clone();
+
         Ok(Self {
             lm_generator,
+            mimi_decoder,
             prev_text_token,
             audio_buffer: Vec::with_capacity(1920),
             upsampler,
@@ -595,18 +699,136 @@ impl VoiceBridge {
 
         const MOSHI_FRAME_SIZE: usize = 1920; // 80ms at 24kHz
 
+        // Clone Arc for access inside spawned task (needed for greeting generation)
+        let bridge = Arc::clone(&self);
+
         // Spawn conversation loop task
         let handle = tokio::spawn(async move {
             info!("Local conversation loop started - listening for voice input");
             info!("AUDIO_PIPELINE: Conversation loop initialized, waiting for microphone frames");
 
+            // v0.1.0-2025.11.5.17: RESAMPLE TO DEVICE'S ACTUAL RATE + FIX DEVICE HANDLING
+            // Previous issue (v0.1.0-2025.11.5.16): Tuple pattern was confusing, device handling unclear
+            // Solution: Simplify device handling, keep device alive properly
+
+            // Step 1: Create audio device with default config to discover actual sample rate
+            let audio_device = match crate::audio_output::AudioOutputDevice::new() {
+                Ok(d) => d,
+                Err(e) => {
+                    error!("MOSHI_AUDIO: Failed to create audio output device: {}", e);
+                    return;
+                }
+            };
+
+            // Step 2: Get device's actual sample rate
+            let device_sample_rate = audio_device.get_sample_rate();
+            info!("MOSHI_AUDIO: Device actual sample rate: {} Hz", device_sample_rate);
+
+            // Step 3: Create resampler for MOSHI (24kHz) → device's actual rate
+            let mut resampler = match crate::audio::AudioResampler::new(
+                MOSHI_SAMPLE_RATE,
+                device_sample_rate,
+                MOSHI_FRAME_SIZE,
+            ) {
+                Ok(r) => {
+                    info!("MOSHI_AUDIO: Created resampler {}Hz → {}Hz (device's native rate)",
+                          MOSHI_SAMPLE_RATE, device_sample_rate);
+                    Some(r)
+                }
+                Err(e) => {
+                    error!("MOSHI_AUDIO: Failed to create resampler: {}", e);
+                    None
+                }
+            };
+
+            // Step 4: Start continuous audio stream
+            let audio_sender = match audio_device.start_continuous_stream() {
+                Ok(sender) => {
+                    info!("MOSHI_AUDIO: Created continuous audio stream at {}Hz - no more gaps!", device_sample_rate);
+                    info!("MOSHI_AUDIO: AudioOutputDevice kept alive for conversation duration");
+                    sender
+                }
+                Err(e) => {
+                    error!("MOSHI_AUDIO: Failed to start continuous stream: {}", e);
+                    return;
+                }
+            };
+
+            // Keep audio_device alive for the entire conversation by moving it into this scope
+            // It will be dropped when the task ends
+            let _audio_device_guard = audio_device;
+
             let mut audio_buffer: Vec<f32> = Vec::with_capacity(MOSHI_FRAME_SIZE * 2);
             let mut frame_count = 0u64;
+
+            // v0.1.0-2025.11.5.33: MOSHI_TEST_MODE - Automated voice testing
+            // Feed pre-recorded "hello" greeting to MOSHI and capture response
+            // This allows quick testing without microphone interaction
+            if std::env::var("MOSHI_TEST_MODE").is_ok() {
+                info!("MOSHI_TEST: Test mode enabled - loading ./tmp/test-user-hello.wav");
+
+                // Load test audio file (24kHz 16-bit PCM WAV)
+                let test_wav_path = "./tmp/test-user-hello.wav";
+                let user_audio = match load_wav_24khz(test_wav_path) {
+                    Ok(audio) => {
+                        info!("MOSHI_TEST: Loaded {} samples from {}", audio.len(), test_wav_path);
+                        audio
+                    }
+                    Err(e) => {
+                        error!("MOSHI_TEST: Failed to load {}: {}", test_wav_path, e);
+                        error!("MOSHI_TEST: Make sure test file exists and is 24kHz 16-bit PCM WAV");
+                        return;
+                    }
+                };
+
+                // Feed through MOSHI conversation pipeline
+                info!("MOSHI_TEST: Processing {} samples through MOSHI...", user_audio.len());
+                let moshi_response = match self.process_with_lm(&mut conn_state, user_audio).await {
+                    Ok(response) => {
+                        info!("MOSHI_TEST: MOSHI generated {} samples response", response.len());
+                        response
+                    }
+                    Err(e) => {
+                        error!("MOSHI_TEST: MOSHI processing failed: {}", e);
+                        return;
+                    }
+                };
+
+                // Save MOSHI's response to WAV file
+                let response_path = "./tmp/moshi-response.wav";
+                match save_wav_24khz(response_path, &moshi_response) {
+                    Ok(_) => {
+                        info!("MOSHI_TEST: Response saved to {} ({:.2}s @ 24kHz)",
+                              response_path, moshi_response.len() as f32 / 24000.0);
+                        info!("MOSHI_TEST: ✅ Test complete - play {} to hear MOSHI's response", response_path);
+                    }
+                    Err(e) => {
+                        error!("MOSHI_TEST: Failed to save response: {}", e);
+                        return;
+                    }
+                }
+
+                // Exit after test completes
+                info!("MOSHI_TEST: Exiting test mode");
+                return;
+            }
+
+            // v0.1.0-2025.11.5.32: REMOVED AUTO-GREETING - Silent startup
+            // MOSHI now starts silently and waits for user voice input
+            // Previous versions (.25-.31) all had garbled greeting audio because
+            // MOSHI's bidirectional mode is designed for conversations, not standalone greetings
+            info!("MOSHI_AUDIO: Starting conversation loop - waiting for microphone input...");
 
             while let Some(audio_frame) = audio_rx.recv().await {
                 frame_count += 1;
 
-                // Add microphone samples to buffer (no per-frame logging - floods TUI)
+                // Log every 100th frame to track that we're receiving mic input
+                if frame_count % 100 == 0 {
+                    info!("MOSHI_AUDIO: Received {} microphone frames ({} sec)",
+                          frame_count, (frame_count as f32 * 480.0) / 16000.0);
+                }
+
+                // Add microphone samples to buffer
                 audio_buffer.extend_from_slice(&audio_frame.samples);
 
                 // Process when we have a full MOSHI frame (1920 samples = 80ms at 24kHz)
@@ -614,13 +836,47 @@ impl VoiceBridge {
                     // Extract exactly one frame
                     let frame: Vec<f32> = audio_buffer.drain(..MOSHI_FRAME_SIZE).collect();
 
-                    // Process through MOSHI with LM (no per-frame logging)
+                    info!("MOSHI_AUDIO: Processing frame with LM (frame {} samples, buffer {} samples)",
+                          frame.len(), audio_buffer.len());
+
+                    // Process through MOSHI with LM
                     match self.process_with_lm(&mut conn_state, frame).await {
                         Ok(response_pcm) => {
-                            // Send MOSHI's voice response to speakers
-                            if let Err(_e) = playback_tx.send(response_pcm.clone()) {
-                                // Channel closed - conversation ended
-                                break;
+                            // v0.1.0-2025.11.5.16: Resample MOSHI audio to device's actual rate
+                            // Previous issue: Assumed 44.1kHz but device might use different rate (16kHz, 48kHz, etc)
+                            // Solution: Query device rate first, create resampler for that specific rate
+
+                            let output_pcm = if let Some(ref mut r) = resampler {
+                                match r.resample(&response_pcm) {
+                                    Ok(resampled) => {
+                                        info!("MOSHI_AUDIO: Resampled {} samples (24kHz) → {} samples ({}Hz)",
+                                              response_pcm.len(), resampled.len(), device_sample_rate);
+                                        resampled
+                                    }
+                                    Err(e) => {
+                                        error!("MOSHI_AUDIO: Resampling failed: {}, sending original", e);
+                                        response_pcm.clone()
+                                    }
+                                }
+                            } else {
+                                warn!("MOSHI_AUDIO: No resampler - this should not happen!");
+                                response_pcm.clone()
+                            };
+
+                            // Send resampled audio to continuous stream (no gaps!)
+                            info!(
+                                "MOSHI_AUDIO: Sending {} resampled samples to continuous stream",
+                                output_pcm.len()
+                            );
+                            match audio_sender.send(output_pcm).await {
+                                Ok(_) => {
+                                    info!("MOSHI_AUDIO: Frame sent to continuous stream SUCCESS");
+                                }
+                                Err(e) => {
+                                    error!("MOSHI_AUDIO: Failed to send frame to continuous stream: {}", e);
+                                    // Stream may have closed - break conversation loop
+                                    break;
+                                }
                             }
                         }
                         Err(e) => {
@@ -760,6 +1016,246 @@ impl VoiceBridge {
     }
 
     /// Download MOSHI models from Hugging Face if not present locally
+    /// Run MOSHI test mode - automated voice testing without dashboard
+    /// v0.1.0-2025.11.5.35: Load test audio, process through MOSHI, save response
+    ///
+    /// This method runs the MOSHI_TEST_MODE workflow:
+    /// 1. Loads ./tmp/test-user-hello.wav (24kHz 16-bit PCM)
+    /// 2. Processes it through MOSHI (encode → LM → decode)
+    /// 3. Saves MOSHI's response to ./tmp/moshi-response.wav
+    pub async fn run_test_mode(&self) -> Result<()> {
+        use candle::Tensor;
+        use candle::IndexOp;
+
+        info!("MOSHI_TEST: Starting test mode - loading test audio");
+
+        // Step 1: Load test audio file (24kHz 16-bit PCM WAV)
+        // Check for custom input path from environment variable
+        let test_wav_path = std::env::var("MOSHI_TEST_INPUT")
+            .unwrap_or_else(|_| "./tmp/test-user-hello.wav".to_string());
+
+        let user_audio = load_wav_24khz(&test_wav_path)
+            .context(format!("Failed to load test WAV file: {}", test_wav_path))?;
+
+        info!("MOSHI_TEST: Loaded {} samples from {} ({:.2}s @ 24kHz)",
+              user_audio.len(), test_wav_path, user_audio.len() as f32 / 24000.0);
+
+        // Step 2: Get MOSHI state and process audio through MOSHI
+        info!("MOSHI_TEST: Processing {} samples through MOSHI...", user_audio.len());
+
+        let mut moshi_state = self.state.write().await;
+
+        // Clone MIMI decoder for this test (maintains independent state across frames)
+        // Following moshi-server pattern: each test/connection gets its own decoder
+        let mut mimi_decoder = moshi_state.mimi_model.clone();
+
+        // Determine MIMI device (CPU or GPU)
+        let mimi_device = if self.config.use_cpu_for_mimi {
+            candle::Device::Cpu
+        } else {
+            moshi_state.device.clone()
+        };
+
+        // Get frame length from MIMI config
+        let mimi_config = mimi_decoder.config();
+        let frame_length = (mimi_config.sample_rate / mimi_config.frame_rate).ceil() as usize;
+
+        info!("MOSHI_TEST: MIMI frame length = {} samples", frame_length);
+
+        // Chunk audio into frames for processing
+        let num_frames = (user_audio.len() + frame_length - 1) / frame_length;
+        info!("MOSHI_TEST: Processing {} frames through MOSHI", num_frames);
+
+        // Initialize LM generator (similar to ConnectionState but standalone)
+        let audio_logits_processor = candle_transformers::generation::LogitsProcessor::new(
+            1337,       // seed
+            Some(0.8),  // temperature for audio generation
+            None,       // top_p
+        );
+
+        let text_logits_processor = candle_transformers::generation::LogitsProcessor::new(
+            1337,
+            Some(0.8),
+            None,
+        );
+
+        let max_steps = num_frames + 100; // Extra steps for audio catchup
+
+        let lm_config = moshi_state.lm_config.clone();
+        let mut lm_generator = moshi::lm_generate_multistream::State::new(
+            moshi_state.lm_model.clone(),
+            max_steps,
+            audio_logits_processor,
+            text_logits_processor,
+            None, // pad_mult
+            None, // repetition_penalty
+            None, // cfg_alpha
+            lm_config.clone(),
+        );
+
+        info!("MOSHI_TEST: LM generator initialized (max_steps={})", max_steps);
+
+        // v0.1.0-2025.11.6.2: Force MOSHI to say specific text for objective testing
+        // Tokenize test phrase: "hello world testing one two three"
+        let test_phrase = "hello world testing one two three";
+        let pieces = moshi_state.text_tokenizer.encode(test_phrase)
+            .map_err(|e| anyhow::anyhow!("Failed to tokenize test phrase: {}", e))?;
+        let text_tokens: Vec<u32> = pieces.iter().map(|p| p.id as u32).collect();
+        info!("MOSHI_TEST: Forcing MOSHI to say: \"{}\" ({} tokens)", test_phrase, text_tokens.len());
+
+        let mut prev_text_token = moshi_state.lm_config.text_start_token;
+        let mut all_audio_samples = Vec::new();
+        let mut forced_token_idx = 0; // Track which token to force next
+
+        // Process each audio frame
+        for frame_idx in 0..num_frames {
+            let start_idx = frame_idx * frame_length;
+            let end_idx = (start_idx + frame_length).min(user_audio.len());
+            let mut frame_audio = user_audio[start_idx..end_idx].to_vec();
+
+            // Pad last frame if needed
+            if frame_audio.len() < frame_length {
+                frame_audio.resize(frame_length, 0.0);
+            }
+
+            // Step 2a: Encode audio frame to MIMI codes
+            let pcm_tensor = Tensor::from_vec(
+                frame_audio.clone(),
+                (1, 1, frame_length),
+                &mimi_device,
+            ).context("Failed to create PCM tensor")?;
+
+            let codes_stream = moshi_state.mimi_model.encode_step(&pcm_tensor.into(), &().into())
+                .context("MIMI encode_step failed")?;
+
+            let codes_tensor = match codes_stream.as_option() {
+                Some(tensor) => tensor,
+                None => {
+                    info!("MOSHI_TEST: Frame {}: MIMI encode returned None (warmup), using silence", frame_idx);
+                    continue;
+                }
+            };
+
+            // Extract first input_audio_codebooks (8 for MOSHI)
+            let input_codebooks = moshi_state.lm_config.input_audio_codebooks as usize;
+            let codes = codes_tensor.i((0, 0..input_codebooks, 0))?.to_vec1::<u32>()
+                .context("Failed to extract MIMI codes")?;
+
+            if frame_idx % 10 == 0 {
+                info!("MOSHI_TEST: Frame {}/{}: Encoded {} audio codes", frame_idx, num_frames, codes.len());
+            }
+
+            // Step 2b: Run LM step with audio codes, forcing specific text tokens
+            let force_text_token = if forced_token_idx < text_tokens.len() {
+                let token = text_tokens[forced_token_idx];
+                forced_token_idx += 1;
+                Some(token)
+            } else {
+                None // After all tokens forced, let LM continue naturally
+            };
+
+            let text_token = lm_generator.step_(
+                Some(prev_text_token),
+                &codes,
+                force_text_token, // Force specific text token
+                None, // No cross-attention
+                None, // No condition
+            ).context(format!("LM step failed at frame {}", frame_idx))?;
+
+            prev_text_token = text_token;
+
+            // Step 2c: Extract audio tokens from LM if available
+            if let Some(audio_tokens) = lm_generator.last_audio_tokens() {
+                // Take only generated_audio_codebooks (8 for MOSHI)
+                let generated_codebooks = moshi_state.lm_config.generated_audio_codebooks as usize;
+                let audio_tokens_slice = &audio_tokens[..generated_codebooks.min(audio_tokens.len())];
+
+                // Step 2d: Decode audio tokens to PCM with MIMI
+                // Use cloned MIMI decoder to maintain state across frames
+                let audio_tensor = Tensor::from_slice(
+                    audio_tokens_slice,
+                    (1, generated_codebooks, 1),
+                    &mimi_device,
+                ).context(format!("Failed to create audio tensor for frame {}", frame_idx))?;
+
+                let decoded = mimi_decoder.decode_step(&audio_tensor.into(), &().into())
+                    .context(format!("MIMI decode failed for frame {}", frame_idx))?;
+
+                if let Some(pcm_tensor) = decoded.as_option() {
+                    let frame_samples = pcm_tensor.flatten_all()?.to_vec1::<f32>()
+                        .context("Failed to convert PCM tensor to vec")?;
+
+                    let frame_len = frame_samples.len();  // Store length before move
+                    all_audio_samples.extend(frame_samples);
+
+                    if frame_idx % 10 == 0 {
+                        info!("MOSHI_TEST: Frame {}/{}: Decoded {} PCM samples (total: {})",
+                              frame_idx, num_frames, frame_len, all_audio_samples.len());
+                    }
+                }
+            } else if frame_idx > lm_config.acoustic_delay as usize {
+                warn!("MOSHI_TEST: Frame {}: No audio tokens (past acoustic delay)", frame_idx);
+            }
+        }
+
+        // Run a few extra steps to let audio generation catch up
+        let extra_steps = 20;
+        info!("MOSHI_TEST: Running {} extra steps to flush audio generation", extra_steps);
+        for step_idx in 0..extra_steps {
+            // Use padding tokens for input (no more real audio)
+            let pad_codes = vec![0u32; moshi_state.lm_config.input_audio_codebooks as usize];
+
+            let text_token = lm_generator.step_(
+                Some(prev_text_token),
+                &pad_codes,
+                None,
+                None,
+                None,
+            )?;
+
+            prev_text_token = text_token;
+
+            if let Some(audio_tokens) = lm_generator.last_audio_tokens() {
+                let generated_codebooks = moshi_state.lm_config.generated_audio_codebooks as usize;
+                let audio_tokens_slice = &audio_tokens[..generated_codebooks.min(audio_tokens.len())];
+
+                let audio_tensor = Tensor::from_slice(
+                    audio_tokens_slice,
+                    (1, generated_codebooks, 1),
+                    &mimi_device,
+                )?;
+
+                // Use cloned MIMI decoder to maintain state
+                let decoded = mimi_decoder.decode_step(&audio_tensor.into(), &().into())?;
+
+                if let Some(pcm_tensor) = decoded.as_option() {
+                    let frame_samples = pcm_tensor.flatten_all()?.to_vec1::<f32>()?;
+                    let frame_len = frame_samples.len();  // Store length before move
+                    all_audio_samples.extend(frame_samples);
+
+                    if step_idx % 5 == 0 {
+                        info!("MOSHI_TEST: Extra step {}/{}: Flushed {} samples (total: {})",
+                              step_idx, extra_steps, frame_len, all_audio_samples.len());
+                    }
+                }
+            }
+        }
+
+        info!("MOSHI_TEST: MOSHI generated {} total PCM samples ({:.2}s @ 24kHz)",
+              all_audio_samples.len(), all_audio_samples.len() as f32 / 24000.0);
+
+        // Step 3: Save MOSHI's response to WAV file
+        let response_path = "./tmp/moshi-response.wav";
+        save_wav_24khz(response_path, &all_audio_samples)
+            .context(format!("Failed to save response WAV: {}", response_path))?;
+
+        info!("MOSHI_TEST: Response saved to {} ({:.2}s @ 24kHz)",
+              response_path, all_audio_samples.len() as f32 / 24000.0);
+        info!("MOSHI_TEST: ✅ Test complete - play {} to hear MOSHI's response", response_path);
+
+        Ok(())
+    }
+
     pub async fn download_models_if_needed(mut config: VoiceConfig) -> Result<VoiceConfig> {
         use std::path::Path;
 
@@ -1061,12 +1557,13 @@ impl VoiceBridge {
             )?;
 
             // Decode audio tokens to PCM with correct tensor shape
+            // Use per-connection MIMI decoder to maintain temporal continuity
             debug!(tensor_shape = ?audio_tensor.shape(), "Decoding audio tokens to PCM with MIMI");
             info!(
                 "MOSHI_DEBUG: Calling MIMI decoder - tensor_shape={:?}",
                 audio_tensor.shape()
             );
-            let decoded = moshi_state.mimi_model.decode_step(&audio_tensor.into(), &().into())?;
+            let decoded = conn_state.mimi_decoder.decode_step(&audio_tensor.into(), &().into())?;
 
             let audio_tensor = decoded.as_option()
                 .ok_or_else(|| anyhow::anyhow!("MIMI decoder returned None"))?;
