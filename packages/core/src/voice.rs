@@ -559,7 +559,8 @@ impl ConnectionState {
 
         // Clone MIMI decoder for this connection (maintains independent state)
         // Following moshi-server pattern: each connection gets its own decoder instance
-        let mimi_decoder = moshi_state.mimi_model.clone();
+        let mut mimi_decoder = moshi_state.mimi_model.clone();
+        mimi_decoder.reset_state(); // Reset state for fresh connection (CRITICAL - fixes garbled audio)
 
         Ok(Self {
             lm_generator,
@@ -1048,6 +1049,7 @@ impl VoiceBridge {
         // Clone MIMI decoder for this test (maintains independent state across frames)
         // Following moshi-server pattern: each test/connection gets its own decoder
         let mut mimi_decoder = moshi_state.mimi_model.clone();
+        mimi_decoder.reset_state(); // Reset state for fresh test (CRITICAL - fixes garbled audio)
 
         // Determine MIMI device (CPU or GPU)
         let mimi_device = if self.config.use_cpu_for_mimi {
@@ -1171,12 +1173,12 @@ impl VoiceBridge {
                 let audio_tokens_slice = &audio_tokens[..generated_codebooks.min(audio_tokens.len())];
 
                 // Step 2d: Decode audio tokens to PCM with MIMI
-                // Use cloned MIMI decoder to maintain state across frames
-                let audio_tensor = Tensor::from_slice(
-                    audio_tokens_slice,
-                    (1, generated_codebooks, 1),
-                    &mimi_device,
-                ).context(format!("Failed to create audio tensor for frame {}", frame_idx))?;
+                // Use CLI gen.rs tensor creation pattern: new() + reshape() + transpose()
+                // This creates different memory layout than from_slice() even with same final shape!
+                let audio_tensor = Tensor::new(audio_tokens_slice, &mimi_device)?
+                    .reshape((1, 1, ()))?
+                    .t()
+                    .context(format!("Failed to create audio tensor for frame {}", frame_idx))?;
 
                 let decoded = mimi_decoder.decode_step(&audio_tensor.into(), &().into())
                     .context(format!("MIMI decode failed for frame {}", frame_idx))?;
@@ -1548,13 +1550,11 @@ impl VoiceBridge {
                 "Creating audio tensor for MIMI decoder (no padding needed)"
             );
 
-            // Create tensor from LM audio tokens: [batch=1, codebooks=8, time=1]
-            // This matches the working pattern from moshi-server examples
-            let audio_tensor = Tensor::from_slice(
-                audio_tokens_slice,
-                (1, cb, 1),
-                mimi_device,
-            )?;
+            // Create tensor using CLI gen.rs pattern: new() + reshape() + transpose()
+            // The transpose creates different memory layout than from_slice()!
+            let audio_tensor = Tensor::new(audio_tokens_slice, mimi_device)?
+                .reshape((1, 1, ()))?
+                .t()?;
 
             // Decode audio tokens to PCM with correct tensor shape
             // Use per-connection MIMI decoder to maintain temporal continuity
