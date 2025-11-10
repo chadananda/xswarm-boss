@@ -70,11 +70,69 @@ class CyberpunkHeader(Static):
         self.refresh()
 
     def render(self) -> Text:
-        """Render header with logo and boot sequence"""
+        """Render header with responsive layout based on terminal size"""
         result = Text()
 
-        # Get actual widget width (fallback to 79 if too small)
-        widget_width = max(self.size.width, 79)
+        # RESPONSIVE: Adapt to terminal size
+        widget_width = self.size.width
+
+        # Tiny (< 40 cols): Ultra-minimal 1-line header
+        if widget_width < 40:
+            return self._render_minimal()
+
+        # Small (40-79 cols): Compact 2-3 line header
+        elif widget_width < 80:
+            return self._render_compact()
+
+        # Large (80+ cols): Full experience with ASCII art
+        else:
+            return self._render_full()
+
+    def _render_minimal(self) -> Text:
+        """Minimal 1-line header for tiny terminals"""
+        result = Text()
+        result.append("▓▒░ ", style="bold cyan")
+        result.append("XSWARM", style="bold yellow")
+        result.append(" ░▒▓", style="bold cyan")
+
+        if not self.boot_complete:
+            result.append(" ", style="")
+            result.append(self.boot_messages[-1] if self.boot_messages else "BOOTING", style="dim green")
+        else:
+            result.append(" ", style="")
+            result.append(f"[{self.persona_name}]", style="bold magenta")
+            result.append(" ", style="")
+            result.append(self.system_status, style="bold green")
+
+        return result
+
+    def _render_compact(self) -> Text:
+        """Compact 2-3 line header for small terminals"""
+        result = Text()
+        widget_width = self.size.width
+        border_width = widget_width - 2
+
+        result.append("╔" + "═" * border_width + "╗\n", style="bold cyan")
+        result.append("║", style="bold cyan")
+        result.append(" XSWARM VOICE ASSISTANT ".center(border_width), style="bold yellow")
+        result.append("║\n", style="bold cyan")
+
+        if not self.boot_complete:
+            # Show last boot message
+            result.append("║", style="bold cyan")
+            msg = self.boot_messages[-1] if self.boot_messages else "INITIALIZING"
+            result.append((" ▓▒░ " + msg).center(border_width), style="dim green")
+            result.append("║\n", style="bold cyan")
+
+        result.append("╚" + "═" * border_width + "╝", style="bold cyan")
+
+        return result
+
+    def _render_full(self) -> Text:
+        """Full header with ASCII art for large terminals"""
+        result = Text()
+
+        widget_width = self.size.width
         border_width = widget_width - 2  # Account for ╔ and ╗
         inner_width = border_width - 2  # Account for "║ " and " ║"
 

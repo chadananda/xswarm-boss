@@ -53,49 +53,90 @@ class CyberpunkFooter(Static):
         return bar, color
 
     def render(self) -> Text:
-        """Render cyberpunk footer"""
+        """Render responsive cyberpunk footer"""
         result = Text()
 
-        # Get actual widget width (fallback to 40 if too small)
-        widget_width = max(self.size.width, 40)
+        widget_width = self.size.width
 
-        result.append("═" * widget_width + "\n", style="bold green")
+        # RESPONSIVE: Adapt to terminal size
+        # Tiny (< 40 cols): Minimal - just separator
+        if widget_width < 40:
+            result.append("═" * widget_width, style="dim green")
+            return result
 
-        # Left section: System stats
-        result.append("▓▒░ ", style="bold cyan")
+        # Small (40-60 cols): Show only CPU/MEM percentages
+        elif widget_width < 60:
+            result.append("═" * widget_width + "\n", style="bold green")
+            result.append("▓▒░ ", style="bold cyan")
 
-        # CPU
-        cpu_bar, cpu_color = self._get_bar(self.cpu_percent, 8)
-        result.append("CPU:", style="dim white")
-        result.append(f"[{cpu_bar}]", style=f"bold {cpu_color}")
-        result.append(f"{self.cpu_percent:5.1f}%", style=f"bold {cpu_color}")
+            # CPU (no bar, just percentage)
+            _, cpu_color = self._get_bar(self.cpu_percent, 8)
+            result.append(f"CPU:{self.cpu_percent:.0f}%", style=f"bold {cpu_color}")
+            result.append(" ", style="")
 
-        result.append(" │ ", style="dim white")
+            # Memory (no bar, just percentage)
+            _, mem_color = self._get_bar(self.mem_percent, 8)
+            result.append(f"MEM:{self.mem_percent:.0f}%", style=f"bold {mem_color}")
 
-        # Memory
-        mem_bar, mem_color = self._get_bar(self.mem_percent, 8)
-        result.append("MEM:", style="dim white")
-        result.append(f"[{mem_bar}]", style=f"bold {mem_color}")
-        result.append(f"{self.mem_percent:5.1f}%", style=f"bold {mem_color}")
+            result.append(" ░▒▓", style="bold cyan")
+            return result
 
-        result.append(" │ ", style="dim white")
+        # Medium (60-80 cols): Show bars but compact
+        elif widget_width < 80:
+            result.append("═" * widget_width + "\n", style="bold green")
+            result.append("▓▒░ ", style="bold cyan")
 
-        # Network status
-        result.append("NET:", style="dim white")
-        net_color = "green" if self.network_status == "online" else "red"
-        result.append(f"{self.network_status.upper()}", style=f"bold {net_color}")
+            # CPU with smaller bar
+            cpu_bar, cpu_color = self._get_bar(self.cpu_percent, 5)
+            result.append("CPU:", style="dim white")
+            result.append(f"[{cpu_bar}]", style=f"bold {cpu_color}")
+            result.append(f"{self.cpu_percent:4.0f}%", style=f"bold {cpu_color}")
 
-        # Right section: System info
-        result.append(" " * 10)
-        result.append("░▒▓ ", style="bold cyan")
+            result.append(" ", style="")
 
-        # Platform
-        os_name = platform.system()
-        result.append(f"{os_name}", style="bold magenta")
+            # Memory with smaller bar
+            mem_bar, mem_color = self._get_bar(self.mem_percent, 5)
+            result.append("MEM:", style="dim white")
+            result.append(f"[{mem_bar}]", style=f"bold {mem_color}")
+            result.append(f"{self.mem_percent:4.0f}%", style=f"bold {mem_color}")
 
-        result.append(" ░▒▓", style="bold cyan")
+            result.append(" ░▒▓", style="bold cyan")
+            return result
 
-        return result
+        # Large (80+ cols): Full stats with bars and network
+        else:
+            result.append("═" * widget_width + "\n", style="bold green")
+            result.append("▓▒░ ", style="bold cyan")
+
+            # CPU
+            cpu_bar, cpu_color = self._get_bar(self.cpu_percent, 8)
+            result.append("CPU:", style="dim white")
+            result.append(f"[{cpu_bar}]", style=f"bold {cpu_color}")
+            result.append(f"{self.cpu_percent:5.1f}%", style=f"bold {cpu_color}")
+
+            result.append(" │ ", style="dim white")
+
+            # Memory
+            mem_bar, mem_color = self._get_bar(self.mem_percent, 8)
+            result.append("MEM:", style="dim white")
+            result.append(f"[{mem_bar}]", style=f"bold {mem_color}")
+            result.append(f"{self.mem_percent:5.1f}%", style=f"bold {mem_color}")
+
+            result.append(" │ ", style="dim white")
+
+            # Network status
+            result.append("NET:", style="dim white")
+            net_color = "green" if self.network_status == "online" else "red"
+            result.append(f"{self.network_status.upper()}", style=f"bold {net_color}")
+
+            # Platform info
+            result.append(" " * 5)
+            result.append("░▒▓ ", style="bold cyan")
+            os_name = platform.system()
+            result.append(f"{os_name}", style="bold magenta")
+            result.append(" ░▒▓", style="bold cyan")
+
+            return result
 
 
 class CompactCyberpunkFooter(Static):
