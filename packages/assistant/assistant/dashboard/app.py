@@ -18,7 +18,7 @@ from .widgets.status import StatusWidget
 from .widgets.activity_feed import ActivityFeed
 from .widgets.header import CyberpunkHeader
 from .widgets.footer import CyberpunkFooter
-from .screens import SettingsScreen, WizardScreen
+from .screens import SettingsScreen, WizardScreen, VoiceVizDemoScreen
 from ..config import Config
 
 
@@ -119,6 +119,9 @@ class VoiceAssistantApp(App):
         elif event.key == "s":
             # Open settings
             self.action_open_settings()
+        elif event.key == "v":
+            # Open voice visualizer demo
+            self.action_open_viz_demo()
         elif event.key == "space":
             # Toggle listening
             if self.state == "idle" or self.state == "ready":
@@ -133,6 +136,11 @@ class VoiceAssistantApp(App):
             # Update config if settings were saved
             self.config = result
             self.update_activity("Settings updated")
+
+    async def action_open_viz_demo(self):
+        """Open voice visualizer demo screen"""
+        await self.push_screen(VoiceVizDemoScreen(), wait_for_dismiss=True)
+        self.update_activity("Opened voice visualizer demo")
 
     def start_listening(self):
         """Start voice input"""
