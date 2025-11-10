@@ -63,45 +63,10 @@ Footer {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   RESPONSIVE BREAKPOINTS - Textual @media queries
+   RESPONSIVE BREAKPOINTS
+   Note: Textual doesn't support CSS @media queries.
+   Responsive behavior is handled through Python code and container layouts.
    ═══════════════════════════════════════════════════════════════════════════ */
-
-/* Small screens (< 80 cols): Stack panels vertically, reduce padding */
-@media (max-width: 79) {
-    #main-container {
-        layout: vertical;  /* Stack vertically on small screens */
-    }
-
-    #left-panel, #right-panel {
-        width: 100%;  /* Full width when stacked */
-        height: 50%;  /* Split screen 50/50 vertically */
-        padding: 0;   /* Remove padding to save space */
-    }
-
-    /* Reduce borders on small screens */
-    #left-panel, #right-panel, #visualizer, #status, #activity {
-        border: solid $neon-green;  /* Thinner borders */
-    }
-}
-
-/* Tiny screens (< 40 cols): Minimal layout, no borders */
-@media (max-width: 39) {
-    #main-container {
-        layout: vertical;
-    }
-
-    #left-panel, #right-panel {
-        width: 100%;
-        height: 50%;
-        padding: 0;
-        border: none;  /* No borders on tiny screens */
-    }
-
-    #visualizer, #status, #activity {
-        border: none;  /* Remove all borders */
-        padding: 0;
-    }
-}
 
 /* ▓▒░ AUDIO VISUALIZER ░▒▓ */
 #visualizer {
