@@ -11,10 +11,12 @@ from textual import events
 from rich.text import Text
 import asyncio
 from typing import Optional
+from pathlib import Path
 
 from .widgets.visualizer import AudioVisualizer
 from .widgets.status import StatusWidget
 from .widgets.activity_feed import ActivityFeed
+from .screens import SettingsScreen, WizardScreen
 from ..config import Config
 
 
@@ -28,9 +30,10 @@ class VoiceAssistantApp(App):
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, personas_dir: Path):
         super().__init__()
         self.config = config
+        self.personas_dir = personas_dir
         self.moshi_bridge: Optional[object] = None
         self.audio_io: Optional[object] = None
 
@@ -102,12 +105,23 @@ class VoiceAssistantApp(App):
         """Handle keyboard input"""
         if event.key == "q":
             self.exit()
+        elif event.key == "s":
+            # Open settings
+            self.action_open_settings()
         elif event.key == "space":
             # Toggle listening
             if self.state == "idle" or self.state == "ready":
                 self.start_listening()
             elif self.state == "listening":
                 self.stop_listening()
+
+    async def action_open_settings(self):
+        """Open settings screen"""
+        result = await self.push_screen(SettingsScreen(self.config, self.personas_dir), wait_for_dismiss=True)
+        if result:
+            # Update config if settings were saved
+            self.config = result
+            self.update_activity("Settings updated")
 
     def start_listening(self):
         """Start voice input"""

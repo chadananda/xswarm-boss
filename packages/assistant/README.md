@@ -44,7 +44,7 @@ cp .env.example .env
 ### Run the Assistant
 
 ```bash
-# Run with default settings
+# Run with default settings (launches interactive TUI)
 python -m assistant.main
 
 # Or use the CLI entry point (after pip install)
@@ -53,44 +53,76 @@ assistant
 # Or the full name
 voice-assistant
 
-# Run with custom options
-assistant --persona JARVIS --device mps
-assistant --server-url http://localhost:3000 --wake-word "computer"
-assistant --no-memory  # Disable memory server
-assistant --debug      # Enable debug logging
+# First run will show setup wizard
+assistant
+
+# Run with debug logging
+assistant --debug
+
+# Use custom config file
+assistant --config /path/to/config.yaml
 ```
+
+## Interactive TUI Interface
+
+The assistant is a **fully interactive TUI application** - all configuration happens inside the interface, not via command-line flags.
+
+### First-Run Setup Wizard
+
+On first launch, you'll see a welcome wizard that guides you through:
+
+1. **Persona Selection** - Choose your assistant's personality
+2. **Device Selection** - Auto-detect or manually select compute device (MPS, CUDA, CPU)
+3. **Wake Word** - Set your activation phrase (e.g., "jarvis", "computer")
+4. **Memory Server** - Configure memory server connection (optional)
+
+Configuration is saved to `~/.config/xswarm/config.yaml` and persists between runs.
+
+### Keyboard Controls
+
+Once running, the TUI provides these keyboard shortcuts:
+
+- **`s`** - Open settings (change any configuration)
+- **`SPACE`** - Toggle listening mode
+- **`q`** - Quit application
+
+### Settings Screen
+
+Press `s` at any time to open the interactive settings screen where you can modify:
+
+- Active persona
+- Compute device (auto/mps/cuda/cpu)
+- Wake word phrase
+- Memory server URL
+- API token
+- Enable/disable memory integration
+
+All changes are saved immediately to your config file.
 
 ## Command Line Options
 
-```
-usage: assistant [-h] [--server-url SERVER_URL] [--api-token API_TOKEN]
-                 [--persona PERSONA] [--wake-word WAKE_WORD]
-                 [--device {auto,mps,cuda,cpu}] [--no-memory] [--debug]
-                 [--version]
+Only development and testing flags are available:
 
-Voice Assistant with MOSHI, Textual TUI, and persona system
+```
+usage: assistant [-h] [--config CONFIG] [--debug] [--version]
+
+Voice Assistant with MOSHI - Interactive TUI
 
 optional arguments:
   -h, --help            show this help message and exit
-  --server-url SERVER_URL
-                        Memory server URL (default: $XSWARM_SERVER_URL or http://localhost:3000)
-  --api-token API_TOKEN
-                        API token for server authentication (default: $XSWARM_API_TOKEN)
-  --persona PERSONA     Persona to load (default: first available)
-  --wake-word WAKE_WORD
-                        Custom wake word (overrides persona)
-  --device {auto,mps,cuda,cpu}
-                        Device for MOSHI (auto, mps, cuda, cpu)
-  --no-memory           Disable memory server integration
+  --config CONFIG       Path to custom config file
   --debug               Enable debug logging
   --version             show program's version number and exit
 
 Examples:
-  assistant                              # Run with default settings
-  assistant --persona JARVIS             # Use specific persona
-  assistant --device mps                 # Force MPS device (Mac M3)
-  assistant --no-memory                  # Disable memory server
-  assistant --server-url http://prod:3000 --persona ASSISTANT
+  assistant                    # Launch interactive TUI
+  assistant --debug            # Launch with debug logging
+  assistant --config /path     # Use custom config file
+
+Configuration:
+  All settings are configured interactively in the TUI.
+  Press 's' inside the app to open settings.
+  Config saved to: ~/.config/xswarm/config.yaml
 ```
 
 ## Running Tests
@@ -677,4 +709,4 @@ assistant --device cuda  # Use NVIDIA/AMD
 
 **The assistant is now complete and ready for user testing!** 🎉
 
-Run `assistant --help` to get started!
+Run `assistant` to launch the interactive TUI and complete the first-run setup wizard!
