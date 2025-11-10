@@ -12,6 +12,7 @@ from rich.text import Text
 import asyncio
 from typing import Optional
 from pathlib import Path
+import pyperclip
 
 from .widgets.visualizer import AudioVisualizer, CyberpunkVisualizer
 from .widgets.panels import VoiceVisualizerPanel, VisualizationStyle
@@ -41,22 +42,23 @@ class VoiceAssistantApp(App):
         self.audio_io: Optional[object] = None
 
     def compose(self) -> ComposeResult:
-        """Compose the dashboard layout - optimized for no scrolling"""
-        yield CyberpunkHeader(id="header")
-
+        """Compose the dashboard layout - activity is main focus"""
         with Container(id="main-container"):
-            # Voice visualizer - THE STAR (takes most space)
-            viz_panel = VoiceVisualizerPanel(
-                visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
-            )
-            viz_panel.id = "visualizer"
-            viz_panel.simulation_mode = True
-            yield viz_panel
-
-            # Bottom row: Status (left) + Activity (right)
-            with Horizontal(id="bottom-row"):
-                yield StatusWidget(id="status")
+            # Top row: Activity (main) + Voice visualizer (small corner)
+            with Horizontal(id="top-row"):
+                # Main activity feed / chat - takes most space
                 yield ActivityFeed(id="activity")
+
+                # Voice visualizer - small square in corner
+                viz_panel = VoiceVisualizerPanel(
+                    visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
+                )
+                viz_panel.id = "visualizer"
+                viz_panel.simulation_mode = True
+                yield viz_panel
+
+            # Bottom row: Status (compact)
+            yield StatusWidget(id="status")
 
         yield CyberpunkFooter(id="footer")
 
@@ -90,10 +92,10 @@ class VoiceAssistantApp(App):
             status.device_name = str(device)
             status.state = "ready"
 
-            # Update header with persona
-            header = self.query_one("#header", CyberpunkHeader)
-            header.update_persona(self.config.persona or "JARVIS")
-            header.update_status("ONLINE")
+            # Update visualizer with persona name
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            persona_name = self.config.default_persona or "JARVIS"
+            visualizer.border_title = f"xSwarm - {persona_name}"
 
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
@@ -103,9 +105,9 @@ class VoiceAssistantApp(App):
             status = self.query_one("#status", StatusWidget)
             status.state = "error"
 
-            # Update header
-            header = self.query_one("#header", CyberpunkHeader)
-            header.update_status("ERROR")
+            # Update visualizer title to show error
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            visualizer.border_title = "xSwarm - ERROR"
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
@@ -141,6 +143,12 @@ class VoiceAssistantApp(App):
                 self.start_listening()
             elif self.state == "listening":
                 self.stop_listening()
+        elif event.key == "ctrl+c":
+            # Copy recent activity to clipboard
+            self.action_copy_activity()
+        elif event.key == "ctrl+v":
+            # Paste from clipboard (shows what's in clipboard)
+            self.action_paste()
 
     async def action_open_settings(self):
         """Open settings screen"""
@@ -164,3 +172,54 @@ class VoiceAssistantApp(App):
         """Stop voice input"""
         self.state = "idle"
         self.update_activity("Stopped listening")
+
+    def action_copy_activity(self):
+        """Copy recent activity messages to clipboard"""
+        try:
+            activity = self.query_one("#activity", ActivityFeed)
+
+            # Get last 20 messages (or all if less than 20)
+            messages = list(activity.messages)[-20:]
+
+            if not messages:
+                self.update_activity("No messages to copy")
+                return
+
+            # Format messages as plain text
+            lines = []
+            for msg in messages:
+                timestamp = msg["timestamp"]
+                msg_type = msg["type"].upper()
+                message = msg["message"]
+                lines.append(f"[{timestamp}] {msg_type}: {message}")
+
+            # Copy to clipboard
+            text = "\n".join(lines)
+            pyperclip.copy(text)
+
+            self.update_activity(f"Copied {len(messages)} messages to clipboard")
+        except Exception as e:
+            self.update_activity(f"Error copying to clipboard: {e}")
+
+    def action_paste(self):
+        """Show clipboard contents in activity feed"""
+        try:
+            clipboard_text = pyperclip.paste()
+
+            if not clipboard_text:
+                self.update_activity("Clipboard is empty")
+                return
+
+            # Show first 200 chars of clipboard
+            preview = clipboard_text[:200]
+            if len(clipboard_text) > 200:
+                preview += "..."
+
+            self.update_activity(f"Clipboard: {preview}")
+
+            # If it's multi-line, show line count
+            lines = clipboard_text.split("\n")
+            if len(lines) > 1:
+                self.update_activity(f"Clipboard contains {len(lines)} lines, {len(clipboard_text)} chars")
+        except Exception as e:
+            self.update_activity(f"Error reading clipboard: {e}")
