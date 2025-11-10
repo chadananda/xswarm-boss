@@ -98,8 +98,8 @@ class VoiceAssistant:
         print("\nInitializing dashboard...")
         self.app = VoiceAssistantApp(self.config, self.personas_dir)
 
-        # 4. MOSHI will be loaded by dashboard
-        print("\nMOSHI will be loaded by dashboard...")
+        # 4. Voice models will be loaded by dashboard
+        print("\nVoice models will be loaded by dashboard...")
 
         print("\n✅ Initialization complete\n")
 
@@ -160,7 +160,7 @@ async def show_wizard(personas_dir: Path) -> Config:
 def main():
     """CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Voice Assistant with MOSHI - Interactive TUI",
+        description="xSwarm Voice Assistant - Interactive TUI with flexible persona system",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
