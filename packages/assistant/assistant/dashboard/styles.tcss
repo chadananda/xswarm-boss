@@ -1,0 +1,49 @@
+/* Main layout */
+#main-container {
+    layout: horizontal;
+    height: 100%;
+}
+
+#left-panel {
+    width: 60%;
+    border: solid green;
+    padding: 1;
+}
+
+#right-panel {
+    width: 40%;
+    border: solid blue;
+    padding: 1;
+}
+
+/* Visualizer */
+#visualizer {
+    height: 70%;
+    border: solid cyan;
+    padding: 1;
+}
+
+/* Status */
+#status {
+    height: 30%;
+    border: solid yellow;
+    padding: 1;
+    margin-top: 1;
+}
+
+/* Activity feed */
+#activity {
+    height: 100%;
+    border: solid magenta;
+    padding: 1;
+    overflow-y: auto;
+}
+
+/* Header/Footer */
+Header {
+    background: $primary;
+}
+
+Footer {
+    background: $secondary;
+}
