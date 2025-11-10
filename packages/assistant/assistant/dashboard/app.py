@@ -41,24 +41,21 @@ class VoiceAssistantApp(App):
         self.audio_io: Optional[object] = None
 
     def compose(self) -> ComposeResult:
-        """Compose the dashboard layout"""
+        """Compose the dashboard layout - optimized for no scrolling"""
         yield CyberpunkHeader(id="header")
 
         with Container(id="main-container"):
-            with Vertical(id="left-panel"):
-                # Voice visualizer - working version from demo
-                viz_panel = VoiceVisualizerPanel(
-                    visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
-                )
-                viz_panel.id = "visualizer"
-                viz_panel.simulation_mode = True
-                yield viz_panel
+            # Voice visualizer - THE STAR (takes most space)
+            viz_panel = VoiceVisualizerPanel(
+                visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
+            )
+            viz_panel.id = "visualizer"
+            viz_panel.simulation_mode = True
+            yield viz_panel
 
-                # Status information
+            # Bottom row: Status (left) + Activity (right)
+            with Horizontal(id="bottom-row"):
                 yield StatusWidget(id="status")
-
-            with Vertical(id="right-panel"):
-                # Activity feed / logs
                 yield ActivityFeed(id="activity")
 
         yield CyberpunkFooter(id="footer")

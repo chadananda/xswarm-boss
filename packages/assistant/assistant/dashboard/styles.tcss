@@ -28,40 +28,32 @@ Screen {
 Header {
     background: $dark-bg;
     color: $neon-cyan;
-    border: heavy $neon-cyan;
+    border: solid $neon-cyan;
     text-style: bold;
+    height: 1;
 }
 
 Footer {
     background: $dark-bg;
     color: $neon-green;
-    border: heavy $neon-green;
+    border: solid $neon-green;
     text-style: bold;
+    height: 1;
 }
 
-/* ▓▒░ MAIN CONTAINER - RESPONSIVE LAYOUT ░▒▓ */
+/* ▓▒░ MAIN CONTAINER - OPTIMIZED NO-SCROLL LAYOUT ░▒▓ */
 #main-container {
-    layout: horizontal;
+    layout: vertical;
     height: 100%;
     background: $darker-bg;
 }
 
-/* ▓▒░ LEFT PANEL (VISUALIZER + STATUS) ░▒▓ */
-#left-panel {
-    width: 3fr;
-    min-width: 40;
-    background: $dark-bg;
-    border: heavy $neon-green;
-    padding: 1;
-}
-
-/* ▓▒░ RIGHT PANEL (ACTIVITY FEED) ░▒▓ */
-#right-panel {
-    width: 2fr;
-    min-width: 30;
-    background: $dark-bg;
-    border: heavy $neon-magenta;
-    padding: 1;
+/* ▓▒░ BOTTOM ROW (STATUS + ACTIVITY) ░▒▓ */
+#bottom-row {
+    layout: horizontal;
+    height: auto;
+    max-height: 8;
+    min-height: 6;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -70,41 +62,41 @@ Footer {
    Responsive behavior is handled through Python code and container layouts.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ▓▒░ AUDIO VISUALIZER ░▒▓ */
+/* ▓▒░ AUDIO VISUALIZER - THE STAR ░▒▓ */
 #visualizer {
     height: 1fr;
     min-height: 15;
     background: $darker-bg;
-    border: heavy $neon-cyan;
-    border-title-align: center;
+    border: solid $neon-cyan;
+    border-title-align: left;
     border-title-style: bold;
     border-title-color: $neon-cyan;
-    padding: 1;
-    margin-bottom: 1;
+    padding: 0 1;
 }
 
-/* ▓▒░ STATUS WIDGET ░▒▓ */
+/* ▓▒░ STATUS WIDGET - COMPACT ░▒▓ */
 #status {
-    height: auto;
-    max-height: 12;
-    background: $darker-bg;
-    border: heavy $neon-yellow;
-    border-title-align: center;
-    border-title-style: bold;
-    border-title-color: $neon-yellow;
-    padding: 1;
-}
-
-/* ▓▒░ ACTIVITY FEED ░▒▓ */
-#activity {
+    width: 1fr;
     height: 100%;
     background: $darker-bg;
-    border: heavy $neon-magenta;
-    border-title-align: center;
+    border: solid $neon-yellow;
+    border-title-align: left;
+    border-title-style: bold;
+    border-title-color: $neon-yellow;
+    padding: 0 1;
+}
+
+/* ▓▒░ ACTIVITY FEED - COMPACT ░▒▓ */
+#activity {
+    width: 2fr;
+    height: 100%;
+    background: $darker-bg;
+    border: solid $neon-magenta;
+    border-title-align: left;
     border-title-style: bold;
     border-title-color: $neon-magenta;
-    padding: 1;
-    overflow-y: auto;
+    padding: 0 1;
+    overflow-y: hidden;
 }
 
 /* ▓▒░ STATE-SPECIFIC STYLES ░▒▓ */
