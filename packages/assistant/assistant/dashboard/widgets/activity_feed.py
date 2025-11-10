@@ -92,51 +92,62 @@ class ActivityFeed(Static):
         """Render HACKER TERMINAL activity feed"""
         result = Text()
 
+        # Get actual widget width (fallback to 40 if too small)
+        widget_width = max(self.size.width, 20)
+        border_width = widget_width - 2  # Account for borders
+        inner_width = border_width - 2  # Account for "║ " padding
+
         # Header with dramatic styling
-        result.append("╔════════════════════════════════════════╗\n", style="bold magenta")
-        result.append("║ ", style="bold magenta")
-        result.append("   SYSTEM ACTIVITY LOG - LIVE FEED  ", style="bold magenta")
-        result.append("   ║\n", style="bold magenta")
-        result.append("╠════════════════════════════════════════╣\n", style="bold magenta")
+        result.append("╔" + "═" * border_width + "╗\n", style="bold magenta")
+
+        # Title centered
+        title = "SYSTEM ACTIVITY LOG - LIVE FEED"
+        title_padding = (border_width - len(title)) // 2
+        result.append("║ " + " " * (title_padding - 1), style="bold magenta")
+        result.append(title, style="bold magenta")
+        remaining = border_width - title_padding - len(title) - 1
+        result.append(" " * remaining + " ║\n", style="bold magenta")
+
+        result.append("╠" + "═" * border_width + "╣\n", style="bold magenta")
 
         if not self.messages:
-            result.append("║ ", style="bold magenta")
-            result.append("  ▓▒░ AWAITING SYSTEM EVENTS ░▒▓      ", style="dim cyan")
-            result.append("  ║\n", style="bold magenta")
-            result.append("║ ", style="bold magenta")
-            result.append("  No activity logged...               ", style="dim white")
-            result.append("  ║\n", style="bold magenta")
+            # Empty message centered
+            empty_msg = "▓▒░ AWAITING SYSTEM EVENTS ░▒▓"
+            empty_padding = (inner_width - len(empty_msg)) // 2
+            result.append("║ " + " " * empty_padding, style="bold magenta")
+            result.append(empty_msg, style="dim cyan")
+            remaining = inner_width - empty_padding - len(empty_msg)
+            result.append(" " * remaining + " ║\n", style="bold magenta")
+
+            no_activity = "No activity logged..."
+            no_padding = (inner_width - len(no_activity)) // 2
+            result.append("║ " + " " * no_padding, style="bold magenta")
+            result.append(no_activity, style="dim white")
+            remaining = inner_width - no_padding - len(no_activity)
+            result.append(" " * remaining + " ║\n", style="bold magenta")
         else:
             # Calculate how many messages we can show
-            # Each message takes 1 line minimum
             visible_height = self.size.height - 4  # Subtract header/footer
             visible_messages = list(self.messages)[-visible_height:] if visible_height > 0 else []
 
             for msg in visible_messages:
                 # Format message
                 msg_text = self._format_message(msg)
-
-                # Wrap long messages to fit in panel
                 msg_str = msg_text.plain
-                panel_width = 40  # Inside panel width
 
                 # If message is too long, truncate
-                if len(msg_str) > panel_width - 2:
-                    # Truncate and add ellipsis
-                    msg_text = self._format_message(msg)
+                if len(msg_str) > inner_width:
                     result.append("║ ", style="bold magenta")
-                    result.append(msg_text.plain[:panel_width - 5], style=msg_text.style)
-                    result.append("...", style="dim white")
-                    result.append(" ║\n", style="bold magenta")
+                    result.append(msg_text.plain[:inner_width - 4], style=msg_text.style)
+                    result.append("... ║\n", style="dim white")
                 else:
                     result.append("║ ", style="bold magenta")
                     result.append(msg_text)
-                    # Pad to panel width
-                    padding = panel_width - len(msg_str) - 2
-                    result.append(" " * padding)
-                    result.append(" ║\n", style="bold magenta")
+                    # Pad to inner width
+                    padding = inner_width - len(msg_str)
+                    result.append(" " * padding + " ║\n")
 
-        result.append("╚════════════════════════════════════════╝", style="bold magenta")
+        result.append("╚" + "═" * border_width + "╝", style="bold magenta")
 
         return result
 

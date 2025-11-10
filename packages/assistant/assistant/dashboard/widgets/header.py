@@ -73,62 +73,70 @@ class CyberpunkHeader(Static):
         """Render header with logo and boot sequence"""
         result = Text()
 
+        # Get actual widget width (fallback to 79 if too small)
+        widget_width = max(self.size.width, 79)
+        border_width = widget_width - 2  # Account for ╔ and ╗
+        inner_width = border_width - 2  # Account for "║ " and " ║"
+
         if not self.boot_complete:
             # Boot sequence display
-            result.append("╔" + "═" * 77 + "╗\n", style="bold cyan")
+            result.append("╔" + "═" * border_width + "╗\n", style="bold cyan")
             result.append("║", style="bold cyan")
-            result.append(" XSWARM VOICE ASSISTANT ".center(77), style="bold yellow")
+            result.append(" XSWARM VOICE ASSISTANT ".center(border_width), style="bold yellow")
             result.append("║\n", style="bold cyan")
             result.append("║", style="bold cyan")
-            result.append(" SYSTEM BOOT SEQUENCE ".center(77), style="bold magenta")
+            result.append(" SYSTEM BOOT SEQUENCE ".center(border_width), style="bold magenta")
             result.append("║\n", style="bold cyan")
-            result.append("╠" + "═" * 77 + "╣\n", style="bold cyan")
+            result.append("╠" + "═" * border_width + "╣\n", style="bold cyan")
 
             # Show boot messages
             for msg in self.boot_messages[-5:]:  # Last 5 messages
                 result.append("║ ", style="bold cyan")
                 result.append("▓▒░ ", style="dim cyan")
                 result.append(msg, style="green")
-                # Pad to 77 chars
-                padding = 77 - len(msg) - 5
+                # Pad to inner_width
+                msg_len = len(msg) + 4  # "▓▒░ " prefix
+                padding = inner_width - msg_len
                 result.append(" " * padding)
-                result.append("║\n", style="bold cyan")
+                result.append(" ║\n", style="bold cyan")
 
             # Fill remaining lines
             shown = len(self.boot_messages[-5:])
             for _ in range(5 - shown):
-                result.append("║" + " " * 77 + "║\n", style="bold cyan")
+                result.append("║" + " " * border_width + "║\n", style="bold cyan")
 
-            result.append("╚" + "═" * 77 + "╝", style="bold cyan")
+            result.append("╚" + "═" * border_width + "╝", style="bold cyan")
 
         else:
-            # Main logo display
+            # Main logo display - fixed width ASCII art
             result.append(self.LOGO, style="bold cyan")
 
-            # Status bar
+            # Status bar - responsive
             result.append("\n")
-            result.append("╔" + "═" * 77 + "╗\n", style="bold magenta")
+            result.append("╔" + "═" * border_width + "╗\n", style="bold magenta")
             result.append("║ ", style="bold magenta")
+
+            # Build status line
+            status_line = f"◉ PERSONA: {self.persona_name}  ◉ STATUS: {self.system_status}  ◉ NEURAL LINK: ACTIVE"
 
             # Left side: Persona
             result.append("◉ PERSONA: ", style="dim white")
             result.append(self.persona_name, style="bold yellow")
 
             # Center: Status
-            center_text = f"  ◉ STATUS: {self.system_status}  "
-            result.append(center_text, style="dim white")
+            result.append("  ◉ STATUS: ", style="dim white")
+            result.append(self.system_status, style="bold green" if self.system_status == "ONLINE" else "dim white")
 
             # Right side: System indicator
-            result.append("◉ NEURAL LINK: ", style="dim white")
+            result.append("  ◉ NEURAL LINK: ", style="dim white")
             result.append("ACTIVE", style="bold green")
 
-            # Padding
-            total = 25 + len(center_text) + 22
-            padding = 77 - total
+            # Padding to fit width
+            padding = inner_width - len(status_line)
             result.append(" " * padding)
 
-            result.append("║\n", style="bold magenta")
-            result.append("╚" + "═" * 77 + "╝", style="bold magenta")
+            result.append(" ║\n", style="bold magenta")
+            result.append("╚" + "═" * border_width + "╝", style="bold magenta")
 
         return result
 

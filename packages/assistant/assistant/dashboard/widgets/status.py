@@ -88,126 +88,152 @@ class StatusWidget(Static):
         """Render status information with MAXIMUM PERSONALITY"""
         result = Text()
 
+        # Get actual widget width (fallback to 36 if too small)
+        widget_width = max(self.size.width, 30)
+        border_width = widget_width - 2  # Account for borders
+        inner_width = border_width - 2  # Account for "║ " padding
+
         # Header with decorative borders
-        result.append("╔════════════════════════════════════╗\n", style="bold yellow")
-        result.append("║ ", style="bold yellow")
-        result.append("   SYSTEM STATUS DASHBOARD    ", style="bold yellow")
-        result.append("  ║\n", style="bold yellow")
-        result.append("╠════════════════════════════════════╣\n", style="bold yellow")
+        result.append("╔" + "═" * border_width + "╗\n", style="bold yellow")
+
+        # Title centered
+        title = "SYSTEM STATUS DASHBOARD"
+        title_padding = (border_width - len(title)) // 2
+        result.append("║ " + " " * (title_padding - 1), style="bold yellow")
+        result.append(title, style="bold yellow")
+        remaining = border_width - title_padding - len(title) - 1
+        result.append(" " * remaining + " ║\n", style="bold yellow")
+
+        result.append("╠" + "═" * border_width + "╣\n", style="bold yellow")
 
         # === DEVICE INFO ===
         result.append("║ ", style="bold yellow")
-        result.append("▓▒░ HARDWARE ░▒▓", style="bold cyan")
-        result.append(" " * 15)
-        result.append("║\n", style="bold yellow")
+        hardware_label = "▓▒░ HARDWARE ░▒▓"
+        result.append(hardware_label, style="bold cyan")
+        result.append(" " * (inner_width - len(hardware_label)))
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
+        device_line = f"  Device: {self.device_name}"
         result.append(f"  Device: ", style="dim white")
         result.append(f"{self.device_name}", style="bold green")
-        # Padding to 38 chars (36 content + 2 border)
-        padding = 38 - 11 - len(self.device_name)
+        padding = inner_width - len(device_line)
         result.append(" " * padding)
-        result.append("║\n", style="bold yellow")
+        result.append(" ║\n", style="bold yellow")
 
         # === STATE INFO ===
         result.append("║ ", style="bold yellow")
-        result.append(" " * 36)
-        result.append("║\n", style="bold yellow")
+        result.append(" " * inner_width)
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append("▓▒░ OPERATIONAL MODE ░▒▓", style="bold magenta")
-        result.append(" " * 12)
-        result.append("║\n", style="bold yellow")
+        mode_label = "▓▒░ OPERATIONAL MODE ░▒▓"
+        result.append(mode_label, style="bold magenta")
+        result.append(" " * (inner_width - len(mode_label)))
+        result.append(" ║\n", style="bold yellow")
 
         # State message
         state_msg = self.STATE_MESSAGES.get(self.state, "UNKNOWN STATE")
         state_color = self.STATE_COLORS.get(self.state, "white")
         result.append("║ ", style="bold yellow")
-        result.append(f"  {state_msg}", style=f"bold {state_color}")
-        padding = 38 - 2 - len(state_msg)
+        state_line = f"  {state_msg}"
+        result.append(state_line, style=f"bold {state_color}")
+        padding = inner_width - len(state_line)
         result.append(" " * padding)
-        result.append("║\n", style="bold yellow")
+        result.append(" ║\n", style="bold yellow")
 
         # === SERVER STATUS ===
         result.append("║ ", style="bold yellow")
-        result.append(" " * 36)
-        result.append("║\n", style="bold yellow")
+        result.append(" " * inner_width)
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
+        server_line = f"  Server: {self.server_status.upper()}"
         result.append("  Server: ", style="dim white")
         server_color = "green" if self.server_status == "connected" else "red"
         result.append(f"{self.server_status.upper()}", style=f"bold {server_color}")
-        padding = 38 - 11 - len(self.server_status)
+        padding = inner_width - len(server_line)
         result.append(" " * padding)
-        result.append("║\n", style="bold yellow")
+        result.append(" ║\n", style="bold yellow")
 
         # === WAKE WORD INDICATOR ===
         if self.last_wake_word:
             result.append("║ ", style="bold yellow")
-            result.append(" " * 36)
-            result.append("║\n", style="bold yellow")
+            result.append(" " * inner_width)
+            result.append(" ║\n", style="bold yellow")
 
             result.append("║ ", style="bold yellow")
+            wake_line = f"  Wake Word: '{self.last_wake_word}'"
             result.append("  Wake Word: ", style="dim white")
             result.append(f"'{self.last_wake_word}'", style="bold yellow")
-            padding = 38 - 14 - len(self.last_wake_word) - 2  # 2 for quotes
+            padding = inner_width - len(wake_line)
             result.append(" " * padding)
-            result.append("║\n", style="bold yellow")
+            result.append(" ║\n", style="bold yellow")
 
         # === SYSTEM METRICS ===
         result.append("║ ", style="bold yellow")
-        result.append(" " * 36)
-        result.append("║\n", style="bold yellow")
+        result.append(" " * inner_width)
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append("▓▒░ SYSTEM METRICS ░▒▓", style="bold cyan")
-        result.append(" " * 14)
-        result.append("║\n", style="bold yellow")
+        metrics_label = "▓▒░ SYSTEM METRICS ░▒▓"
+        result.append(metrics_label, style="bold cyan")
+        result.append(" " * (inner_width - len(metrics_label)))
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append(f"  Uptime: ", style="dim white")
         uptime = self._get_uptime()
+        uptime_line = f"  Uptime: {uptime}"
+        result.append(f"  Uptime: ", style="dim white")
         result.append(f"{uptime}", style="bold green")
-        padding = 38 - 11 - len(uptime)
+        padding = inner_width - len(uptime_line)
         result.append(" " * padding)
-        result.append("║\n", style="bold yellow")
+        result.append(" ║\n", style="bold yellow")
 
         # Neural link strength (simulated)
         result.append("║ ", style="bold yellow")
-        result.append(f"  Neural Link: ", style="dim white")
         link_percent = 0.95 if self.server_status == "connected" else 0.0
-        result.append("█" * 8 if link_percent > 0.9 else "░" * 8)
-        result.append(" 95%", style="bold green" if link_percent > 0.9 else "dim red")
-        result.append(" " * 8)
-        result.append("║\n", style="bold yellow")
+        link_bars = "█" * 8 if link_percent > 0.9 else "░" * 8
+        link_pct = " 95%" if link_percent > 0.9 else "  0%"
+        neural_line = f"  Neural Link: {link_bars}{link_pct}"
+        result.append(f"  Neural Link: ", style="dim white")
+        result.append(link_bars)
+        result.append(link_pct, style="bold green" if link_percent > 0.9 else "dim red")
+        padding = inner_width - len(neural_line)
+        result.append(" " * padding)
+        result.append(" ║\n", style="bold yellow")
 
         # === CONTROLS ===
         result.append("║ ", style="bold yellow")
-        result.append(" " * 36)
-        result.append("║\n", style="bold yellow")
+        result.append(" " * inner_width)
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append("▓▒░ CONTROLS ░▒▓", style="bold magenta")
-        result.append(" " * 19)
-        result.append("║\n", style="bold yellow")
+        controls_label = "▓▒░ CONTROLS ░▒▓"
+        result.append(controls_label, style="bold magenta")
+        result.append(" " * (inner_width - len(controls_label)))
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append("  [SPACE] Toggle Listening", style="dim cyan")
-        result.append(" " * 11)
-        result.append("║\n", style="bold yellow")
+        space_control = "  [SPACE] Toggle Listening"
+        result.append(space_control, style="dim cyan")
+        result.append(" " * (inner_width - len(space_control)))
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append("  [S]     Settings", style="dim cyan")
-        result.append(" " * 18)
-        result.append("║\n", style="bold yellow")
+        s_control = "  [S]     Settings"
+        result.append(s_control, style="dim cyan")
+        result.append(" " * (inner_width - len(s_control)))
+        result.append(" ║\n", style="bold yellow")
 
         result.append("║ ", style="bold yellow")
-        result.append("  [Q]     Quit", style="dim cyan")
-        result.append(" " * 22)
-        result.append("║\n", style="bold yellow")
+        q_control = "  [Q]     Quit"
+        result.append(q_control, style="dim cyan")
+        result.append(" " * (inner_width - len(q_control)))
+        result.append(" ║\n", style="bold yellow")
 
         # Footer
-        result.append("╚════════════════════════════════════╝", style="bold yellow")
+        result.append("╚" + "═" * border_width + "╝", style="bold yellow")
 
         return result
 
