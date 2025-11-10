@@ -19,7 +19,11 @@
   "dependencies": {
     "@libsql/client": "^0.5.6",
     "@noble/hashes": "^2.0.1",
+    "chrono-node": "^2.9.0",
+    "google-auth-library": "^10.5.0",
+    "googleapis": "^164.1.0",
     "jsonwebtoken": "^9.0.2",
+    "node-ical": "^0.22.1",
     "stripe": "^17.5.0",
     "ws": "^8.18.3"
   },

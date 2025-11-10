@@ -263,21 +263,21 @@ export async function getUsageHistory(userId, months = 6, env) {
  */
 function getSubscriptionLimits(tier) {
   const limits = {
-    ai_buddy: {
+    free: {
       voice_minutes: 0,
       sms_messages: 0,
       email_limit: 100, // per day
       has_voice: false,
       has_sms: false,
     },
-    ai_secretary: {
+    personal: {
       voice_minutes: 100,
       sms_messages: 100,
       email_limit: -1, // unlimited
       has_voice: true,
       has_sms: true,
     },
-    ai_project_manager: {
+    professional: {
       voice_minutes: 500,
       sms_messages: 500,
       email_limit: -1, // unlimited
@@ -286,7 +286,7 @@ function getSubscriptionLimits(tier) {
       has_teams: true,
       has_buzz: true,
     },
-    ai_cto: {
+    enterprise: {
       voice_minutes: -1, // unlimited
       sms_messages: -1, // unlimited
       email_limit: -1, // unlimited
@@ -308,7 +308,7 @@ function getSubscriptionLimits(tier) {
     },
   };
 
-  return limits[tier] || limits.ai_buddy;
+  return limits[tier] || limits.free;
 }
 
 /**

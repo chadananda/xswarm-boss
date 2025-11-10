@@ -6,7 +6,7 @@ Supports MPS (Mac M3), ROCm/CUDA (AMD/NVIDIA), and CPU fallback.
 import torch
 import yaml
 from pathlib import Path
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 from pydantic import BaseModel
 
 
@@ -24,7 +24,7 @@ class Config(BaseModel):
     model_dir: Path = Path.home() / ".cache" / "moshi"
 
     # Wake word settings
-    wake_word: str = "jarvis"  # Default, overridden by persona
+    wake_word: str | List[str] = "jarvis"  # Default, overridden by persona
     wake_word_model: Path = Path.home() / ".cache" / "vosk" / "vosk-model-small-en-us-0.15"
     wake_word_sensitivity: float = 0.7  # 0.0-1.0
 
@@ -133,3 +133,22 @@ class Config(BaseModel):
             print(f"Configuration saved to {config_path}")
         except Exception as e:
             print(f"Error saving config to {config_path}: {e}")
+
+    @staticmethod
+    def get_common_wake_words() -> List[str]:
+        """
+        Get list of common wake words that are always available.
+
+        These are generic wake words that users might say when they forget
+        which persona is active. They work in addition to persona-specific names.
+
+        Returns:
+            List of common wake word strings
+        """
+        return [
+            "computer",
+            "alexa",
+            "boss",
+            "assistant",
+            "hey"
+        ]

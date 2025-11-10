@@ -1,0 +1,79 @@
+# Wake Word Detection Configuration
+#
+# This file configures the wake word detection system for xSwarm.
+# Wake words allow hands-free activation of voice features.
+
+[wake_words]
+# Enable wake word detection
+enabled = true
+
+# Detection sensitivity (0.0 - 1.0)
+# Higher values = more sensitive (more detections, more false positives)
+# Lower values = less sensitive (fewer false positives, may miss real detections)
+sensitivity = 0.5
+
+# Detection threshold (0.0 - 1.0)
+# Higher values = more strict (fewer false positives, may miss real detections)
+# Lower values = less strict (more detections, more false positives)
+threshold = 0.5
+
+# Active wake words to listen for
+# Built-in wake words: "hey_hal", "hey_xswarm"
+# Custom wake words require trained models (see voice_training section)
+keywords = ["hey_hal", "hey_xswarm"]
+
+# Path to custom wake word model files (.rpw files)
+# Models should be placed in this directory
+custom_models_path = "~/.xswarm/wake_words/"
+
+# Enable proactive suggestion system
+# When enabled, the system may proactively offer assistance
+# based on your activity patterns and preferences
+enable_suggestions = true
+
+# Interval between proactive suggestions (minutes)
+# The system will check if it should make a suggestion at this interval
+suggestion_interval_minutes = 30
+
+# Privacy mode
+# When enabled:
+# - All audio processing happens locally
+# - No audio logging
+# - Recordings are immediately deleted after processing
+privacy_mode = true
+
+# Specific audio input device (optional)
+# Leave commented to use system default microphone
+# audio_device = "MacBook Pro Microphone"
+
+[voice_training]
+# Enable custom wake word training
+# This allows you to train the system to recognize custom wake words
+# or improve recognition for built-in wake words
+enable_custom_training = false
+
+# Number of sample recordings required for training
+# More samples = better accuracy, but takes longer to train
+# Minimum: 5, Recommended: 20-30
+training_samples_count = 20
+
+# Path to store trained voice models
+voice_model_path = "~/.xswarm/voice_models/"
+
+[privacy]
+# Only process audio locally, never send to cloud services
+# This ensures all wake word detection happens on your device
+local_processing_only = true
+
+# Enable audio logging for debugging
+# WARNING: This may record audio snippets to disk
+# Only enable if you're debugging wake word detection issues
+audio_logging_enabled = false
+
+# Automatically delete audio recordings after processing
+# Recommended: true for privacy
+auto_delete_recordings = true
+
+# How long to retain recordings when auto_delete is false (hours)
+# Only applies if auto_delete_recordings = false
+retention_hours = 24

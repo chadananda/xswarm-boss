@@ -1,0 +1,23 @@
+<svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- xSwarm logo - hexagonal swarm pattern -->
+  <defs>
+    <linearGradient id="swarmGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1E40AF;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Central hexagon -->
+  <polygon points="50,15 65,25 65,45 50,55 35,45 35,25" fill="url(#swarmGrad)" stroke="#1E40AF" stroke-width="2"/>
+
+  <!-- Surrounding smaller hexagons -->
+  <polygon points="25,25 32.5,30 32.5,40 25,45 17.5,40 17.5,30" fill="url(#swarmGrad)" opacity="0.7"/>
+  <polygon points="75,25 82.5,30 82.5,40 75,45 67.5,40 67.5,30" fill="url(#swarmGrad)" opacity="0.7"/>
+  <polygon points="37.5,5 45,10 45,20 37.5,25 30,20 30,10" fill="url(#swarmGrad)" opacity="0.5"/>
+  <polygon points="62.5,5 70,10 70,20 62.5,25 55,20 55,10" fill="url(#swarmGrad)" opacity="0.5"/>
+  <polygon points="37.5,65 45,70 45,80 37.5,85 30,80 30,70" fill="url(#swarmGrad)" opacity="0.5"/>
+  <polygon points="62.5,65 70,70 70,80 62.5,85 55,80 55,70" fill="url(#swarmGrad)" opacity="0.5"/>
+
+  <!-- X overlay in center -->
+  <path d="M42 32 L58 48 M58 32 L42 48" stroke="white" stroke-width="3" stroke-linecap="round"/>
+</svg>

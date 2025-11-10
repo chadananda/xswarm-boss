@@ -13,6 +13,16 @@ import { handleStripeWebhook } from './routes/stripe.js';
 import { handleLFS } from './routes/lfs.js';
 import { handleBossIntro, handleBossResponse, triggerBossCall, handleInboundCall, handleMoshiCall } from './routes/boss-call.js';
 import { handleInboundEmail, sendBossEmail } from './routes/email.js';
+import {
+  handleGmailAuth,
+  handleGmailCallback,
+  handleEmailQuery,
+  handleEmailBriefing,
+  handleEmailSummarize,
+  handleEmailCompose,
+  handleEmailStatus,
+  handleEmailDisconnect,
+} from './routes/email-management.js';
 import { handleMoshiWebSocket } from './routes/moshi-proxy.js';
 import { handleGetIdentity, handleAuthValidate } from './routes/identity.js';
 import { handleSignup } from './routes/auth/signup.js';
@@ -107,6 +117,31 @@ import {
   handleGetCategories,
   handleGetStats,
 } from './routes/buzz/index.js';
+import {
+  handleGetUsage,
+  handleGetBillingHistory,
+  handleEstimateCosts,
+  handleGetUpcomingInvoice,
+} from './routes/billing-api.js';
+import {
+  handleProvisionPhone,
+  handleReleasePhone,
+  handleGetPhoneDetails,
+  handleSearchPhoneNumbers,
+  handlePhoneStatusCallback,
+} from './routes/phone-api.js';
+import {
+  handleCreatePersona,
+  handleListPersonas,
+  handleGetActivePersona,
+  handleGetPersona,
+  handleUpdatePersona,
+  handleDeletePersona,
+  handleActivatePersona,
+  handleAddExample,
+  handleTrainVoice,
+  handleGetTrainingStatus,
+} from './routes/personas.js';
 
 export default {
   async fetch(request, env, ctx) {
@@ -275,6 +310,33 @@ export default {
       // Outbound email (Boss progress reports)
       if (path === '/api/boss/email' && request.method === 'POST') {
         return await sendBossEmail(request, env);
+      }
+
+      // Email Management API (Gmail integration)
+      if (path === '/api/email/auth/gmail' && request.method === 'POST') {
+        return await handleGmailAuth(request, env);
+      }
+      if (path === '/api/email/auth/callback' && request.method === 'GET') {
+        return await handleGmailCallback(request, env);
+      }
+      if (path === '/api/email/query' && request.method === 'POST') {
+        return await handleEmailQuery(request, env);
+      }
+      if (path === '/api/email/briefing' && request.method === 'GET') {
+        return await handleEmailBriefing(request, env);
+      }
+      if (path.match(/^\/api\/email\/summarize\/[^/]+$/) && request.method === 'POST') {
+        const emailId = path.split('/')[4];
+        return await handleEmailSummarize(request, env, emailId);
+      }
+      if (path === '/api/email/compose' && request.method === 'POST') {
+        return await handleEmailCompose(request, env);
+      }
+      if (path === '/api/email/status' && request.method === 'GET') {
+        return await handleEmailStatus(request, env);
+      }
+      if (path === '/api/email/disconnect' && request.method === 'DELETE') {
+        return await handleEmailDisconnect(request, env);
       }
 
       // Unified API endpoint for CLI/direct API calls
@@ -535,6 +597,77 @@ export default {
         if (request.method === 'PUT') {
           return await updateReminder(request, env, reminderId);
         }
+      }
+
+      // Billing API routes
+      if (path === '/api/billing/usage' && request.method === 'GET') {
+        return await handleGetUsage(request, env);
+      }
+      if (path === '/api/billing/history' && request.method === 'GET') {
+        return await handleGetBillingHistory(request, env);
+      }
+      if (path === '/api/billing/estimate' && request.method === 'POST') {
+        return await handleEstimateCosts(request, env);
+      }
+      if (path === '/api/billing/upcoming' && request.method === 'GET') {
+        return await handleGetUpcomingInvoice(request, env);
+      }
+
+      // Phone provisioning API routes
+      if (path === '/api/phone/provision' && request.method === 'POST') {
+        return await handleProvisionPhone(request, env);
+      }
+      if (path === '/api/phone/release' && request.method === 'DELETE') {
+        return await handleReleasePhone(request, env);
+      }
+      if (path === '/api/phone/details' && request.method === 'GET') {
+        return await handleGetPhoneDetails(request, env);
+      }
+      if (path === '/api/phone/search' && request.method === 'GET') {
+        return await handleSearchPhoneNumbers(request, env);
+      }
+      if (path.match(/^\/phone\/status\/[^/]+$/) && request.method === 'POST') {
+        const userId = path.split('/')[3];
+        return await handlePhoneStatusCallback(request, env, userId);
+      }
+
+      // Persona Management API routes
+      if (path === '/api/personas' && request.method === 'POST') {
+        return await handleCreatePersona(request, env);
+      }
+      if (path === '/api/personas' && request.method === 'GET') {
+        return await handleListPersonas(request, env);
+      }
+      if (path === '/api/personas/active' && request.method === 'GET') {
+        return await handleGetActivePersona(request, env);
+      }
+      if (path.match(/^\/api\/personas\/[^/]+$/)) {
+        const personaId = path.split('/')[3];
+        if (request.method === 'GET') {
+          return await handleGetPersona(request, env, personaId);
+        }
+        if (request.method === 'PUT') {
+          return await handleUpdatePersona(request, env, personaId);
+        }
+        if (request.method === 'DELETE') {
+          return await handleDeletePersona(request, env, personaId);
+        }
+      }
+      if (path.match(/^\/api\/personas\/[^/]+\/activate$/) && request.method === 'POST') {
+        const personaId = path.split('/')[3];
+        return await handleActivatePersona(request, env, personaId);
+      }
+      if (path.match(/^\/api\/personas\/[^/]+\/learn$/) && request.method === 'POST') {
+        const personaId = path.split('/')[3];
+        return await handleAddExample(request, env, personaId);
+      }
+      if (path.match(/^\/api\/personas\/[^/]+\/train-voice$/) && request.method === 'POST') {
+        const personaId = path.split('/')[3];
+        return await handleTrainVoice(request, env, personaId);
+      }
+      if (path.match(/^\/api\/personas\/[^/]+\/training-status$/) && request.method === 'GET') {
+        const personaId = path.split('/')[3];
+        return await handleGetTrainingStatus(request, env, personaId);
       }
 
       // 404 for unknown routes

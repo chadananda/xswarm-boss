@@ -22,10 +22,10 @@
   "dependencies": {
     "@astrojs/check": "^0.3.4",
     "@astrojs/starlight": "^0.15.2",
-    "astro": "^4.0.8",
-    "sharp": "^0.32.6"
+    "astro": "^4.0.8"
   },
   "devDependencies": {
+    "sharp": "^0.34.4",
     "typescript": "^5.3.3"
   }
 }

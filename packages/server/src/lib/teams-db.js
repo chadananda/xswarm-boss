@@ -36,7 +36,7 @@ function getDbClient(env) {
  * @param {string} teamData.name - Team name
  * @param {string} teamData.description - Team description (optional)
  * @param {string} teamData.owner_id - User ID of team owner
- * @param {string} teamData.subscription_tier - Subscription tier (ai_project_manager, ai_cto)
+ * @param {string} teamData.subscription_tier - Subscription tier (professional, enterprise)
  * @param {Object} env - Environment variables
  * @returns {Promise<Object>} Created team record
  */
@@ -47,7 +47,7 @@ export async function createTeam(teamData, env) {
   const now = new Date().toISOString();
 
   // Determine max_members based on tier
-  const maxMembers = teamData.subscription_tier === 'ai_cto' ? -1 : 10;
+  const maxMembers = teamData.subscription_tier === 'enterprise' ? -1 : 10;
 
   try {
     // Begin transaction - create team and add owner as member

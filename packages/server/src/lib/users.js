@@ -380,29 +380,113 @@ function formatUserRecord(row) {
 /**
  * Check if user has permission for a feature based on subscription tier
  *
+ * Enhanced version with comprehensive feature checking and usage limits.
+ * Integrates with centralized feature definitions from features.js
+ *
  * @param {Object} user - User object
- * @param {string} feature - Feature name (voice, sms, email, phone)
- * @returns {boolean} True if user has access to feature
+ * @param {string} feature - Feature name (voice, sms, email, calendar, teams, buzz, etc.)
+ * @param {Object} env - Environment variables (optional, for usage checking)
+ * @returns {boolean|Promise<boolean|Object>} True if user has access, or detailed object with usage info
  */
-export function userHasFeature(user, feature) {
-  const tier = user.subscription_tier;
+export function userHasFeature(user, feature, env = null) {
+  const tier = user.subscription_tier || 'free';
 
   // Admin tier has access to everything
-  if (tier === 'admin') {
+  if (tier === 'admin') return true;
+
+  // Map legacy feature names to new system
+  const legacyMap = {
+    voice: 'voice_minutes',
+    sms: 'sms_messages',
+    email: 'email_daily',
+    phone: 'voice_minutes',
+    teams: 'team_collaboration',
+    buzz: 'buzz_workspace'
+  };
+
+  const mappedFeature = legacyMap[feature] || feature;
+
+  // If env provided, do advanced async check with usage limits
+  if (env) {
+    return userHasFeatureAdvanced(user, mappedFeature, env);
+  }
+
+  // Synchronous basic check (backward compatible)
+  try {
+    // Try to import and use centralized features (sync path)
+    const { hasFeature } = require('./features.js');
+    return hasFeature(tier, mappedFeature);
+  } catch (error) {
+    // Fallback to legacy checking if features.js not available
+    const tierFeatures = {
+      free: ['email', 'email_daily'],
+      personal: ['email', 'email_daily', 'voice', 'voice_minutes', 'sms', 'sms_messages', 'phone', 'calendar_access'],
+      professional: ['email', 'email_daily', 'voice', 'voice_minutes', 'sms', 'sms_messages', 'phone', 'calendar_access', 'teams', 'team_collaboration', 'buzz', 'buzz_workspace'],
+      enterprise: ['email', 'email_daily', 'voice', 'voice_minutes', 'sms', 'sms_messages', 'phone', 'calendar_access', 'teams', 'team_collaboration', 'buzz', 'buzz_workspace', 'enterprise'],
+    };
+
+    return tierFeatures[tier]?.includes(mappedFeature) ?? false;
+  }
+}
+
+/**
+ * Advanced feature check with usage limits (async)
+ *
+ * @param {Object} user - User object
+ * @param {string} feature - Feature name
+ * @param {Object} env - Environment variables
+ * @returns {Promise<boolean|Object>} Access status with usage details
+ */
+async function userHasFeatureAdvanced(user, feature, env) {
+  const tier = user.subscription_tier || 'free';
+
+  try {
+    const { hasFeature, checkLimit } = await import('./features.js');
+
+    // Check if feature is available for tier
+    const hasAccess = hasFeature(tier, feature);
+
+    if (!hasAccess) {
+      return {
+        allowed: false,
+        reason: 'feature_not_available',
+        tier,
+        feature
+      };
+    }
+
+    // Check usage limits for metered features
+    const meteredFeatures = ['voice_minutes', 'sms_messages', 'email_daily'];
+
+    if (meteredFeatures.includes(feature)) {
+      const { getCurrentUsage } = await import('./usage-tracker.js');
+      const usage = await getCurrentUsage(user.id, env);
+
+      const featureMap = {
+        voice_minutes: usage.voice_minutes,
+        sms_messages: usage.sms_messages,
+        email_daily: usage.email_count
+      };
+
+      const currentUsage = featureMap[feature] || 0;
+      const limitCheck = checkLimit(tier, feature, currentUsage);
+
+      return {
+        allowed: limitCheck.allowed,
+        usage: currentUsage,
+        limit: limitCheck.limit,
+        remaining: limitCheck.remaining,
+        overage: limitCheck.overage,
+        overage_allowed: limitCheck.overage_allowed
+      };
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error checking feature access:', error);
+    // Fail open - allow access but log error
     return true;
   }
-
-  // Free tier only has email
-  if (tier === 'free') {
-    return feature === 'email';
-  }
-
-  // Premium tier has all features
-  if (tier === 'premium' || tier === 'enterprise') {
-    return true;
-  }
-
-  return false;
 }
 
 /**

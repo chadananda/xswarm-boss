@@ -71,10 +71,42 @@ class VoiceAssistant:
             if current_persona:
                 print(f"✅ Active persona: {persona_name}")
 
-                # Update wake word from persona if specified
+                # Build comprehensive wake word list:
+                # 1. All persona names (so user doesn't need to remember which is active)
+                # 2. Common wake words (computer, alexa, boss, etc.)
+                # 3. Persona-specific wake word if defined
+
+                all_wake_words = []
+
+                # Add all persona names (lowercase)
+                persona_names = [name.lower() for name in available_personas]
+                all_wake_words.extend(persona_names)
+
+                # Add common wake words
+                common_wake_words = Config.get_common_wake_words()
+                all_wake_words.extend(common_wake_words)
+
+                # Add persona-specific wake word if defined (avoid duplicates)
                 if hasattr(current_persona, 'wake_word') and current_persona.wake_word:
-                    self.config.wake_word = current_persona.wake_word
-                    print(f"   Wake word: {self.config.wake_word}")
+                    persona_wake_word = current_persona.wake_word.lower()
+                    if persona_wake_word not in all_wake_words:
+                        all_wake_words.append(persona_wake_word)
+
+                # Remove duplicates while preserving order
+                seen = set()
+                unique_wake_words = []
+                for word in all_wake_words:
+                    if word not in seen:
+                        seen.add(word)
+                        unique_wake_words.append(word)
+
+                # Store the complete list in config
+                self.config.wake_word = unique_wake_words
+
+                # Show summary
+                print(f"   Wake words: {len(unique_wake_words)} active")
+                print(f"   - Persona names: {', '.join(persona_names)}")
+                print(f"   - Common: {', '.join(common_wake_words)}")
         else:
             print("⚠️  No personas found - using default settings")
 
