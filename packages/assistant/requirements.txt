@@ -1,0 +1,36 @@
+# Core ML & Audio
+torch>=2.2.0                # PyTorch (ROCm/MPS/CPU support)
+torchaudio>=2.2.0
+numpy>=2.1.0
+scipy>=1.11.0              # Audio resampling
+sounddevice>=0.5.0         # Audio I/O (replaces CPAL)
+
+# MOSHI (needs to be installed from source or local)
+# Install: cd /tmp/moshi-official/moshi && pip install -e .
+sentencepiece>=0.2.0       # Text tokenization
+
+# TUI Dashboard
+textual>=0.47.0            # Modern TUI framework
+rich>=13.7.0               # Rich text rendering
+
+# Wake Word & Transcription
+vosk>=0.3.45               # Wake word detection (offline)
+# faster-whisper>=1.0.0    # Optional: full transcription
+
+# Memory (optional local embeddings)
+# sentence-transformers>=2.3.0
+
+# Networking
+httpx>=0.26.0              # Async HTTP client
+websockets>=12.0           # WebSocket client
+
+# Config & Utils
+python-dotenv>=1.0.0       # .env file loading
+pydantic>=2.5.0            # Config validation
+pyyaml>=6.0.1              # YAML configs
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.23.0
+black>=23.12.0
+mypy>=1.7.0

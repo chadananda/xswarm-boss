@@ -39,6 +39,7 @@ use tracing_subscriber;
 
 #[derive(Parser)]
 #[command(name = "xswarm")]
+#[command(version)]
 #[command(about = "Voice-First AI Assistant", long_about = "
 xSwarm is a voice-first AI assistant that you interact with by speaking.
 
@@ -734,14 +735,21 @@ async fn run_moshi_test_mode() -> Result<()> {
     // Create tmp directory
     std::fs::create_dir_all("./tmp")?;
 
-    // Step 1: Generate test audio if needed
-    let test_audio_path = "./tmp/test-user-hello.wav";
-    if !std::path::Path::new(test_audio_path).exists() {
-        println!("📝 Generating test audio...");
-        moshi_test::generate_test_audio(test_audio_path)?;
-        println!("✅ Test audio generated: {}", test_audio_path);
+    // Step 1: Get or generate test audio
+    let test_audio_path = if let Ok(custom_path) = std::env::var("MOSHI_TEST_INPUT") {
+        println!("📝 Using custom test audio: {}", custom_path);
         println!();
-    }
+        custom_path
+    } else {
+        let path = "./tmp/test-user-hello.wav";
+        if !std::path::Path::new(path).exists() {
+            println!("📝 Generating test audio...");
+            moshi_test::generate_test_audio(path)?;
+            println!("✅ Test audio generated: {}", path);
+            println!();
+        }
+        path.to_string()
+    };
 
     // Step 2: Initialize voice bridge and run MOSHI
     println!("🔊 Initializing MOSHI voice models...");
@@ -750,7 +758,12 @@ async fn run_moshi_test_mode() -> Result<()> {
 
     info!("MOSHI_TEST: Initializing voice bridge for testing...");
 
-    let voice_config = voice::VoiceConfig::default();
+    // v13.2 CPU TEST: Allow forcing CPU mode via environment variable
+    let mut voice_config = voice::VoiceConfig::default();
+    if std::env::var("MOSHI_USE_CPU").is_ok() {
+        info!("MOSHI_TEST: FORCING CPU MODE (via MOSHI_USE_CPU env var)");
+        voice_config.use_cpu = true;
+    }
     let voice_bridge = Arc::new(voice::VoiceBridge::new(voice_config.clone()).await?);
 
     info!("MOSHI_TEST: Voice bridge initialized successfully");
@@ -758,7 +771,7 @@ async fn run_moshi_test_mode() -> Result<()> {
     println!("✅ MOSHI models loaded");
     println!();
     println!("🎤 Processing test audio through MOSHI...");
-    println!("   Input: {}", test_audio_path);
+    println!("   Input: {}", &test_audio_path);
     println!();
 
     // Run MOSHI processing

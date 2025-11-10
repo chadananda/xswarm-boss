@@ -16,6 +16,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn, error, debug};
+use std::env;
+use chrono;
 
 /// Server connection configuration (from config.toml [server] section)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -133,8 +135,78 @@ impl ServerClient {
         })
     }
 
+    /// Check if dev mode is active
+    /// Returns true if XSWARM_DEV_ADMIN_EMAIL and XSWARM_DEV_ADMIN_PASS are both present and valid
+    fn is_dev_mode() -> bool {
+        let dev_email = env::var("XSWARM_DEV_ADMIN_EMAIL").ok();
+        let dev_password = env::var("XSWARM_DEV_ADMIN_PASS").ok();
+
+        // Both must be present
+        if dev_email.is_none() || dev_password.is_none() {
+            return false;
+        }
+
+        let dev_password = dev_password.unwrap();
+
+        // Password must not be empty
+        if dev_password.is_empty() {
+            return false;
+        }
+
+        true
+    }
+
+    /// Create a mock admin identity for dev mode
+    /// Uses admin details from config.toml and environment variables
+    fn create_mock_admin_identity() -> UserIdentity {
+        let dev_email = env::var("XSWARM_DEV_ADMIN_EMAIL")
+            .unwrap_or_else(|_| "admin@xswarm.dev".to_string());
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        UserIdentity {
+            id: "dev-admin-001".to_string(),
+            username: "admin".to_string(),
+            name: Some("Dev Admin".to_string()),
+            email: dev_email.clone(),
+            user_phone: "+15555550001".to_string(),
+            xswarm_email: dev_email,
+            xswarm_phone: Some("+15555550001".to_string()),
+            subscription_tier: "admin".to_string(),
+            persona: "professional".to_string(),
+            wake_word: Some("hey assistant".to_string()),
+
+            // Admin has all permissions
+            can_use_voice: true,
+            can_use_sms: true,
+            can_use_email: true,
+            can_provision_numbers: true,
+
+            // Unlimited usage limits (None = unlimited)
+            voice_minutes_remaining: None,
+            sms_messages_remaining: None,
+
+            created_at: now.clone(),
+            updated_at: Some(now),
+        }
+    }
+
     /// Get user identity from server (cached during session)
     pub async fn get_identity(&self) -> Result<UserIdentity> {
+        // Check if dev mode is active
+        if Self::is_dev_mode() {
+            info!("Dev mode active - using mock admin identity (bypassing server)");
+            let mock_identity = Self::create_mock_admin_identity();
+
+            // Cache the mock identity
+            {
+                let mut cached = self.cached_identity.write().await;
+                *cached = Some(mock_identity.clone());
+            }
+
+            return Ok(mock_identity);
+        }
+
         // Check cache first
         {
             let cached = self.cached_identity.read().await;
@@ -209,6 +281,12 @@ impl ServerClient {
 
     /// Check if server is reachable
     pub async fn health_check(&self) -> Result<bool> {
+        // In dev mode, always return healthy (skip server check)
+        if Self::is_dev_mode() {
+            debug!("Dev mode active - health check bypassed (returning OK)");
+            return Ok(true);
+        }
+
         let url = format!("{}/health", self.config.base_url());
 
         match self.http_client.get(&url).send().await {
@@ -230,6 +308,12 @@ impl ServerClient {
 
     /// Authenticate with the server and validate token
     pub async fn authenticate(&self) -> Result<bool> {
+        // In dev mode, always return authenticated (skip server auth)
+        if Self::is_dev_mode() {
+            info!("Dev mode active - authentication bypassed (returning OK)");
+            return Ok(true);
+        }
+
         let url = format!("{}/auth/validate", self.config.api_url());
 
         let mut request = self.http_client.post(&url);
