@@ -13,9 +13,11 @@ import asyncio
 from typing import Optional
 from pathlib import Path
 
-from .widgets.visualizer import AudioVisualizer
+from .widgets.visualizer import AudioVisualizer, CyberpunkVisualizer
 from .widgets.status import StatusWidget
 from .widgets.activity_feed import ActivityFeed
+from .widgets.header import CyberpunkHeader
+from .widgets.footer import CyberpunkFooter
 from .screens import SettingsScreen, WizardScreen
 from ..config import Config
 
@@ -39,12 +41,12 @@ class VoiceAssistantApp(App):
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout"""
-        yield Header()
+        yield CyberpunkHeader(id="header")
 
         with Container(id="main-container"):
             with Vertical(id="left-panel"):
-                # Audio visualizer (pulsing circle)
-                yield AudioVisualizer(id="visualizer")
+                # Cyberpunk audio visualizer with DRAMATIC effects
+                yield CyberpunkVisualizer(id="visualizer")
 
                 # Status information
                 yield StatusWidget(id="status")
@@ -53,7 +55,7 @@ class VoiceAssistantApp(App):
                 # Activity feed / logs
                 yield ActivityFeed(id="activity")
 
-        yield Footer()
+        yield CyberpunkFooter(id="footer")
 
     def on_mount(self) -> None:
         """Initialize on mount"""
@@ -78,6 +80,11 @@ class VoiceAssistantApp(App):
             status.device_name = str(device)
             status.state = "ready"
 
+            # Update header with persona
+            header = self.query_one("#header", CyberpunkHeader)
+            header.update_persona(self.config.persona or "JARVIS")
+            header.update_status("ONLINE")
+
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
             self.state = "error"
@@ -86,9 +93,13 @@ class VoiceAssistantApp(App):
             status = self.query_one("#status", StatusWidget)
             status.state = "error"
 
+            # Update header
+            header = self.query_one("#header", CyberpunkHeader)
+            header.update_status("ERROR")
+
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
-        visualizer = self.query_one("#visualizer", AudioVisualizer)
+        visualizer = self.query_one("#visualizer", CyberpunkVisualizer)
         visualizer.amplitude = self.amplitude
         visualizer.state = self.state
 

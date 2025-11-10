@@ -1,49 +1,189 @@
-/* Main layout */
+/* ═══════════════════════════════════════════════════════════════════════════
+   XSWARM VOICE ASSISTANT - CYBERPUNK THEME
+   "Overabundant Personality" Edition
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ▓▒░ CYBERPUNK COLOR PALETTE ░▒▓ */
+$neon-cyan: #00ffff;
+$neon-green: #00ff00;
+$neon-magenta: #ff00ff;
+$neon-purple: #9d00ff;
+$neon-yellow: #ffff00;
+$neon-red: #ff0040;
+$neon-blue: #0080ff;
+
+$dark-bg: #0a0e27;
+$darker-bg: #000000;
+$grid-color: #1a1f3a;
+$dim-cyan: #004d4d;
+$dim-green: #004d00;
+$dim-magenta: #4d004d;
+
+/* ▓▒░ BASE APPLICATION ░▒▓ */
+Screen {
+    background: $darker-bg;
+}
+
+/* ▓▒░ HEADER & FOOTER ░▒▓ */
+Header {
+    background: $dark-bg;
+    color: $neon-cyan;
+    border: heavy $neon-cyan;
+    text-style: bold;
+}
+
+Footer {
+    background: $dark-bg;
+    color: $neon-green;
+    border: heavy $neon-green;
+    text-style: bold;
+}
+
+/* ▓▒░ MAIN CONTAINER ░▒▓ */
 #main-container {
     layout: horizontal;
     height: 100%;
+    background: $darker-bg;
 }
 
+/* ▓▒░ LEFT PANEL (VISUALIZER + STATUS) ░▒▓ */
 #left-panel {
     width: 60%;
-    border: solid green;
+    background: $dark-bg;
+    border: heavy $neon-green;
     padding: 1;
 }
 
+/* ▓▒░ RIGHT PANEL (ACTIVITY FEED) ░▒▓ */
 #right-panel {
     width: 40%;
-    border: solid blue;
+    background: $dark-bg;
+    border: heavy $neon-magenta;
     padding: 1;
 }
 
-/* Visualizer */
+/* ▓▒░ AUDIO VISUALIZER ░▒▓ */
 #visualizer {
     height: 70%;
-    border: solid cyan;
+    background: $darker-bg;
+    border: heavy $neon-cyan;
+    border-title-align: center;
+    border-title-style: bold;
+    border-title-color: $neon-cyan;
     padding: 1;
+    margin-bottom: 1;
 }
 
-/* Status */
+/* ▓▒░ STATUS WIDGET ░▒▓ */
 #status {
     height: 30%;
-    border: solid yellow;
+    background: $darker-bg;
+    border: heavy $neon-yellow;
+    border-title-align: center;
+    border-title-style: bold;
+    border-title-color: $neon-yellow;
     padding: 1;
-    margin-top: 1;
 }
 
-/* Activity feed */
+/* ▓▒░ ACTIVITY FEED ░▒▓ */
 #activity {
     height: 100%;
-    border: solid magenta;
+    background: $darker-bg;
+    border: heavy $neon-magenta;
+    border-title-align: center;
+    border-title-style: bold;
+    border-title-color: $neon-magenta;
     padding: 1;
     overflow-y: auto;
 }
 
-/* Header/Footer */
-Header {
-    background: $primary;
+/* ▓▒░ STATE-SPECIFIC STYLES ░▒▓ */
+.state-idle {
+    color: $neon-cyan;
+    text-style: bold;
 }
 
-Footer {
-    background: $secondary;
+.state-listening {
+    color: $neon-green;
+    text-style: bold;
 }
+
+.state-speaking {
+    color: $neon-yellow;
+    text-style: bold;
+}
+
+.state-thinking {
+    color: $neon-magenta;
+    text-style: bold;
+}
+
+.state-error {
+    color: $neon-red;
+    text-style: bold;
+}
+
+/* ▓▒░ MESSAGE TYPE STYLES ░▒▓ */
+.msg-info {
+    color: $neon-cyan;
+}
+
+.msg-success {
+    color: $neon-green;
+    text-style: bold;
+}
+
+.msg-warning {
+    color: $neon-yellow;
+}
+
+.msg-error {
+    color: $neon-red;
+    text-style: bold;
+}
+
+.msg-system {
+    color: $neon-purple;
+    text-style: bold;
+}
+
+/* ▓▒░ SPECIAL EFFECTS ░▒▓ */
+.glitch {
+    text-style: bold reverse;
+}
+
+.scanline {
+    color: $dim-cyan;
+    text-style: dim;
+}
+
+.highlight {
+    background: $dim-green;
+    color: $neon-green;
+    text-style: bold;
+}
+
+/* ▓▒░ PROGRESS BARS ░▒▓ */
+.progress-bar {
+    color: $neon-cyan;
+    text-style: bold;
+}
+
+.progress-fill {
+    background: $dim-cyan;
+    color: $neon-cyan;
+    text-style: bold;
+}
+
+/* ▓▒░ ASCII ART HEADER ░▒▓ */
+.ascii-logo {
+    color: $neon-cyan;
+    text-style: bold;
+}
+
+.ascii-accent {
+    color: $neon-magenta;
+    text-style: bold;
+}
+
+/* ▓▒░ END TRANSMISSION ░▒▓ */
