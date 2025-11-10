@@ -23,5 +23,5 @@ avoid_phrases:
 terminology:
   schedule: "calendar"
   email: "correspondence"
-  task: "item" or "action item"
-  urgent: "time-sensitive" or "critical"
+  task: "item or action item"
+  urgent: "time-sensitive or critical"

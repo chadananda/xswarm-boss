@@ -4,7 +4,7 @@ Personas are loaded from external YAML files, not hardcoded.
 """
 
 from pydantic import BaseModel, Field
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
 from pathlib import Path
 
 
@@ -79,7 +79,7 @@ class PersonaConfig(BaseModel):
     personality_guide: str = Field("", description="Detailed personality guide")
 
     # Vocabulary customization
-    vocabulary: Optional[Dict[str, List[str]]] = Field(
+    vocabulary: Optional[Dict[str, Any]] = Field(
         default=None,
         description="Custom vocabulary (preferred_phrases, avoid_phrases, etc.)"
     )

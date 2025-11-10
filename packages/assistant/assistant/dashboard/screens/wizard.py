@@ -148,10 +148,10 @@ class WizardScreen(Screen):
                 )
                 yield Select(
                     options=[
-                        ("auto", "Auto-detect (Recommended)"),
-                        ("mps", "MPS - Mac M3 Metal"),
-                        ("cuda", "CUDA/ROCm - GPU"),
-                        ("cpu", "CPU (Slower)"),
+                        ("Auto-detect (Recommended)", "auto"),
+                        ("MPS - Mac M3 Metal", "mps"),
+                        ("CUDA/ROCm - GPU", "cuda"),
+                        ("CPU (Slower)", "cpu"),
                     ],
                     value="auto",
                     id="device-select"
