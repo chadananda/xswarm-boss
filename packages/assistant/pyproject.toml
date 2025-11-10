@@ -35,6 +35,7 @@ dev = [
 ]
 
 [project.scripts]
+xswarm = "assistant.main:main"
 assistant = "assistant.main:main"
 voice-assistant = "assistant.main:main"
 
