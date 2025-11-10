@@ -1,0 +1,3 @@
+[console_scripts]
+assistant = assistant.main:main
+voice-assistant = assistant.main:main

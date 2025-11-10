@@ -29,7 +29,10 @@
       "WebFetch(domain:www.twilio.com)",
       "WebFetch(domain:developers.cloudflare.com)",
       "WebFetch(domain:docs.sendgrid.com)",
-      "WebFetch(domain:xswarm.ai)"
+      "WebFetch(domain:xswarm.ai)",
+      "Read(//Users/chad/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/oww-rs-0.2.0/src/**)",
+      "WebFetch(domain:crates.io)",
+      "WebFetch(domain:docs.rs)"
     ],
     "deny": [],
     "ask": []

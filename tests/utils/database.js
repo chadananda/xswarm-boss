@@ -61,10 +61,14 @@ export async function setupTestDatabase(db) {
     'schema.sql',
     'auth.sql',
     'add-subscription-tier.sql',
+    'personas.sql',
+    'calendar.sql',
+    'email-integration.sql',
     'teams.sql',
     'email-marketing.sql',
     'suggestions.sql',
     'buzz.sql',
+    'usage-tracking.sql',
   ];
 
   for (const migration of migrations) {
@@ -83,8 +87,18 @@ export async function setupTestDatabase(db) {
  * Clear all test data from database
  */
 export async function clearTestData(db) {
+  if (!db) {
+    console.warn('Warning: clearTestData called with undefined db connection');
+    return;
+  }
+
   // Delete in reverse order of dependencies
   const tables = [
+    'usage_tracking',
+    'calendar_events',
+    'calendar_integrations',
+    'email_cache',
+    'email_integrations',
     'email_sends',
     'user_email_subscriptions',
     'email_sequences',
@@ -93,6 +107,7 @@ export async function clearTestData(db) {
     'suggestions',
     'buzz_interactions',
     'buzz_listings',
+    'personas',
     'team_invitations',
     'team_members',
     'teams',

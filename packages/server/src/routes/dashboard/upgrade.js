@@ -79,8 +79,8 @@ export async function handleUpgrade(request, env) {
           quantity: 1,
         },
       ],
-      success_url: `${env.BASE_URL}/admin-pages/dashboard.html?upgrade=success`,
-      cancel_url: `${env.BASE_URL}/admin-pages/dashboard.html?upgrade=cancelled`,
+      success_url: `${env.BASE_URL}/dashboard.html?upgrade=success`,
+      cancel_url: `${env.BASE_URL}/dashboard.html?upgrade=cancelled`,
       metadata: {
         user_id: user.id,
         target_tier,

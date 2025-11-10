@@ -32,11 +32,11 @@ function getDbClient(env) {
  * @throws {TeamPermissionError} If user doesn't have Pro+ tier
  */
 export function checkTeamTier(user) {
-  const proTiers = ['ai_project_manager', 'ai_cto', 'admin'];
+  const proTiers = ['professional', 'enterprise', 'admin'];
 
   if (!proTiers.includes(user.subscription_tier)) {
     throw new TeamPermissionError(
-      'Team features require AI Project Manager or AI CTO subscription tier',
+      'Team features require Professional or Enterprise subscription tier',
       403
     );
   }

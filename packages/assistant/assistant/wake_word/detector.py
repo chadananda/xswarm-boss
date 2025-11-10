@@ -31,7 +31,7 @@ class WakeWordDetector:
     def __init__(
         self,
         model_path: Path,
-        wake_word: str = "jarvis",
+        wake_word: str | list[str] = "jarvis",
         sample_rate: int = 16000,
         sensitivity: float = 0.8
     ):
@@ -40,11 +40,19 @@ class WakeWordDetector:
 
         Args:
             model_path: Path to Vosk model (e.g., vosk-model-small-en-us-0.15)
-            wake_word: Word/phrase to detect (lowercase)
+            wake_word: Word/phrase to detect, or list of multiple wake words
             sample_rate: Audio sample rate (Vosk uses 16kHz)
             sensitivity: Detection sensitivity 0.0-1.0 (higher = more sensitive)
         """
-        self.wake_word = wake_word.lower().strip()
+        # Support both single string and list of wake words
+        if isinstance(wake_word, str):
+            self.wake_words = [wake_word.lower().strip()]
+        else:
+            self.wake_words = [w.lower().strip() for w in wake_word]
+
+        # Keep backward compatibility with .wake_word attribute
+        self.wake_word = self.wake_words[0] if self.wake_words else "jarvis"
+
         self.sample_rate = sample_rate
         self.sensitivity = sensitivity
 
@@ -59,7 +67,13 @@ class WakeWordDetector:
         self.model = Model(str(model_path))
         self.recognizer = KaldiRecognizer(self.model, sample_rate)
         self.recognizer.SetWords(True)  # Get word-level confidence
-        print(f"Vosk model loaded. Listening for: '{self.wake_word}'")
+
+        # Show all wake words
+        if len(self.wake_words) == 1:
+            print(f"Vosk model loaded. Listening for: '{self.wake_words[0]}'")
+        else:
+            wake_words_str = "', '".join(self.wake_words)
+            print(f"Vosk model loaded. Listening for: '{wake_words_str}'")
 
         # Detection state
         self.is_active = False
@@ -84,7 +98,11 @@ class WakeWordDetector:
         self._thread = threading.Thread(target=self._detection_loop, daemon=True)
         self._thread.start()
 
-        print(f"Wake word detection started: '{self.wake_word}'")
+        if len(self.wake_words) == 1:
+            print(f"Wake word detection started: '{self.wake_words[0]}'")
+        else:
+            wake_words_str = "', '".join(self.wake_words)
+            print(f"Wake word detection started for: '{wake_words_str}'")
 
     def stop(self):
         """Stop wake word detection"""
@@ -164,19 +182,21 @@ class WakeWordDetector:
                         print(f"Wake word callback error: {e}")
 
     def _is_wake_word_present(self, text: str) -> bool:
-        """Check if wake word is in recognized text"""
-        # Exact match
-        if text == self.wake_word:
-            return True
+        """Check if any wake word is in recognized text"""
+        # Check each wake word
+        for wake_word in self.wake_words:
+            # Exact match
+            if text == wake_word:
+                return True
 
-        # Wake word as part of phrase
-        words = text.split()
-        if self.wake_word in words:
-            return True
+            # Wake word as part of phrase
+            words = text.split()
+            if wake_word in words:
+                return True
 
-        # Multi-word wake word
-        if " " in self.wake_word and self.wake_word in text:
-            return True
+            # Multi-word wake word
+            if " " in wake_word and wake_word in text:
+                return True
 
         return False
 
@@ -185,41 +205,64 @@ class WakeWordDetector:
         Get confidence score from Vosk result.
 
         Vosk provides word-level confidence scores.
-        We use the average confidence of wake word.
+        We use the average confidence of detected wake word.
         """
         # Try to get word-level results
         if "result" in result:
             words = result["result"]
             if isinstance(words, list):
-                # Find wake word in results
-                wake_word_parts = self.wake_word.split()
-                confidences = []
+                # Check all wake words and find the best match
+                all_confidences = []
 
-                for word_info in words:
-                    if isinstance(word_info, dict):
-                        word = word_info.get("word", "").lower()
-                        conf = word_info.get("conf", 1.0)
+                for wake_word in self.wake_words:
+                    wake_word_parts = wake_word.split()
+                    confidences = []
 
-                        if word in wake_word_parts:
-                            confidences.append(conf)
+                    for word_info in words:
+                        if isinstance(word_info, dict):
+                            word = word_info.get("word", "").lower()
+                            conf = word_info.get("conf", 1.0)
 
-                if confidences:
-                    return sum(confidences) / len(confidences)
+                            if word in wake_word_parts:
+                                confidences.append(conf)
+
+                    if confidences:
+                        avg_conf = sum(confidences) / len(confidences)
+                        all_confidences.append(avg_conf)
+
+                if all_confidences:
+                    # Return best confidence score
+                    return max(all_confidences)
 
         # Default high confidence if no word-level data
         return 1.0
 
-    def set_wake_word(self, wake_word: str):
+    def set_wake_word(self, wake_word: str | list[str]):
         """
-        Change wake word at runtime.
+        Change wake word(s) at runtime.
         Useful for switching personas.
 
         Args:
-            wake_word: New wake word to detect
+            wake_word: New wake word(s) to detect (string or list)
         """
-        old_word = self.wake_word
-        self.wake_word = wake_word.lower().strip()
-        print(f"Wake word changed: '{old_word}' -> '{self.wake_word}'")
+        old_words = self.wake_words.copy()
+
+        # Update wake words list
+        if isinstance(wake_word, str):
+            self.wake_words = [wake_word.lower().strip()]
+        else:
+            self.wake_words = [w.lower().strip() for w in wake_word]
+
+        # Update backward compatibility attribute
+        self.wake_word = self.wake_words[0] if self.wake_words else "jarvis"
+
+        # Log change
+        if len(old_words) == 1 and len(self.wake_words) == 1:
+            print(f"Wake word changed: '{old_words[0]}' -> '{self.wake_words[0]}'")
+        else:
+            old_str = "', '".join(old_words)
+            new_str = "', '".join(self.wake_words)
+            print(f"Wake words changed: ['{old_str}'] -> ['{new_str}']")
 
     def reset(self):
         """Reset recognizer state"""
@@ -236,7 +279,7 @@ class WakeWordDetectorWithVAD:
     def __init__(
         self,
         model_path: Path,
-        wake_word: str = "jarvis",
+        wake_word: str | list[str] = "jarvis",
         sample_rate: int = 16000,
         sensitivity: float = 0.8,
         vad_threshold: float = 0.02
@@ -245,7 +288,7 @@ class WakeWordDetectorWithVAD:
 
         self.detector = WakeWordDetector(
             model_path=model_path,
-            wake_word=wake_word,
+            wake_word=wake_word,  # Pass through - supports both str and list
             sample_rate=sample_rate,
             sensitivity=sensitivity
         )
@@ -281,6 +324,6 @@ class WakeWordDetectorWithVAD:
                 self._speech_buffer = []
                 self.detector.reset()
 
-    def set_wake_word(self, wake_word: str):
-        """Change wake word"""
+    def set_wake_word(self, wake_word: str | list[str]):
+        """Change wake word(s)"""
         self.detector.set_wake_word(wake_word)

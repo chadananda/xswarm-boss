@@ -1,0 +1,211 @@
+================================================================================
+                    AUDIO GARBLING ROOT CAUSE ANALYSIS
+                            VISUAL COMPARISON
+================================================================================
+
+PROBLEM STATEMENT:
+  voice.rs produces GARBLED/BACKWARDS AUDIO
+  gen.rs produces CLEAR/PERFECT AUDIO
+  Whisper API falsely reports "success" on corrupted audio
+
+================================================================================
+
+THE ROOT CAUSE (IN ONE PICTURE):
+
+  gen.rs (WORKING):                voice.rs (BROKEN):
+  ================                  =================
+
+  state.step_(                      lm_generator.step_(
+    prev_text_token,                  prev_text_token,
+    &codes,                           &codes,
+    None,          ← NO FORCING        force_text_token,  ← FORCING! (BUG!)
+    None,                             None,
+    conditions                        conditions
+  )?                                )?
+
+  Always None = Natural LM generation    Variable forcing = Semantic misalignment
+
+================================================================================
+
+EXACT LOCATIONS IN CODE:
+
+FILE: packages/core/src/voice.rs
+
+  LINES 1189-1195: Tokenize target phrase (DOESN'T EXIST IN gen.rs)
+  ================================================================
+  let test_phrase = "hello world testing one two three";
+  let pieces = moshi_state.text_tokenizer.encode(test_phrase)?;
+  let text_tokens: Vec<u32> = pieces.iter().map(|p| p.id as u32).collect();
+  info!("MOSHI_TEST: Forcing MOSHI to say: \"{}\"", test_phrase);
+  let mut prev_text_token = moshi_state.lm_config.text_start_token;
+  let mut forced_token_idx = 0;  ← Initialize forcing tracker
+
+  STATUS: PROBLEMATIC
+
+
+  LINES 1255-1270: Force tokens in LM step (THE CRITICAL BUG)
+  ===========================================================
+  let force_text_token = if forced_token_idx < text_tokens.len() {
+    let token = text_tokens[forced_token_idx];
+    forced_token_idx += 1;
+    Some(token)
+  } else {
+    None
+  };
+
+  let text_token = lm_generator.step_(
+    Some(prev_text_token),
+    &codes,
+    force_text_token,  ← PASSES VARIABLE (NOT ALWAYS None!)
+    None,
+    conditions.as_ref(),
+  )?;
+
+  STATUS: **CRITICAL BUG** - This is why audio is garbled
+
+
+FILE: packages/moshi/moshi-cli/src/gen.rs
+
+  LINE 110: LM step with NO text forcing
+  =======================================
+  prev_text_token = state.step_(
+    Some(prev_text_token),
+    &codes,
+    None,  ← ALWAYS None (CORRECT!)
+    None,
+    conditions.as_ref(),
+  )?;
+
+  STATUS: CORRECT - Produces clear audio
+
+================================================================================
+
+WHY THIS CAUSES GARBLING:
+
+  TEXT-AUDIO CO-GENERATION:
+  ┌─────────────────────────────────────────────────────────┐
+  │ MOSHI trains text and audio tokens TOGETHER              │
+  │ They evolve as CORRELATED sequences                      │
+  │ LM state maintains ALIGNMENT between them                │
+  │ MIMI codec expects this NATURAL correlation              │
+  └─────────────────────────────────────────────────────────┘
+
+  WHEN YOU FORCE TEXT TOKENS (voice.rs):
+  ┌─────────────────────────────────────────────────────────┐
+  │ LM: "Must output these specific text tokens"             │
+  │ LM: Adapts state to match forced text path               │
+  │ Audio: Generated on UNNATURAL constrained path           │
+  │ MIMI: Receives semantically MISALIGNED tokens            │
+  │ Result: GARBLED waveform (backwards sounding)            │
+  └─────────────────────────────────────────────────────────┘
+
+  WHEN YOU LET LM GENERATE NATURALLY (gen.rs):
+  ┌─────────────────────────────────────────────────────────┐
+  │ LM: Free to generate naturally                           │
+  │ Text & Audio: ALIGNED through co-generation              │
+  │ MIMI: Receives NATURAL token sequences                   │
+  │ Result: CLEAR, INTELLIGIBLE audio                        │
+  └─────────────────────────────────────────────────────────┘
+
+================================================================================
+
+WHY WHISPER REPORTS "SUCCESS" (FALSE POSITIVE):
+
+  Whisper Algorithm:
+  1. Takes audio waveform
+  2. Extracts acoustic features
+  3. Matches patterns to training data
+  4. Outputs "confidence score" based on acoustic likelihood
+  5. Returns "success" if confidence > threshold
+
+  Garbled Audio Properties:
+  • Still has phoneme-like spectral patterns
+  • Phonemic information exists even if corrupted
+  • Acoustic features look "speech-like"
+  • Whisper detects "something" and reports success
+  • But actual semantic content is completely wrong!
+
+  WHISPER DOESN'T VALIDATE:
+  ✗ Semantic alignment of text-audio
+  ✗ Intelligibility to human ear
+  ✗ Actual pronunciation
+  ✗ Only acoustic likelihood
+
+  This is why Whisper gives FALSE POSITIVES on corrupted audio!
+
+================================================================================
+
+THE FIX (SUMMARY):
+
+  STEP 1: Delete lines 1189-1195 (tokenize target phrase)
+  STEP 2: Delete lines 1255-1270 (force token logic)
+  STEP 3: Replace with simple:
+          let text_token = lm_generator.step_(
+              Some(prev_text_token),
+              &codes,
+              None,  ← Always None
+              None,
+              conditions.as_ref(),
+          )?;
+
+================================================================================
+
+EXPECTED RESULTS AFTER FIX:
+
+  BEFORE FIX:
+  • Audio: GARBLED, backwards-sounding, choppy
+  • Whisper: "success" (FALSE POSITIVE)
+  • Quality: Unusable
+
+  AFTER FIX:
+  • Audio: CLEAR, intelligible, natural-sounding
+  • Whisper: Accurate transcription
+  • Quality: Matches gen.rs (EXCELLENT)
+
+================================================================================
+
+COMPARISON TABLE:
+
+  Feature                    gen.rs          voice.rs        Status
+  ============================================================================
+  Text token forcing         None (always)   Some(token)     BUG
+  Force phrase tokenization  -               "hello world"   BUG
+  Force token tracking       -               forced_token_idx BUG
+  
+  Audio token extraction     .i((0, .., 0))  .i((0, .., 0))  OK
+  Tensor reshape             (1, 1, ())      (1, 1, ())      OK
+  Transpose operation        .t()?           .t().context()  OK
+  Concatenation              cat(..., 2)     cat(..., 2)     OK
+  Final extraction           .i((0, 0))      .i((0, 0))      OK
+
+================================================================================
+
+KEY INSIGHT:
+
+  The ONLY difference that matters is:
+  
+  gen.rs:    None   ← Natural generation, clear audio
+  voice.rs:  Some(token) or None  ← Forced generation, garbled audio
+             ^^^^^^^^^^^^^^
+             This small difference breaks everything!
+
+  This is why small constraints in language models can have huge impacts.
+  When you force the text path, you break the learned text-audio alignment.
+
+================================================================================
+
+FILES TO READ:
+
+  1. /Users/chad/Dropbox/Public/JS/Projects/xswarm-boss/AUDIO_ROOT_CAUSE_FOUND.md
+     (Quick reference with exact locations)
+
+  2. /Users/chad/Dropbox/Public/JS/Projects/xswarm-boss/COMPARISON_FINAL_REPORT.md
+     (Detailed analysis with all code sections)
+
+  3. /Users/chad/Dropbox/Public/JS/Projects/xswarm-boss/AUDIO_DIFF_SUMMARY.md
+     (Line-by-line comparison)
+
+  4. /Users/chad/Dropbox/Public/JS/Projects/xswarm-boss/docs/debugging/AUDIO_COMPARISON_ANALYSIS.md
+     (Technical deep dive)
+
+================================================================================

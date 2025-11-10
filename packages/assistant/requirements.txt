@@ -14,7 +14,7 @@ textual>=0.47.0            # Modern TUI framework
 rich>=13.7.0               # Rich text rendering
 
 # Wake Word & Transcription
-vosk>=0.3.45               # Wake word detection (offline)
+vosk>=0.3.44               # Wake word detection (offline)
 # faster-whisper>=1.0.0    # Optional: full transcription
 
 # Memory (optional local embeddings)
