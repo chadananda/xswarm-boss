@@ -60,6 +60,42 @@ class VoiceSettings(BaseModel):
     quality: float = Field(0.8, ge=0.0, le=1.0, description="Generation quality (0-1)")
 
 
+class ThemeColors(BaseModel):
+    """Color scheme for persona theme"""
+    primary: str = Field("#00D4FF", description="Primary accent color (hex)")
+    secondary: str = Field("#FFB300", description="Secondary accent color")
+    accent: str = Field("#00FF88", description="Success/accent color")
+    background: str = Field("#0A0E14", description="Background color")
+    text: str = Field("#C5C8C6", description="Text color")
+    dim: str = Field("#5C6773", description="Dim/secondary text")
+    error: str = Field("#FF3333", description="Error color")
+    warning: str = Field("#FFAA00", description="Warning color")
+
+
+class AsciiArtConfig(BaseModel):
+    """ASCII art configuration"""
+    file: Optional[str] = Field(None, description="ASCII art filename in persona dir")
+    position: str = Field("header", description="Where to display: header, sidebar, visualizer")
+    show_when_speaking: bool = Field(True, description="Show art when persona speaks")
+
+
+class ThemeStyle(BaseModel):
+    """Visual style preferences"""
+    border_style: str = Field("heavy", description="Border style: none, light, heavy, double, rounded, dashed")
+    glow_effect: bool = Field(True, description="Enable glowing text effects")
+    animation_speed: float = Field(1.0, ge=0.1, le=3.0, description="Animation speed multiplier")
+    matrix_rain: bool = Field(False, description="Enable matrix-style background")
+    pulse_color: bool = Field(True, description="Pulse colors when active")
+
+
+class ThemeConfig(BaseModel):
+    """Complete theme configuration for persona"""
+    colors: ThemeColors = Field(default_factory=ThemeColors, description="Color scheme")
+    ascii_art: Optional[AsciiArtConfig] = Field(None, description="ASCII art config")
+    style: ThemeStyle = Field(default_factory=ThemeStyle, description="Visual style")
+    textual: Optional[Dict[str, str]] = Field(None, description="Textual theme overrides")
+
+
 class PersonaConfig(BaseModel):
     """Complete persona configuration loaded from YAML"""
 
@@ -73,6 +109,9 @@ class PersonaConfig(BaseModel):
 
     # Voice
     voice: VoiceSettings = Field(default_factory=VoiceSettings)
+
+    # Theme (NEW)
+    theme: ThemeConfig = Field(default_factory=ThemeConfig, description="Visual theme configuration")
 
     # System prompt
     system_prompt: str = Field("", description="Base system prompt")
