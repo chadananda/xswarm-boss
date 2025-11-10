@@ -320,6 +320,8 @@ pub struct DashboardState {
     current_moshi_level: f32,
     /// Current microphone audio level
     current_mic_level: f32,
+    /// GPU information for MOSHI acceleration
+    gpu_info: Option<crate::voice::GpuInfo>,
 }
 
 impl DashboardState {
@@ -340,6 +342,12 @@ impl DashboardState {
             mic_visualizer: AudioVisualizer::new(20, 4),
             current_moshi_level: 0.0,
             current_mic_level: 0.0,
+            gpu_info: {
+                let gpu = crate::voice::detect_gpu();
+                tracing::info!("🔍 DashboardState::new() - GPU detection result: cuda={}, metal={}, device={}, realtime={}",
+                    gpu.cuda_available, gpu.metal_available, gpu.device_type, gpu.realtime_capable);
+                Some(gpu)
+            },
         }
     }
 
@@ -1613,7 +1621,13 @@ impl Dashboard {
     /// Shows real-time microphone input level as a horizontal bar
     fn render_mic_level_bar(&self, frame: &mut Frame, area: Rect, state: &DashboardState) {
         // Generate bar using Unicode block characters
-        let max_bar_width = 30; // Maximum bar width in characters
+        // Use full width minus label width (5 chars for "Mic: ")
+        let label_width = 5;
+        let max_bar_width = if area.width > label_width as u16 {
+            (area.width - label_width as u16) as usize
+        } else {
+            1  // Minimum bar width
+        };
         let level = (state.current_mic_level * max_bar_width as f32) as usize;
         let bar_width = level.min(max_bar_width);
 
@@ -1795,6 +1809,32 @@ impl Dashboard {
                 ]),
                 Line::from(""),
             ]);
+        }
+
+        // Add GPU acceleration info FIRST (most important)
+        tracing::debug!("🔍 Rendering system status - gpu_info is_some: {}", state.gpu_info.is_some());
+        if let Some(ref gpu_info) = state.gpu_info {
+            tracing::info!("🔍 Rendering GPU section: device={}, realtime={}",
+                gpu_info.device_type, gpu_info.realtime_capable);
+            status_text.extend(vec![
+                Line::from(vec![
+                    Span::styled("GPU Acceleration:", Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD)),
+                ]),
+                Line::from(vec![
+                    Span::raw("  Device: "),
+                    Span::styled(&gpu_info.device_type, Style::default().fg(Color::Cyan)),
+                ]),
+                Line::from(vec![
+                    Span::raw("  MOSHI: "),
+                    Span::styled(
+                        if gpu_info.realtime_capable { "Ready" } else { "Too Slow" },
+                        Style::default().fg(if gpu_info.realtime_capable { Color::Green } else { Color::Red })
+                    ),
+                ]),
+                Line::from(""),
+            ]);
+        } else {
+            tracing::warn!("⚠️ GPU info is None - section will not be displayed");
         }
 
         // Add regular status info

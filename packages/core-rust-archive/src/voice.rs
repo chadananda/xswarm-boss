@@ -22,6 +22,7 @@ use tokio_tungstenite::{accept_async, tungstenite::Message as WsMessage};
 use futures_util::{StreamExt, SinkExt};
 use tracing::{info, warn, error, debug};
 use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
+use chrono;
 
 use crate::audio::{self, AudioResampler};
 use crate::audio_output::AudioOutputDevice;
@@ -302,25 +303,75 @@ pub struct MoshiState {
 }
 
 impl MoshiState {
+    /// Debug logger that writes directly to file, bypassing tracing/TUI
+    fn debug_log(msg: &str) {
+        use std::io::Write;
+        // Write to project-local tmp directory
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("./tmp/moshi-debug.log")
+        {
+            let timestamp = chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f");
+            let _ = writeln!(file, "[{}] {}", timestamp, msg);
+            let _ = file.flush();
+        }
+    }
     /// Initialize MOSHI models
     pub fn new(config: VoiceConfig) -> Result<Self> {
         info!("Initializing MOSHI voice models...");
-
         // Select device (Metal on macOS, CUDA on NVIDIA, CPU fallback)
         let device = Self::select_device(config.use_cpu)?;
         info!(?device, "Selected compute device");
-
         // Set data type based on device
         let dtype = if device.is_cuda() {
             candle::DType::BF16
         } else {
             candle::DType::F32
         };
-
-        // Load language model
-        info!(model_file = %config.lm_model_file, "Loading language model");
-        let lm_model = moshi::lm::load_streaming(&config.lm_model_file, dtype, &device)
-            .context("Failed to load language model")?;
+        // v12.0 VOCAB SIZE FIX: Use Q8-specific config that matches the GGUF model
+        // The Q8 GGUF model has vocab_size=32001, not 48001 like s2st-1b.toml expects
+        // v14.0 TENSOR FIX: Q8 model should work now with proper tensor handling
+        info!("Loading LM config from Q8-specific TOML file");
+        // Use compile-time CARGO_MANIFEST_DIR to find config file relative to package root
+        let manifest_dir = env!("CARGO_MANIFEST_DIR");
+        let lm_config_path = std::path::Path::new(manifest_dir).join("config/moshi-q8.toml");
+        Self::debug_log(&format!("[DEBUG] CARGO_MANIFEST_DIR = {}", manifest_dir));
+        Self::debug_log(&format!("[DEBUG] LM config path = {}", lm_config_path.display()));
+        Self::debug_log(&format!("[DEBUG] LM model file = {}", config.lm_model_file));
+        let lm_config_str = match std::fs::read_to_string(&lm_config_path) {
+            Ok(s) => {
+                Self::debug_log(&format!("[DEBUG] Successfully read {} bytes from config file", s.len()));
+                s
+            }
+            Err(e) => {
+                Self::debug_log(&format!("[ERROR] Failed to read LM config file: {}", e));
+                return Err(anyhow::anyhow!("Failed to read LM config file from {}: {}", lm_config_path.display(), e));
+            }
+        };
+        let lm_config: moshi::lm::Config = match toml::from_str::<moshi::lm::Config>(&lm_config_str) {
+            Ok(c) => {
+                Self::debug_log(&format!("[DEBUG] Successfully parsed TOML config"));
+                Self::debug_log(&format!("[DEBUG] Config audio_codebooks = {}", c.audio_codebooks));
+                c
+            }
+            Err(e) => {
+                Self::debug_log(&format!("[ERROR] Failed to parse LM config: {}", e));
+                return Err(anyhow::anyhow!("Failed to parse LM config: {}", e));
+            }
+        };
+        Self::debug_log(&format!("[DEBUG] About to load LM model from: {}", config.lm_model_file));
+        info!(model_file = %config.lm_model_file, "Loading language model with proper config");
+        let mut lm_model = match moshi::lm::load_lm_model(lm_config.clone(), &config.lm_model_file, dtype, &device) {
+            Ok(m) => {
+                Self::debug_log(&format!("[DEBUG] Successfully loaded LM model"));
+                m
+            }
+            Err(e) => {
+                Self::debug_log(&format!("[ERROR] Failed to load LM model: {}", e));
+                return Err(anyhow::anyhow!("Failed to load LM model: {}", e));
+            }
+        };
 
         // CRITICAL DEBUG: Verify depformer exists for audio generation
         let generated_codebooks = lm_model.generated_audio_codebooks();
@@ -344,9 +395,10 @@ impl MoshiState {
             &device
         };
         info!(model_file = %config.mimi_model_file, "Loading MIMI codec");
-        let mimi_model = moshi::mimi::load(
+        // Load MIMI with 8 codebooks to match moshi-cli gen.rs configuration
+        let mut mimi_model = moshi::mimi::load(
             &config.mimi_model_file,
-            Some(MIMI_NUM_CODEBOOKS),
+            Some(MIMI_NUM_CODEBOOKS),  // 8 codebooks for MOSHI v0.1
             mimi_device,
         )
         .context("Failed to load MIMI codec")?;
@@ -356,8 +408,9 @@ impl MoshiState {
         let text_tokenizer = sentencepiece::SentencePieceProcessor::open(&config.text_tokenizer_file)
             .context("Failed to load text tokenizer")?;
 
-        // Warm up models
-        Self::warmup(&mut lm_model.clone(), &mut mimi_model.clone(), &device, mimi_device)?;
+        // Warm up models - CRITICAL: Must warmup the actual instances, not clones!
+        // MIMI is a streaming codec with internal state that needs initialization.
+        Self::warmup(&mut lm_model, &mut mimi_model, &device, mimi_device)?;
 
         // Initialize language model generation config
         let lm_config = moshi::lm_generate_multistream::Config::v0_1();
@@ -1035,10 +1088,14 @@ impl VoiceBridge {
         let test_wav_path = std::env::var("MOSHI_TEST_INPUT")
             .unwrap_or_else(|_| "./tmp/test-user-hello.wav".to_string());
 
-        let user_audio = load_wav_24khz(&test_wav_path)
+        let mut user_audio = load_wav_24khz(&test_wav_path)
             .context(format!("Failed to load test WAV file: {}", test_wav_path))?;
 
-        info!("MOSHI_TEST: Loaded {} samples from {} ({:.2}s @ 24kHz)",
+        // v12.0 FIX #2: Add 12000-sample padding (500ms silence) like gen.rs
+        // This provides buffer for final audio generation to complete
+        user_audio.extend_from_slice(&vec![0.0; 12000]);
+
+        info!("MOSHI_TEST: Loaded {} samples from {} ({:.2}s @ 24kHz, includes 500ms padding)",
               user_audio.len(), test_wav_path, user_audio.len() as f32 / 24000.0);
 
         // DEBUG: Log input audio statistics
@@ -1056,27 +1113,30 @@ impl VoiceBridge {
 
         let mut moshi_state = self.state.write().await;
 
-        // Clone MIMI decoder for this test (maintains independent state across frames)
-        // Following moshi-server pattern: each test/connection gets its own decoder
-        let mut mimi_decoder = moshi_state.mimi_model.clone();
-        mimi_decoder.reset_state(); // Reset state for fresh test (CRITICAL - fixes garbled audio)
+        // CRITICAL FIX v8.2: Use the SAME model instance for BOTH encode AND decode!
+        // The encoder and decoder MUST share state for streaming codec to work correctly.
+        // Previous bug: We cloned the model, breaking state continuity between encode/decode.
+        // Result: Valid-looking audio samples but wrong semantic content (garbled speech).
 
-        // Determine MIMI device (CPU or GPU)
-        let mimi_device = if self.config.use_cpu_for_mimi {
-            candle::Device::Cpu
-        } else {
-            moshi_state.device.clone()
+        // v12.0 FIX #3: Use same device for MIMI as LM (like gen.rs)
+        // gen.rs keeps MIMI and LM on the same device for consistency
+        let mimi_device = moshi_state.device.clone();
+
+        // v14.0 TENSOR FIX (CRITICAL): Create tensor ONCE like gen.rs, not per-frame
+        // gen.rs pattern: ONE big tensor upfront, use .i() indexing to extract frames
+        // Creating new tensors for each frame causes inconsistent memory layout
+        // which breaks MIMI's streaming state continuity -> garbled audio
+        let frame_length = 1920;  // Hardcoded like gen.rs (24000 Hz / 12.5 fps)
+        let (in_pcm, in_pcm_len) = {
+            let pcm_len = user_audio.len();
+            let pcm = Tensor::from_vec(user_audio, (1, 1, pcm_len), &mimi_device)
+                .context("Failed to create PCM tensor")?;
+            (pcm, pcm_len)
         };
 
-        // Get frame length from MIMI config
-        let mimi_config = mimi_decoder.config();
-        let frame_length = (mimi_config.sample_rate / mimi_config.frame_rate).ceil() as usize;
-
-        info!("MOSHI_TEST: MIMI frame length = {} samples", frame_length);
-
-        // Chunk audio into frames for processing
-        let num_frames = (user_audio.len() + frame_length - 1) / frame_length;
-        info!("MOSHI_TEST: Processing {} frames through MOSHI", num_frames);
+        let num_frames = (in_pcm_len / frame_length).min(2500);  // Like gen.rs max_steps
+        info!("MOSHI_TEST: Created PCM tensor with {} samples, processing {} frames ({}ms each)",
+              in_pcm_len, num_frames, frame_length as f32 / 24.0);
 
         // Initialize LM generator (similar to ConnectionState but standalone)
         // v7.7: Match official CLI's TopK sampling for consistent results
@@ -1098,7 +1158,8 @@ impl VoiceBridge {
 
         info!("MOSHI_TEST: Using TopK sampling (k=250, temp=0.8, seed=299792458)");
 
-        let max_steps = num_frames + 100; // Extra steps for audio catchup
+        // v12.0 FIX #4: Add +20 buffer like gen.rs for extra state capacity
+        let max_steps = num_frames + 100 + 20;
 
         let lm_config = moshi_state.lm_config.clone();
         let mut lm_generator = moshi::lm_generate_multistream::State::new(
@@ -1114,35 +1175,36 @@ impl VoiceBridge {
 
         info!("MOSHI_TEST: LM generator initialized (max_steps={})", max_steps);
 
-        // v0.1.0-2025.11.6.2: Force MOSHI to say specific text for objective testing
-        // Tokenize test phrase: "hello world testing one two three"
-        let test_phrase = "hello world testing one two three";
-        let pieces = moshi_state.text_tokenizer.encode(test_phrase)
-            .map_err(|e| anyhow::anyhow!("Failed to tokenize test phrase: {}", e))?;
-        let text_tokens: Vec<u32> = pieces.iter().map(|p| p.id as u32).collect();
-        info!("MOSHI_TEST: Forcing MOSHI to say: \"{}\" ({} tokens)", test_phrase, text_tokens.len());
+        // v12.0 FIX #1 (CRITICAL): Add "very_good" quality condition like gen.rs
+        // This tells MOSHI to generate high-quality audio - WITHOUT IT, audio is garbled!
+        let conditions = match moshi_state.lm_model.condition_provider() {
+            None => {
+                info!("MOSHI_TEST: No condition provider available");
+                None
+            }
+            Some(cp) => {
+                use moshi::conditioner::Condition::AddToInput;
+                let cond = cp.condition_lut("description", "very_good")
+                    .context("Failed to create 'very_good' condition")?;
+                info!("MOSHI_TEST: Using 'very_good' quality condition (CRITICAL FOR AUDIO QUALITY)");
+                Some(cond)
+            }
+        };
 
+        // v13.0 FIX: Let MOSHI generate naturally (like gen.rs) - NO forced text tokens
+        // Forced tokens break the semantic alignment between text and audio that MOSHI learned
         let mut prev_text_token = moshi_state.lm_config.text_start_token;
-        let mut all_audio_samples = Vec::new();
-        let mut forced_token_idx = 0; // Track which token to force next
+
+        // v10.0 FIX: Match gen.rs exactly - collect tensors first, then concatenate at end
+        // This preserves dimensional information and ensures correct sample ordering
+        let mut out_pcm_tensors: Vec<Tensor> = Vec::new();
 
         // Process each audio frame
+        // v14.0 TENSOR FIX: Use tensor indexing (.i()) instead of creating new tensors
         for frame_idx in 0..num_frames {
-            let start_idx = frame_idx * frame_length;
-            let end_idx = (start_idx + frame_length).min(user_audio.len());
-            let mut frame_audio = user_audio[start_idx..end_idx].to_vec();
-
-            // Pad last frame if needed
-            if frame_audio.len() < frame_length {
-                frame_audio.resize(frame_length, 0.0);
-            }
-
-            // Step 2a: Encode audio frame to MIMI codes
-            let pcm_tensor = Tensor::from_vec(
-                frame_audio.clone(),
-                (1, 1, frame_length),
-                &mimi_device,
-            ).context("Failed to create PCM tensor")?;
+            // Step 2a: Extract frame using tensor indexing (preserves memory layout)
+            let pcm_tensor = in_pcm.i((.., .., frame_idx * frame_length..(frame_idx + 1) * frame_length))
+                .context(format!("Failed to extract frame {} from tensor", frame_idx))?;
 
             let codes_stream = moshi_state.mimi_model.encode_step(&pcm_tensor.into(), &().into())
                 .context("MIMI encode_step failed")?;
@@ -1167,28 +1229,24 @@ impl VoiceBridge {
                     // Extract codes for THIS specific step
                     let step_codes = codes_tensor.i((.., .., step..step + 1))
                         .context(format!("Failed to extract step {} codes", step))?;
-                    let codes = step_codes.i((0, 0..input_codebooks, 0))?.to_vec1::<u32>()
+                    // CRITICAL: Extract ALL codebooks (not just first 8) to match gen.rs:108
+                    // The LM expects all codebooks from MIMI encoder, even though it only generates 8
+                    let codes = step_codes.i((0, .., 0))?.to_vec1::<u32>()
                         .context("Failed to convert codes to vec")?;
 
                     if frame_idx == 0 && step < 3 {
                         info!("MOSHI_TEST: Frame {} Step {}: Extracted {} codes", frame_idx, step, codes.len());
                     }
 
-                    // Step 2b: Run LM step with audio codes, forcing specific text tokens
-                    let force_text_token = if forced_token_idx < text_tokens.len() {
-                        let token = text_tokens[forced_token_idx];
-                        forced_token_idx += 1;
-                        Some(token)
-                    } else {
-                        None // After all tokens forced, let LM continue naturally
-                    };
-
+                    // Step 2b: Run LM step with audio codes - natural generation (like gen.rs)
+                    // v13.0 FIX: Always pass None for text forcing - matches gen.rs line 110
+                    // v12.0 FIX #1 (CRITICAL): Pass "very_good" condition to EVERY step!
                     let text_token = lm_generator.step_(
                         Some(prev_text_token),
                         &codes,
-                        force_text_token, // Force specific text token
+                        None, // v13.0: NO forced tokens - natural generation
                         None, // No cross-attention
-                        None, // No condition
+                        conditions.as_ref(), // v12.0: Quality condition (gen.rs line 110)
                     ).context(format!("LM step failed at frame {} step {}", frame_idx, step))?;
 
                     prev_text_token = text_token;
@@ -1216,28 +1274,18 @@ impl VoiceBridge {
                                   frame_idx, step, audio_tensor.shape(), audio_tensor.stride());
                         }
 
-                        let decoded = mimi_decoder.decode_step(&audio_tensor.into(), &().into())
+                        // v8.2 CRITICAL FIX: Use the SAME model instance for decode (not a clone!)
+                        // Encoder and decoder MUST share state for streaming codec
+                        let decoded = moshi_state.mimi_model.decode_step(&audio_tensor.into(), &().into())
                             .context(format!("MIMI decode failed for frame {} step {}", frame_idx, step))?;
 
                         if let Some(pcm_tensor) = decoded.as_option() {
-                            let frame_samples = pcm_tensor.flatten_all()?.to_vec1::<f32>()
-                                .context("Failed to convert PCM tensor to vec")?;
-
-                            // DEBUG: Log PCM statistics for first few frames
-                            if frame_idx < 3 && step == 0 && !frame_samples.is_empty() {
-                                let min = frame_samples.iter().fold(f32::INFINITY, |a, &b| a.min(b));
-                                let max = frame_samples.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b));
-                                let mean = frame_samples.iter().sum::<f32>() / frame_samples.len() as f32;
-                                info!("MOSHI_DEBUG: Frame {} Step {}: PCM stats - samples={}, min={:.4}, max={:.4}, mean={:.6}",
-                                      frame_idx, step, frame_samples.len(), min, max, mean);
-                            }
-
-                            let frame_len = frame_samples.len();  // Store length before move
-                            all_audio_samples.extend(frame_samples);
+                            // v10.0 FIX: Match gen.rs - collect tensors, don't convert to Vec yet
+                            out_pcm_tensors.push(pcm_tensor.clone());
 
                             if frame_idx % 10 == 0 && step == 0 {
-                                info!("MOSHI_TEST: Frame {} Step {}/{}: Decoded {} PCM samples (total: {})",
-                                      frame_idx, step + 1, num_steps, frame_len, all_audio_samples.len());
+                                info!("MOSHI_TEST: Frame {} Step {}/{}: Collected PCM tensor (total tensors: {})",
+                                      frame_idx, step + 1, num_steps, out_pcm_tensors.len());
                             }
                         }
                     }
@@ -1248,7 +1296,7 @@ impl VoiceBridge {
             }
 
             // Check if LM never produced audio (happens after warmup skips)
-            if frame_idx > lm_config.acoustic_delay as usize + 5 && all_audio_samples.is_empty() {
+            if frame_idx > lm_config.acoustic_delay as usize + 5 && out_pcm_tensors.is_empty() {
                 warn!("MOSHI_TEST: Frame {}: No audio tokens (past acoustic delay)", frame_idx);
             }
         }
@@ -1260,12 +1308,13 @@ impl VoiceBridge {
             // Use padding tokens for input (no more real audio)
             let pad_codes = vec![0u32; moshi_state.lm_config.input_audio_codebooks as usize];
 
+            // v12.0 FIX #1 (CRITICAL): Pass "very_good" condition to flush steps too!
             let text_token = lm_generator.step_(
                 Some(prev_text_token),
                 &pad_codes,
-                None,
-                None,
-                None,
+                None, // No forced text token
+                None, // No cross-attention
+                conditions.as_ref(), // v12.0: Quality condition (gen.rs pattern)
             )?;
 
             prev_text_token = text_token;
@@ -1274,29 +1323,46 @@ impl VoiceBridge {
                 let generated_codebooks = moshi_state.lm_config.generated_audio_codebooks as usize;
                 let audio_tokens_slice = &audio_tokens[..generated_codebooks.min(audio_tokens.len())];
 
-                let audio_tensor = Tensor::from_slice(
-                    audio_tokens_slice,
-                    (1, generated_codebooks, 1),
-                    &mimi_device,
-                )?;
+                // v8.3 FIX: Use official MOSHI pattern - reshape then transpose
+                // Official: Tensor::new().reshape((1, 1, ())).t()
+                let audio_tensor = Tensor::new(audio_tokens_slice, &mimi_device)?
+                    .reshape((1, 1, ()))?
+                    .t()?;
 
-                // Use cloned MIMI decoder to maintain state
-                let decoded = mimi_decoder.decode_step(&audio_tensor.into(), &().into())?;
+                // v8.2: Use same model instance (not clone) for shared state
+                let decoded = moshi_state.mimi_model.decode_step(&audio_tensor.into(), &().into())?;
 
                 if let Some(pcm_tensor) = decoded.as_option() {
-                    let frame_samples = pcm_tensor.flatten_all()?.to_vec1::<f32>()?;
-                    let frame_len = frame_samples.len();  // Store length before move
-                    all_audio_samples.extend(frame_samples);
+                    // v10.0 FIX: Also collect tensors in flush steps
+                    out_pcm_tensors.push(pcm_tensor.clone());
 
                     if step_idx % 5 == 0 {
-                        info!("MOSHI_TEST: Extra step {}/{}: Flushed {} samples (total: {})",
-                              step_idx, extra_steps, frame_len, all_audio_samples.len());
+                        info!("MOSHI_TEST: Extra step {}/{}: Collected tensor (total tensors: {})",
+                              step_idx, extra_steps, out_pcm_tensors.len());
                     }
                 }
             }
         }
 
-        info!("MOSHI_TEST: MOSHI generated {} total PCM samples ({:.2}s @ 24kHz)",
+        // v10.0 FIX: Match gen.rs - concatenate all tensors, THEN extract to Vec<f32>
+        // This preserves dimensional information and ensures correct sample ordering
+        info!("MOSHI_TEST: Concatenating {} PCM tensors...", out_pcm_tensors.len());
+
+        if out_pcm_tensors.is_empty() {
+            return Err(anyhow::anyhow!("No audio tensors generated by MOSHI"));
+        }
+
+        // Concatenate along dimension 2 (time), just like gen.rs
+        let concatenated = Tensor::cat(&out_pcm_tensors, 2)
+            .context("Failed to concatenate PCM tensors")?;
+
+        info!("MOSHI_TEST: Concatenated tensor shape: {:?}", concatenated.shape());
+
+        // Extract using .i((0, 0)) just like gen.rs (not flatten_all!)
+        let all_audio_samples = concatenated.i((0, 0))?.to_vec1::<f32>()
+            .context("Failed to extract audio samples from tensor")?;
+
+        info!("MOSHI_TEST: Extracted {} total PCM samples ({:.2}s @ 24kHz)",
               all_audio_samples.len(), all_audio_samples.len() as f32 / 24000.0);
 
         // Step 3: Save MOSHI's response to WAV file
@@ -1453,7 +1519,7 @@ impl VoiceBridge {
 
         // Extract codes as Vec<u32> - shape is [batch=1, codebooks, time=1]
         // CRITICAL: Only extract first 8 codebooks to match lm_config.input_audio_codebooks
-        // MIMI outputs 32 codebooks, but LM expects only 8 for input
+        // MIMI is configured with 8 codebooks (matching moshi-cli gen.rs)
         use candle::IndexOp;
         let input_codebooks = moshi_state.lm_config.input_audio_codebooks as usize;
         let codes = codes_tensor.i((0, 0..input_codebooks, 0))?.to_vec1::<u32>()?;
