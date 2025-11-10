@@ -29,4 +29,13 @@ if len(manager.list_personas()) > 0:
     print("\nPersona details:")
     for name in manager.list_personas():
         persona = manager.get_persona(name)
-        print(f"  - {name}: version={persona.version}, model={persona.model}")
+        print(f"  - {name}: version={persona.version}")
+
+    # Test get_current_persona
+    print("\nTesting get_current_persona():")
+    manager.set_current_persona('Cylon')
+    current = manager.get_current_persona()
+    if current:
+        print(f"✅ get_current_persona() works: {current.name}")
+    else:
+        print("❌ get_current_persona() returned None")

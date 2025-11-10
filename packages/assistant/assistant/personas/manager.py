@@ -105,6 +105,10 @@ class PersonaManager:
         """Get persona by name"""
         return self.personas.get(name)
 
+    def get_current_persona(self) -> Optional[PersonaConfig]:
+        """Get the currently active persona"""
+        return self.current_persona
+
     def set_current_persona(self, name: str) -> bool:
         """
         Set current active persona.
