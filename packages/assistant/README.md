@@ -125,25 +125,100 @@ Configuration:
   Config saved to: ~/.config/xswarm/config.yaml
 ```
 
-## Running Tests
+## Testing the TUI
+
+### Overview
+
+All TUI testing runs in **headless mode** (no terminal corruption!). Perfect for automated testing and AI collaboration.
+
+### Install Test Dependencies
 
 ```bash
-# Install test dependencies
 pip install -e ".[dev]"
+```
 
+This installs:
+- `pytest` - Test framework
+- `pytest-asyncio` - Async test support
+- `pytest-cov` - Coverage reporting
+- **`pytest-textual-snapshot`** ⭐ - Visual snapshot testing
+
+### Run Tests
+
+```bash
 # Run all tests
 pytest tests/ -v
 
+# Run snapshot tests (visual regression testing)
+pytest tests/test_*_snapshots.py -v
+
 # Run specific test file
 pytest tests/test_integration.py -v
-pytest tests/test_dashboard.py -v
+pytest tests/test_chat_panel_snapshots.py -v
 
 # Run with coverage
 pytest tests/ --cov=assistant --cov-report=html
 
-# Run tests with debug output
-pytest tests/ -v -s
+# Update visual baselines (after intentional UI changes)
+pytest tests/test_*_snapshots.py --snapshot-update
 ```
+
+### Generate SVG Screenshots for AI Review
+
+Perfect for verifying visual changes without running the full app:
+
+```bash
+# Generate all component screenshots (headless, no terminal corruption)
+python scripts/generate_test_svgs.py
+
+# Generate specific components
+python scripts/generate_test_svgs.py --component chat
+python scripts/generate_test_svgs.py --component voice
+
+# Custom terminal size
+python scripts/generate_test_svgs.py --size 120x40
+
+# See all options
+python scripts/generate_test_svgs.py --help
+```
+
+Output: `tmp/ai_review/*.svg` (open in browser to view)
+
+### Visual Snapshot Testing
+
+The snapshot tests automatically detect visual regressions by comparing current output against baseline snapshots:
+
+```bash
+# Run snapshot tests
+pytest tests/test_chat_panel_snapshots.py -v
+
+# If visual changed unintentionally:
+#   → Review HTML diff report: tests/__snapshots__/report.html
+#   → Fix the bug
+#   → Re-run tests
+
+# If visual changed intentionally:
+pytest tests/test_chat_panel_snapshots.py --snapshot-update
+```
+
+**Key Benefits:**
+- ✅ No terminal corruption (runs in headless mode)
+- ✅ Automated visual regression detection
+- ✅ AI can generate and review screenshots
+- ✅ Fast feedback loop (seconds)
+
+### Documentation
+
+For detailed testing workflows, best practices, and troubleshooting, see:
+
+📖 **[docs/testing-guide.md](docs/testing-guide.md)**
+
+**Topics covered:**
+- Headless testing architecture
+- Writing new snapshot tests
+- AI collaboration workflow
+- Continuous integration setup
+- Troubleshooting common issues
 
 ## 🚀 Planned Features (Free Forever)
 
