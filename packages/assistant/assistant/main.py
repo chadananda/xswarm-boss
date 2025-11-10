@@ -20,6 +20,7 @@ import os
 
 from .config import Config
 from .dashboard.app import VoiceAssistantApp
+from .dashboard.screens import WizardScreen
 from .personas import PersonaManager
 from .memory import MemoryManager
 from .wake_word import WakeWordDetector
@@ -31,8 +32,9 @@ class VoiceAssistant:
     Integrates all components into cohesive system.
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, personas_dir: Path):
         self.config = config
+        self.personas_dir = personas_dir
         self.app: Optional[VoiceAssistantApp] = None
         self.persona_manager: Optional[PersonaManager] = None
         self.memory_manager: Optional[MemoryManager] = None
@@ -48,14 +50,12 @@ class VoiceAssistant:
 
         # 1. Load personas
         print("Loading personas...")
-        personas_dir = Path(__file__).parent.parent.parent / "personas"
-
-        if not personas_dir.exists():
-            print(f"⚠️  Personas directory not found: {personas_dir}")
+        if not self.personas_dir.exists():
+            print(f"⚠️  Personas directory not found: {self.personas_dir}")
             print("   Creating default personas directory...")
-            personas_dir.mkdir(parents=True, exist_ok=True)
+            self.personas_dir.mkdir(parents=True, exist_ok=True)
 
-        self.persona_manager = PersonaManager(personas_dir)
+        self.persona_manager = PersonaManager(self.personas_dir)
 
         available_personas = self.persona_manager.list_personas()
         if available_personas:
@@ -96,7 +96,7 @@ class VoiceAssistant:
 
         # 3. Initialize dashboard (TUI)
         print("\nInitializing dashboard...")
-        self.app = VoiceAssistantApp(self.config)
+        self.app = VoiceAssistantApp(self.config, self.personas_dir)
 
         # 4. MOSHI will be loaded by dashboard
         print("\nMOSHI will be loaded by dashboard...")
@@ -138,54 +138,47 @@ class VoiceAssistant:
         print("✅ Cleanup complete")
 
 
+async def show_wizard(personas_dir: Path) -> Config:
+    """Show first-run wizard and return configured config"""
+    from textual.app import App
+
+    # Temporary minimal app just to show the wizard
+    class WizardApp(App):
+        def __init__(self):
+            super().__init__()
+            self.result_config = None
+
+        async def on_mount(self):
+            result = await self.push_screen(WizardScreen(personas_dir), wait_for_dismiss=True)
+            self.result_config = result
+            self.exit(result)
+
+    wizard_app = WizardApp()
+    return await wizard_app.run_async()
+
+
 def main():
     """CLI entry point"""
     parser = argparse.ArgumentParser(
-        description="Voice Assistant with MOSHI, Textual TUI, and persona system",
+        description="Voice Assistant with MOSHI - Interactive TUI",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  %(prog)s                              # Run with default settings
-  %(prog)s --persona JARVIS             # Use specific persona
-  %(prog)s --device mps                 # Force MPS device (Mac M3)
-  %(prog)s --no-memory                  # Disable memory server
-  %(prog)s --server-url http://prod:3000 --persona ASSISTANT
+  %(prog)s                    # Launch interactive TUI
+  %(prog)s --debug            # Launch with debug logging
+  %(prog)s --config /path     # Use custom config file
+
+Configuration:
+  All settings are configured interactively in the TUI.
+  Press 's' inside the app to open settings.
+  Config saved to: ~/.config/xswarm/config.yaml
         """
     )
 
     parser.add_argument(
-        "--server-url",
-        default=os.environ.get("XSWARM_SERVER_URL", "http://localhost:3000"),
-        help="Memory server URL (default: $XSWARM_SERVER_URL or http://localhost:3000)"
-    )
-
-    parser.add_argument(
-        "--api-token",
-        default=os.environ.get("XSWARM_API_TOKEN"),
-        help="API token for server authentication (default: $XSWARM_API_TOKEN)"
-    )
-
-    parser.add_argument(
-        "--persona",
-        help="Persona to load (default: first available)"
-    )
-
-    parser.add_argument(
-        "--wake-word",
-        help="Custom wake word (overrides persona)"
-    )
-
-    parser.add_argument(
-        "--device",
-        choices=["auto", "mps", "cuda", "cpu"],
-        default="auto",
-        help="Device for MOSHI (auto, mps, cuda, cpu)"
-    )
-
-    parser.add_argument(
-        "--no-memory",
-        action="store_true",
-        help="Disable memory server integration"
+        "--config",
+        type=Path,
+        help="Path to custom config file"
     )
 
     parser.add_argument(
@@ -202,26 +195,34 @@ Examples:
 
     args = parser.parse_args()
 
-    # Create config
-    config = Config()
-    config.server_url = args.server_url
-    config.device = args.device
-    config.memory_enabled = not args.no_memory
-    config.api_token = args.api_token
-
-    if args.persona:
-        config.default_persona = args.persona
-
-    if args.wake_word:
-        config.wake_word = args.wake_word
-
     # Enable debug if requested
     if args.debug:
         import logging
         logging.basicConfig(level=logging.DEBUG)
 
+    # Get personas directory
+    personas_dir = Path(__file__).parent.parent.parent / "personas"
+
+    # Load or create config
+    config_path = args.config if args.config else None
+    config = Config.load_from_file(config_path)
+
+    # Check if first run (no config file exists)
+    if not (args.config or Config.get_config_path().exists()):
+        print("👋 Welcome! Let's set up your voice assistant...\n")
+        try:
+            # Show wizard in TUI
+            config = asyncio.run(show_wizard(personas_dir))
+            if not config:
+                print("Setup cancelled. Using defaults.")
+                config = Config()
+        except Exception as e:
+            print(f"Wizard error: {e}")
+            print("Using default configuration.")
+            config = Config()
+
     # Create and run assistant
-    assistant = VoiceAssistant(config)
+    assistant = VoiceAssistant(config, personas_dir)
 
     try:
         asyncio.run(assistant.initialize())

@@ -1,5 +1,8 @@
 # Voice Assistant Dashboard - Quick Start
 
+> **Note**: This is a developer guide for testing the dashboard visualizer component.
+> For the full interactive TUI with configuration wizard and settings, see [README.md](README.md).
+
 ## Test the Pulsing Circle Visualizer NOW! 🎉
 
 ### One-Line Install & Run
