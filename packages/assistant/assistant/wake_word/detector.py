@@ -165,40 +165,49 @@ class WakeWordDetector:
         if not text:
             return
 
-        # Check for wake word
-        if self._is_wake_word_present(text):
+        # Check for wake word and identify which one
+        detected_word = self._get_detected_wake_word(text)
+        if detected_word:
             # Get confidence if available
             confidence = self._get_confidence(result)
 
             # Check sensitivity threshold
             if confidence >= self.sensitivity:
-                print(f"Wake word detected: '{text}' (confidence: {confidence:.2f})")
+                print(f"Wake word detected: '{detected_word}' in '{text}' (confidence: {confidence:.2f})")
 
-                # Call callback
+                # Call callback with detected wake word
                 if self.detection_callback:
                     try:
-                        self.detection_callback()
+                        self.detection_callback(detected_word)
                     except Exception as e:
                         print(f"Wake word callback error: {e}")
 
-    def _is_wake_word_present(self, text: str) -> bool:
-        """Check if any wake word is in recognized text"""
+    def _get_detected_wake_word(self, text: str) -> Optional[str]:
+        """
+        Get the specific wake word that was detected in text.
+
+        Returns the wake word that was found, or None if no wake word detected.
+        """
         # Check each wake word
         for wake_word in self.wake_words:
             # Exact match
             if text == wake_word:
-                return True
+                return wake_word
 
             # Wake word as part of phrase
             words = text.split()
             if wake_word in words:
-                return True
+                return wake_word
 
             # Multi-word wake word
             if " " in wake_word and wake_word in text:
-                return True
+                return wake_word
 
-        return False
+        return None
+
+    def _is_wake_word_present(self, text: str) -> bool:
+        """Check if any wake word is in recognized text"""
+        return self._get_detected_wake_word(text) is not None
 
     def _get_confidence(self, result: dict) -> float:
         """

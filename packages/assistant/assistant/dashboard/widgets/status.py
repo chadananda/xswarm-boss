@@ -11,6 +11,7 @@ class StatusWidget(Static):
     device_name = reactive("Unknown")
     state = reactive("initializing")
     server_status = reactive("disconnected")
+    last_wake_word = reactive(None)  # Track last detected wake word
 
     def render(self) -> Text:
         """Render status information"""
@@ -41,9 +42,15 @@ class StatusWidget(Static):
         result.append("Server: ", style="bold")
         result.append(f"{self.server_status}\n", style=server_color)
 
+        # Wake word indicator (for testing)
+        if self.last_wake_word:
+            result.append("\nWake Word: ", style="bold")
+            result.append(f"'{self.last_wake_word}'\n", style="bold yellow")
+
         result.append("\n")
         result.append("Controls:\n", style="bold underline")
         result.append("  SPACE  - Toggle listening\n", style="dim")
         result.append("  Q      - Quit\n", style="dim")
+        result.append("  S      - Settings\n", style="dim")
 
         return result
