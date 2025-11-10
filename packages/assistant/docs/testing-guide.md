@@ -425,18 +425,46 @@ async def run_before(pilot):
 3. **Check attributes** - Verify colors, positions, text content
 4. **Compare layouts** - Ensure responsive behavior
 
+## Responsive Testing
+
+For comprehensive responsive testing across 10 terminal sizes (30x10 to 200x60), see:
+
+📖 **[docs/responsive-testing.md](responsive-testing.md)**
+
+**Quick Start:**
+```bash
+# Run all responsive tests (~70 snapshots, ~3 min)
+pytest tests/test_responsive_comprehensive.py -v
+
+# Test specific component
+pytest tests/test_responsive_comprehensive.py::TestChatPanelResponsive -v
+
+# Generate SVGs at different sizes
+python scripts/generate_test_svgs.py --size 30x10   # Tiny
+python scripts/generate_test_svgs.py --size 200x60  # 4K
+```
+
+**Coverage:**
+- ✅ 10 terminal sizes from tiny (30x10) to 4K (200x60)
+- ✅ Voice visualizer at all sizes
+- ✅ Chat panel at all sizes
+- ✅ Extreme edge cases (ultra-wide, very tall)
+- ✅ ~70 responsive snapshots total
+
 ## Next Steps
 
 1. ✅ **Run existing tests**: `pytest tests/test_*_snapshots.py -v`
-2. ✅ **Generate SVGs for review**: `python scripts/generate_test_svgs.py`
-3. ✅ **Write tests for new components**: Follow examples above
-4. ✅ **Add to CI/CD**: Catch regressions automatically
+2. ✅ **Run responsive tests**: `pytest tests/test_responsive_comprehensive.py -v`
+3. ✅ **Generate SVGs for review**: `python scripts/generate_test_svgs.py`
+4. ✅ **Write tests for new components**: Follow examples above
+5. ✅ **Add to CI/CD**: Catch regressions automatically
 
 ## Resources
 
 - [Textual Testing Docs](https://textual.textualize.io/guide/testing/)
 - [pytest-textual-snapshot](https://github.com/Textualize/pytest-textual-snapshot)
 - [Textual Pilot API](https://textual.textualize.io/guide/testing/#pilot)
+- **[Responsive Testing Guide](responsive-testing.md)** - Comprehensive responsive testing
 
 ---
 
