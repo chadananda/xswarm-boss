@@ -32,7 +32,9 @@
       "WebFetch(domain:xswarm.ai)",
       "Read(//Users/chad/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/oww-rs-0.2.0/src/**)",
       "WebFetch(domain:crates.io)",
-      "WebFetch(domain:docs.rs)"
+      "WebFetch(domain:docs.rs)",
+      "WebFetch(domain:cdn.dribbble.com)",
+      "WebFetch(domain:mir-s3-cdn-cf.behance.net)"
     ],
     "deny": [],
     "ask": []

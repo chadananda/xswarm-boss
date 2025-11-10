@@ -5,8 +5,13 @@ assistant/config.py
 assistant/main.py
 assistant/dashboard/__init__.py
 assistant/dashboard/app.py
+assistant/dashboard/screens/__init__.py
+assistant/dashboard/screens/settings.py
+assistant/dashboard/screens/wizard.py
 assistant/dashboard/widgets/__init__.py
 assistant/dashboard/widgets/activity_feed.py
+assistant/dashboard/widgets/footer.py
+assistant/dashboard/widgets/header.py
 assistant/dashboard/widgets/status.py
 assistant/dashboard/widgets/visualizer.py
 assistant/memory/__init__.py
@@ -21,8 +26,12 @@ assistant/voice/moshi_pytorch.py
 assistant/voice/vad.py
 assistant/wake_word/__init__.py
 assistant/wake_word/detector.py
+tests/test_common_wake_words.py
 tests/test_dashboard.py
 tests/test_integration.py
+tests/test_multi_wake_words.py
+tests/test_tui_config.py
+tests/test_wake_word_indicator.py
 voice_assistant.egg-info/PKG-INFO
 voice_assistant.egg-info/SOURCES.txt
 voice_assistant.egg-info/dependency_links.txt

@@ -181,10 +181,14 @@ async def show_wizard(personas_dir: Path) -> Config:
             self.result_config = None
 
         def on_mount(self):
-            # Use call_after_refresh to avoid NoActiveWorker error
-            self.call_after_refresh(self._show_wizard)
+            # Use call_later to run in a worker context
+            self.call_later(self._show_wizard)
 
-        async def _show_wizard(self):
+        def _show_wizard(self):
+            # Use run_worker to create proper worker context
+            self.run_worker(self._show_wizard_async())
+
+        async def _show_wizard_async(self):
             result = await self.push_screen(WizardScreen(personas_dir), wait_for_dismiss=True)
             self.result_config = result
             self.exit(result)
