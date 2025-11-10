@@ -63,14 +63,14 @@ class VoiceAssistantApp(App):
         asyncio.create_task(self.initialize_moshi())
 
     async def initialize_moshi(self):
-        """Load MOSHI models"""
+        """Load voice models"""
         try:
-            self.update_activity("Initializing MOSHI...")
+            self.update_activity("Initializing voice models...")
             device = self.config.detect_device()
 
             # Note: MoshiBridge and AudioIO will be implemented in Phase 2
             # For now, we'll simulate the initialization
-            self.update_activity(f"MOSHI loaded on {device}")
+            self.update_activity(f"Voice models loaded on {device}")
             self.state = "ready"
 
             # Update status widget
@@ -79,7 +79,7 @@ class VoiceAssistantApp(App):
             status.state = "ready"
 
         except Exception as e:
-            self.update_activity(f"Error loading MOSHI: {e}")
+            self.update_activity(f"Error loading voice models: {e}")
             self.state = "error"
 
             # Update status widget
