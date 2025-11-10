@@ -106,6 +106,8 @@ class CyberpunkFooter(Static):
         # Large (80+ cols): Full stats with bars and network
         else:
             result.append("═" * widget_width + "\n", style="bold green")
+
+            # First line: System stats
             result.append("▓▒░ ", style="bold cyan")
 
             # CPU
@@ -129,11 +131,21 @@ class CyberpunkFooter(Static):
             net_color = "green" if self.network_status == "online" else "red"
             result.append(f"{self.network_status.upper()}", style=f"bold {net_color}")
 
-            # Platform info
+            # Keyboard shortcuts (right side)
             result.append(" " * 5)
-            result.append("░▒▓ ", style="bold cyan")
-            os_name = platform.system()
-            result.append(f"{os_name}", style="bold magenta")
+            result.append("│ ", style="dim white")
+            result.append("SPACE:", style="dim cyan")
+            result.append("Listen", style="bold white")
+            result.append(" ", style="")
+            result.append("Ctrl+C:", style="dim cyan")
+            result.append("Copy", style="bold white")
+            result.append(" ", style="")
+            result.append("Ctrl+V:", style="dim cyan")
+            result.append("Paste", style="bold white")
+            result.append(" ", style="")
+            result.append("Q:", style="dim cyan")
+            result.append("Quit", style="bold white")
+
             result.append(" ░▒▓", style="bold cyan")
 
             return result
