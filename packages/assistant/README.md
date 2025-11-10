@@ -145,6 +145,86 @@ pytest tests/ --cov=assistant --cov-report=html
 pytest tests/ -v -s
 ```
 
+## 🚀 Planned Features (Free Forever)
+
+xswarm aims to be the most addictive, customizable, and viral AI assistant TUI. Here's our ambitious roadmap for the **free base version**:
+
+### 🎨 Ultimate Customization & "Ricing"
+- **Plugin System** - Dynamic plugin loading, hot-reload, community marketplace
+- **Theme Gallery** - Browse, download, and share custom themes with one click
+- **Pywal Integration** - Auto-sync colors with your wallpaper (r/unixporn approved!)
+- **Persona Themes** - Each AI personality has unique colors, ASCII art, and style
+- **Live Theme Preview** - See changes in real-time before applying
+- **System Color Sync** - Adapt to Omarchy, macOS, GTK, Windows themes automatically
+
+### 🔍 Productivity Powerhouse
+- **File Search** - Lightning-fast fuzzy file search with preview (replaces `find` + `grep`)
+- **Note Search** - Full-text + semantic search across all your documents (Whoosh + ChromaDB)
+- **Task Manager** - Beautiful Kanban board widget, SQLite backend, voice-to-task
+- **Quick Actions** - Clipboard manager, screenshots, text snippets
+- **Web Research** - Built-in scraper for articles, prices, data extraction
+
+### 🎯 Voice & AI Features
+- **Voice Commands** - Natural language control of all features
+- **Multiple Personas** - JARVIS (professional), GLaDOS (sarcastic), NEON (cyberpunk), and more
+- **Custom Personas** - Create and share your own AI personalities
+- **Local Transcription** - Offline meeting transcription with Whisper (100% private)
+- **Voice-to-Task** - "Add task: fix bug" instantly creates todo item
+
+### 📊 System Integration
+- **System Monitor** - Live CPU/GPU/memory/network stats in TUI
+- **Device Indicators** - Battery, temperature, disk usage
+- **Process Manager** - Kill processes, monitor resource hogs
+- **Clipboard History** - Never lose a copy again
+
+### 🎭 Community & Viral Features
+- **Rice Showcase** - Share your setup with screenshots + theme files
+- **Plugin Marketplace** - Discover and install community plugins
+- **Theme Rating** - Upvote favorite themes, "Setup of the Week"
+- **One-Click Install** - "Share my rice" generates shareable setup
+- **Plugin Developer Tools** - Easy plugin creation with templates
+
+### 🔐 Privacy-First Design
+- **100% Local** - All base features work offline
+- **No Telemetry** - Zero tracking or analytics
+- **Open Source** - Fully auditable code
+- **Self-Hosted** - Your data never leaves your machine
+- **E2E Encryption** - Optional cloud sync with end-to-end encryption
+
+### 🎨 Visual Polish
+- **Responsive TUI** - Works at any terminal size (40x15 to 4K)
+- **Progressive Degradation** - Graceful feature reduction on small screens
+- **60 FPS Animations** - Smooth, buttery animations
+- **ASCII Art** - Persona avatars with character
+- **Matrix Rain** - Optional cyberpunk background effect
+- **Glow Effects** - Neon-style text glowing
+
+### 🔌 Built-in Plugins (Free)
+All these plugins ship with the base install:
+
+1. **file-search** - Fuzzy file finder with preview
+2. **note-search** - Full-text note search
+3. **task-manager** - Kanban board for todos
+4. **system-info** - Live system stats
+5. **quick-actions** - Clipboard, screenshots, snippets
+6. **web-research** - Article scraper and summarizer
+7. **theme-gallery** - Browse and install community themes
+8. **persona-manager** - Switch AI personalities
+
+### 💎 Premium Features (Optional, BYOK)
+These are **optional** for power users. Base version is amazing without them:
+
+- **Email Suite** - Gmail API integration (bring your own API key)
+- **Calendar Sync** - Google Calendar sync (BYOK)
+- **Cloud Backup** - E2E encrypted cloud sync (optional paid service)
+- **Premium AI Models** - GPT-4, Claude API (BYOK)
+- **Workflow Automation** - Advanced task scheduling (APScheduler/Celery)
+- **Team Features** - Shared plugins, themes, workspaces
+
+**Philosophy:** Give away the sizzle, sell the steak. Base version is so good users will want to share it.
+
+---
+
 ## What's Implemented
 
 ### Phase 1: Project Structure ✅
