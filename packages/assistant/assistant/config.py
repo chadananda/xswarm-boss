@@ -5,7 +5,7 @@ Supports MPS (Mac M3), ROCm/CUDA (AMD/NVIDIA), and CPU fallback.
 
 import torch
 from pathlib import Path
-from typing import Literal
+from typing import Literal, Optional
 from pydantic import BaseModel
 
 
@@ -29,6 +29,10 @@ class Config(BaseModel):
 
     # Server settings
     server_url: str = "http://localhost:3000"
+
+    # Memory settings
+    api_token: Optional[str] = None
+    memory_enabled: bool = True
 
     class Config:
         """Pydantic configuration"""
