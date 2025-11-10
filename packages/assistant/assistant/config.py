@@ -23,8 +23,9 @@ class Config(BaseModel):
     model_dir: Path = Path.home() / ".cache" / "moshi"
 
     # Wake word settings
-    wake_word: str = "jarvis"  # Can be customized per persona
-    wake_word_model: Path = Path.home() / ".cache" / "vosk-model-small-en-us-0.15"
+    wake_word: str = "jarvis"  # Default, overridden by persona
+    wake_word_model: Path = Path.home() / ".cache" / "vosk" / "vosk-model-small-en-us-0.15"
+    wake_word_sensitivity: float = 0.7  # 0.0-1.0
 
     # Server settings
     server_url: str = "http://localhost:3000"
