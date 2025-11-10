@@ -56,7 +56,10 @@ class CyberpunkFooter(Static):
         """Render cyberpunk footer"""
         result = Text()
 
-        result.append("═" * 79 + "\n", style="bold green")
+        # Get actual widget width (fallback to 40 if too small)
+        widget_width = max(self.size.width, 40)
+
+        result.append("═" * widget_width + "\n", style="bold green")
 
         # Left section: System stats
         result.append("▓▒░ ", style="bold cyan")
