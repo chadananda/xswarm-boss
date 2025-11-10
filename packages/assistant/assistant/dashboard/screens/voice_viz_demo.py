@@ -30,33 +30,40 @@ class VoiceVizDemoScreen(Screen):
     #demo-container {
         width: 100%;
         height: 100%;
-        padding: 1;
+        overflow: hidden;
     }
 
     #viz-grid {
         grid-size: 3 2;
-        grid-gutter: 1;
+        grid-gutter: 1 1;
         width: 100%;
         height: 100%;
+        overflow: hidden;
     }
 
     .viz-container {
         border: solid #00d4ff;
         height: 100%;
         width: 100%;
+        min-height: 0;
+        overflow: hidden;
     }
 
     .viz-label {
         background: #1a1f3a;
         color: #00d4ff;
         text-align: center;
-        height: 1;
+        height: auto;
+        max-height: 1;
         text-style: bold;
+        padding: 0;
     }
 
     VoiceVisualizerPanel {
         height: 1fr;
+        min-height: 0;
         border: none;
+        overflow: hidden;
     }
     """
 
