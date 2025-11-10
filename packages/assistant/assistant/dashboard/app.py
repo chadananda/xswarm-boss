@@ -4,7 +4,7 @@ Replaces Rust Ratatui dashboard.
 """
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Vertical, Horizontal
+from textual.containers import Container, Vertical, Horizontal, Grid
 from textual.widgets import Header, Footer, Static
 from textual.reactive import reactive
 from textual import events
@@ -14,6 +14,7 @@ from typing import Optional
 from pathlib import Path
 
 from .widgets.visualizer import AudioVisualizer, CyberpunkVisualizer
+from .widgets.panels import VoiceVisualizerPanel, VisualizationStyle
 from .widgets.status import StatusWidget
 from .widgets.activity_feed import ActivityFeed
 from .widgets.header import CyberpunkHeader
@@ -45,8 +46,13 @@ class VoiceAssistantApp(App):
 
         with Container(id="main-container"):
             with Vertical(id="left-panel"):
-                # Cyberpunk audio visualizer with DRAMATIC effects
-                yield CyberpunkVisualizer(id="visualizer")
+                # Voice visualizer - working version from demo
+                viz_panel = VoiceVisualizerPanel(
+                    visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
+                )
+                viz_panel.id = "visualizer"
+                viz_panel.simulation_mode = True
+                yield viz_panel
 
                 # Status information
                 yield StatusWidget(id="status")
@@ -60,6 +66,13 @@ class VoiceAssistantApp(App):
     def on_mount(self) -> None:
         """Initialize on mount"""
         self.set_interval(1/30, self.update_visualizer)  # 30 FPS
+
+        # Start visualizer animation
+        try:
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            visualizer.start_animation()
+        except Exception:
+            pass
 
         # Load MOSHI in background
         asyncio.create_task(self.initialize_moshi())
@@ -99,13 +112,16 @@ class VoiceAssistantApp(App):
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
-        visualizer = self.query_one("#visualizer", CyberpunkVisualizer)
-        visualizer.amplitude = self.amplitude
-        visualizer.state = self.state
+        try:
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            visualizer.amplitude = self.amplitude
+            # VoiceVisualizerPanel doesn't have state - it animates automatically
 
-        # Also update status widget
-        status = self.query_one("#status", StatusWidget)
-        status.state = self.state
+            # Update status widget
+            status = self.query_one("#status", StatusWidget)
+            status.state = self.state
+        except Exception:
+            pass  # Widget not ready yet
 
     def update_activity(self, message: str):
         """Add message to activity feed"""
