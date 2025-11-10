@@ -2,18 +2,134 @@
 
 Cross-platform voice assistant with MOSHI, Textual TUI, and flexible persona system.
 
-## Status: Phase 6 Complete ✅
+## Status: Phase 7 Complete ✅
 
-### What's Done
+All 7 phases completed! The assistant is now fully integrated and ready for testing.
 
-**Phase 1: Project Structure** ✅
+## Quick Start
+
+### Installation
+
+```bash
+cd packages/assistant
+
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Or install in development mode
+pip install -e ".[dev]"
+
+# Download Vosk model for wake word detection
+python scripts/download_vosk_model.py
+
+# Install MOSHI from source (required for Phase 2)
+cd /tmp
+git clone https://github.com/kyutai-labs/moshi.git moshi-official
+cd moshi-official/moshi
+pip install -e .
+cd -
+```
+
+### Setup Environment
+
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your settings
+# XSWARM_SERVER_URL=http://localhost:3000
+# XSWARM_API_TOKEN=your-token
+```
+
+### Run the Assistant
+
+```bash
+# Run with default settings
+python -m assistant.main
+
+# Or use the CLI entry point (after pip install)
+assistant
+
+# Or the full name
+voice-assistant
+
+# Run with custom options
+assistant --persona JARVIS --device mps
+assistant --server-url http://localhost:3000 --wake-word "computer"
+assistant --no-memory  # Disable memory server
+assistant --debug      # Enable debug logging
+```
+
+## Command Line Options
+
+```
+usage: assistant [-h] [--server-url SERVER_URL] [--api-token API_TOKEN]
+                 [--persona PERSONA] [--wake-word WAKE_WORD]
+                 [--device {auto,mps,cuda,cpu}] [--no-memory] [--debug]
+                 [--version]
+
+Voice Assistant with MOSHI, Textual TUI, and persona system
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --server-url SERVER_URL
+                        Memory server URL (default: $XSWARM_SERVER_URL or http://localhost:3000)
+  --api-token API_TOKEN
+                        API token for server authentication (default: $XSWARM_API_TOKEN)
+  --persona PERSONA     Persona to load (default: first available)
+  --wake-word WAKE_WORD
+                        Custom wake word (overrides persona)
+  --device {auto,mps,cuda,cpu}
+                        Device for MOSHI (auto, mps, cuda, cpu)
+  --no-memory           Disable memory server integration
+  --debug               Enable debug logging
+  --version             show program's version number and exit
+
+Examples:
+  assistant                              # Run with default settings
+  assistant --persona JARVIS             # Use specific persona
+  assistant --device mps                 # Force MPS device (Mac M3)
+  assistant --no-memory                  # Disable memory server
+  assistant --server-url http://prod:3000 --persona ASSISTANT
+```
+
+## Running Tests
+
+```bash
+# Install test dependencies
+pip install -e ".[dev]"
+
+# Run all tests
+pytest tests/ -v
+
+# Run specific test file
+pytest tests/test_integration.py -v
+pytest tests/test_dashboard.py -v
+
+# Run with coverage
+pytest tests/ --cov=assistant --cov-report=html
+
+# Run tests with debug output
+pytest tests/ -v -s
+```
+
+## What's Implemented
+
+### Phase 1: Project Structure ✅
 - ✅ Project structure created (`packages/assistant/`)
 - ✅ Rust code archived to `packages/core-rust-archive/`
 - ✅ Dependencies defined (PyTorch, Textual, Vosk, etc.)
 - ✅ Cross-platform architecture (Mac M3 MPS, AMD ROCm, CPU fallback)
 - ✅ Module structure ready for implementation
 
-**Phase 3: Textual Dashboard** ✅ (completed before Phase 2)
+### Phase 2: PyTorch MOSHI Integration ✅
+- ✅ MOSHI bridge (`assistant/voice/moshi_pytorch.py`)
+- ✅ Audio I/O with sounddevice
+- ✅ Voice Activity Detection (VAD)
+- ✅ Audio resampling (24kHz ↔ 16kHz)
+- ✅ Integration with dashboard visualizer
+
+### Phase 3: Textual Dashboard ✅
 - ✅ Main TUI application (`assistant/dashboard/app.py`)
 - ✅ **Pulsing circle visualizer** (`assistant/dashboard/widgets/visualizer.py`) ⭐
 - ✅ Status widget with device/state/server info
@@ -25,7 +141,7 @@ Cross-platform voice assistant with MOSHI, Textual TUI, and flexible persona sys
 
 See [Phase 3 Implementation Details](docs/phase3-dashboard-implementation.md)
 
-**Phase 4: Persona System** ✅
+### Phase 4: Persona System ✅
 - ✅ PersonaConfig with Pydantic models (`assistant/personas/config.py`)
 - ✅ PersonaManager for loading/switching personas (`assistant/personas/manager.py`)
 - ✅ Big Five personality traits + custom dimensions
@@ -35,7 +151,7 @@ See [Phase 3 Implementation Details](docs/phase3-dashboard-implementation.md)
 - ✅ Jarvis example persona (testing only)
 - ✅ System prompt generation from traits
 
-**Phase 5: Wake Word Detection** ✅
+### Phase 5: Wake Word Detection ✅
 - ✅ Vosk-based offline wake word detection (`assistant/wake_word/detector.py`)
 - ✅ Model download script (`scripts/download_vosk_model.py`)
 - ✅ Test script with microphone input (`examples/test_wake_word.py`)
@@ -44,7 +160,7 @@ See [Phase 3 Implementation Details](docs/phase3-dashboard-implementation.md)
 - ✅ Deterministic recognition (no AI hallucinations)
 - ✅ <100ms latency
 
-**Phase 6: Memory Integration** ✅
+### Phase 6: Memory Integration ✅
 - ✅ Async HTTP memory client (`assistant/memory/client.py`)
 - ✅ MemoryManager with automatic fallback (`assistant/memory/client.py`)
 - ✅ LocalMemoryCache for offline operation
@@ -53,61 +169,44 @@ See [Phase 3 Implementation Details](docs/phase3-dashboard-implementation.md)
 - ✅ Environment configuration (`.env.example`)
 - ✅ Integration with Node.js server API
 
-### Quick Test
+### Phase 7: Main Entry Point and Integration Testing ✅
+- ✅ Main application entry point (`assistant/main.py`)
+- ✅ CLI argument parsing and configuration
+- ✅ Component integration and lifecycle management
+- ✅ Integration tests (`tests/test_integration.py`)
+- ✅ Dashboard widget tests (`tests/test_dashboard.py`)
+- ✅ PyProject.toml with CLI entry points
+- ✅ Comprehensive documentation
+- ✅ Graceful shutdown and signal handling
 
-```bash
-cd packages/assistant
+## Architecture
 
-# Install dependencies (if not already done)
-pip install textual rich torch pydantic pyyaml vosk sounddevice httpx
-
-# Run the dashboard test
-python examples/test_dashboard.py
-
-# Test persona system
-python examples/test_personas.py
-
-# Test wake word detection
-python scripts/download_vosk_model.py  # First time only
-python examples/test_wake_word.py
-
-# Test memory integration (requires server running)
-cd ../server && npm start  # In another terminal
-python examples/test_memory.py
-
-# Controls:
-#   SPACE - Cycle through states (idle → listening → speaking → thinking → ready)
-#   Q     - Quit
-```
-
-### Architecture
-
-**Voice Backend**: PyTorch + ROCm/MPS
+### Voice Backend: PyTorch + ROCm/MPS
 - Mac M3: PyTorch MPS (Metal)
 - AMD Strix Halo: PyTorch ROCm
 - Fallback: CPU
 
-**TUI Framework**: Textual ✅
+### TUI Framework: Textual ✅
 - Modern async/await
 - **Pulsing circle audio visualizer** (IMPLEMENTED)
 - Real-time dashboard (IMPLEMENTED)
 - 30 FPS animations (IMPLEMENTED)
 
-**Persona System**: External YAML configs ✅
+### Persona System: External YAML configs ✅
 - Directory-based (`packages/personas/`)
 - Hot-reloadable
 - Not hardcoded (Jarvis is just test persona)
 - Pydantic models for validation
 - Big Five + custom personality traits
 
-**Wake Word Detection**: Vosk ✅
+### Wake Word Detection: Vosk ✅
 - Offline (no API calls)
 - Lightweight (~40MB model)
 - Deterministic (no false positives)
 - Low latency (<100ms)
 - Custom wake words per persona
 
-**Memory Integration**: HTTP Client + Local Cache ✅
+### Memory Integration: HTTP Client + Local Cache ✅
 - Async httpx client for Node.js server
 - Automatic fallback to local cache
 - Conversation history storage
@@ -365,94 +464,13 @@ wake_word: "assistant"
 
 ---
 
-## Next Steps (Phases 2, 7)
-
-### Phase 2: PyTorch MOSHI Integration (3 hours) - NEXT
-
-**Files to create:**
-1. `assistant/voice/moshi_pytorch.py` - MOSHI bridge
-2. Integration with dashboard visualizer
-3. Audio resampling (24kHz MOSHI ↔ 16kHz Vosk)
-
-**Key implementation:**
-```python
-import torch
-from moshi.models import loaders
-
-class MoshiBridge:
-    def __init__(self, device: str = "auto"):
-        self.device = self._detect_device(device)
-        self.mimi = loaders.load_mimi(device=self.device)
-        self.lm = loaders.load_lm(device=self.device)
-        self.tokenizer = loaders.load_text_tokenizer()
-
-    def get_amplitude(self, audio) -> float:
-        """Extract amplitude for visualizer"""
-        # Return 0.0 - 1.0 for pulsing circle
-        pass
-```
-
-**Install MOSHI first:**
-```bash
-cd /tmp/moshi-official/moshi
-pip install -e .
-```
-
-### Phase 7: Testing (1 hour)
-
-**Create:**
-1. `tests/test_moshi.py` - MOSHI tests
-2. `tests/test_dashboard.py` - TUI tests
-3. `assistant/main.py` - Entry point
-
----
-
-## Installation
-
-```bash
-cd packages/assistant
-
-# Install PyTorch (Mac M3)
-pip install torch torchvision torchaudio
-
-# Or install PyTorch (AMD ROCm)
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/rocm6.2
-
-# Install other dependencies
-pip install textual rich sounddevice numpy scipy vosk httpx websockets python-dotenv pydantic pyyaml
-
-# Download Vosk model
-python scripts/download_vosk_model.py
-
-# Install MOSHI from source (for Phase 2)
-cd /tmp/moshi-official/moshi
-pip install -e .
-cd -
-
-# Test Phase 3 (Dashboard)
-python examples/test_dashboard.py
-
-# Test Phase 4 (Personas)
-python examples/test_personas.py
-
-# Test Phase 5 (Wake Word)
-python examples/test_wake_word.py
-
-# Test Phase 6 (Memory)
-python examples/test_memory.py
-
-# Run full assistant (after Phase 2)
-python -m assistant.main
-```
-
----
-
 ## Project Structure
 
 ```
 packages/assistant/
 ├── assistant/
 │   ├── __init__.py
+│   ├── main.py                      # ✅ Phase 7 - Main entry point
 │   ├── config.py                    # ✅ Device detection + memory config
 │   ├── dashboard/                   # ✅ Phase 3 - Textual TUI
 │   │   ├── __init__.py
@@ -463,11 +481,11 @@ packages/assistant/
 │   │       ├── visualizer.py        # Pulsing circle ⭐
 │   │       ├── status.py            # Status display
 │   │       └── activity_feed.py     # Activity log
-│   ├── voice/                       # Phase 2 - MOSHI
+│   ├── voice/                       # ✅ Phase 2 - MOSHI
 │   │   ├── __init__.py
-│   │   ├── moshi_pytorch.py         # TODO
-│   │   ├── audio_io.py              # ✅ sounddevice I/O
-│   │   └── vad.py                   # ✅ Voice Activity Detection
+│   │   ├── moshi_pytorch.py         # MOSHI bridge
+│   │   ├── audio_io.py              # sounddevice I/O
+│   │   └── vad.py                   # Voice Activity Detection
 │   ├── personas/                    # ✅ Phase 4
 │   │   ├── __init__.py
 │   │   ├── config.py                # PersonaConfig models
@@ -485,12 +503,15 @@ packages/assistant/
 │   └── test_memory.py               # ✅ Memory client test
 ├── scripts/
 │   └── download_vosk_model.py       # ✅ Model downloader
-├── tests/                           # Phase 7
-│   └── __init__.py
+├── tests/                           # ✅ Phase 7
+│   ├── __init__.py
+│   ├── test_integration.py          # Integration tests
+│   └── test_dashboard.py            # Dashboard widget tests
 ├── docs/
 │   └── phase3-dashboard-implementation.md  # ✅ Phase 3 docs
 ├── .env.example                     # ✅ Environment template
-├── pyproject.toml                   # ✅ Dependencies
+├── pyproject.toml                   # ✅ Dependencies + CLI entry points
+├── requirements.txt                 # ✅ Pip requirements
 └── README.md                        # This file
 
 packages/personas/                   # ✅ External personas
@@ -501,167 +522,6 @@ packages/personas/                   # ✅ External personas
 └── your-persona/                    # Add your own!
     └── theme.yaml
 ```
-
----
-
-## Key Files Reference
-
-### Python Implementation (current)
-- ✅ `assistant/config.py` - Device detection (MPS/ROCm/CPU) + memory config
-- ✅ `assistant/dashboard/app.py` - Main TUI application
-- ✅ `assistant/dashboard/widgets/visualizer.py` - **Pulsing circle** (CRITICAL)
-- ✅ `assistant/personas/config.py` - Persona configuration models
-- ✅ `assistant/personas/manager.py` - Persona manager
-- ✅ `assistant/wake_word/detector.py` - Vosk wake word detector
-- ✅ `assistant/voice/audio_io.py` - Audio I/O with sounddevice
-- ✅ `assistant/voice/vad.py` - Voice Activity Detection
-- ✅ `assistant/memory/client.py` - Memory HTTP client + cache
-- ✅ `examples/test_dashboard.py` - Dashboard test with simulation
-- ✅ `examples/test_personas.py` - Persona system test
-- ✅ `examples/test_wake_word.py` - Wake word test
-- ✅ `examples/test_memory.py` - Memory client test
-- ✅ `scripts/download_vosk_model.py` - Vosk model downloader
-
-### Rust Archive (for reference)
-- `packages/core-rust-archive/src/voice.rs` - MOSHI patterns
-- `packages/core-rust-archive/src/dashboard.rs` - TUI patterns
-- `packages/core-rust-archive/src/personas/` - Persona system
-- `packages/core-rust-archive/src/local_audio.rs` - Audio I/O
-- `packages/core-rust-archive/src/wake_word/` - Wake word patterns
-
-### Next to implement (Phase 2)
-- `assistant/voice/moshi_pytorch.py` - MOSHI bridge
-- Integration: Connect MOSHI amplitude to visualizer
-- Audio resampling: 24kHz ↔ 16kHz for Vosk
-
----
-
-## Features Implemented
-
-### Phase 3: Dashboard (COMPLETE) ✅
-
-**Pulsing Circle Visualizer** ⭐
-- 30 FPS smooth animations
-- Amplitude-driven radius changes (0.5x - 1.5x base size)
-- State-specific behaviors:
-  - Idle: Cyan, slow breathing
-  - Listening: Green, fast breathing
-  - Speaking: Yellow, amplitude-driven
-  - Thinking: Magenta, rotating
-  - Error: Red, static
-- 10-frame amplitude smoothing for natural motion
-- Responsive to window resize
-- Unicode rendering (●, ○, ·)
-
-**Status Widget**
-- Device name (CPU/MPS/CUDA/ROCm)
-- Current state (color-coded)
-- Server connection status
-- Keyboard controls help
-
-**Activity Feed**
-- Timestamped event log
-- Auto-scrolling (last 20 messages)
-- Circular buffer (max 100)
-
-**Keyboard Controls**
-- `SPACE`: Toggle listening / cycle states
-- `Q`: Quit
-
-**Test Infrastructure**
-- Simulates realistic speech amplitude
-- Cycles through all states
-- No MOSHI required for testing
-
-### Phase 4: Persona System (COMPLETE) ✅
-
-**PersonaConfig Models**
-- Big Five personality traits (openness, conscientiousness, extraversion, agreeableness, neuroticism)
-- Custom dimensions (formality, enthusiasm, humor, verbosity)
-- Voice settings (pitch, speed, tone, quality)
-- System prompt with personality guide
-- Vocabulary preferences (preferred/avoid phrases)
-
-**PersonaManager**
-- Automatic persona discovery from directories
-- Hot-reloading support for live updates
-- Switch between personas at runtime
-- Build complete system prompts from traits
-- No hardcoded personas (fully external)
-
-**Example Personas**
-- Jarvis: Professional AI assistant (testing only)
-- Extensible: Add unlimited custom personas
-- Directory-based: Drop in new persona folders
-
-**System Prompt Generation**
-- Converts personality traits to natural language
-- Includes vocabulary preferences
-- Builds complete prompt for MOSHI
-- Configurable personality inclusion
-
-### Phase 5: Wake Word Detection (COMPLETE) ✅
-
-**WakeWordDetector**
-- Vosk-based offline recognition
-- No API calls or cloud services
-- ~40MB lightweight model
-- <100ms detection latency
-- Deterministic (no AI false positives)
-- Multi-word wake word support
-- Runtime wake word switching
-- Confidence-based sensitivity
-- Word-level confidence scoring
-
-**WakeWordDetectorWithVAD**
-- Integrated Voice Activity Detection
-- Only processes audio during speech
-- More CPU efficient
-- Automatic buffer management
-- Seamless integration with VAD module
-
-**Model Management**
-- Automatic model download script
-- Cache-based model storage
-- One-time setup process
-- Manual download fallback
-
-**Testing**
-- Microphone input test script
-- Real-time audio processing
-- Visual feedback on detection
-- Keyboard interrupt handling
-
-### Phase 6: Memory Integration (COMPLETE) ✅
-
-**MemoryClient**
-- Async HTTP client with httpx
-- REST API integration with Node.js server
-- Conversation history storage
-- Semantic memory search
-- User preferences management
-- Health check monitoring
-- Context manager support
-
-**MemoryManager**
-- Automatic server health checks
-- Graceful fallback to local cache
-- Transparent API (works online/offline)
-- Retry logic for server errors
-- Connection pooling
-
-**LocalMemoryCache**
-- In-memory conversation buffer
-- 100-message circular buffer
-- Offline operation support
-- No external dependencies
-
-**Features**
-- Store/retrieve conversation messages
-- Semantic search across history
-- User preference storage
-- GDPR-compliant data management
-- Automatic failover
 
 ---
 
@@ -701,25 +561,120 @@ packages/personas/                   # ✅ External personas
 
 ---
 
+## Development
+
+### Code Style
+
+```bash
+# Format code with Black
+black assistant/ tests/
+
+# Type checking with mypy
+mypy assistant/
+
+# Run linter
+pylint assistant/
+```
+
+### Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run with coverage
+pytest tests/ --cov=assistant --cov-report=html
+
+# Run specific test class
+pytest tests/test_integration.py::TestPersonaIntegration -v
+
+# Run specific test method
+pytest tests/test_integration.py::TestPersonaIntegration::test_persona_loading -v
+```
+
+---
+
+## Troubleshooting
+
+### MOSHI Not Found
+
+If you get `ModuleNotFoundError: No module named 'moshi'`:
+
+```bash
+# Install MOSHI from source
+cd /tmp
+git clone https://github.com/kyutai-labs/moshi.git moshi-official
+cd moshi-official/moshi
+pip install -e .
+```
+
+### Vosk Model Missing
+
+If wake word detection fails:
+
+```bash
+# Download the model
+python scripts/download_vosk_model.py
+
+# Or download manually from:
+# https://alphacephei.com/vosk/models
+# Extract to: ~/.cache/vosk/vosk-model-small-en-us-0.15
+```
+
+### Memory Server Connection Failed
+
+If memory tests fail:
+
+```bash
+# Start the server first
+cd packages/server
+npm install
+npm start
+
+# Or disable memory for testing
+assistant --no-memory
+```
+
+### Device Detection Issues
+
+If PyTorch device detection fails:
+
+```bash
+# Test device detection
+python -c "from assistant.config import Config; print(Config().detect_device())"
+
+# Force specific device
+assistant --device cpu   # Use CPU
+assistant --device mps   # Use Mac Metal
+assistant --device cuda  # Use NVIDIA/AMD
+```
+
+---
+
 ## Current Status
 
-**Completed**: 5 of 7 phases
+**Completed**: ALL 7 phases! 🎉
+
 - ✅ Phase 1: Project structure
+- ✅ Phase 2: PyTorch MOSHI integration
 - ✅ Phase 3: Textual dashboard (with beautiful pulsing circle!)
 - ✅ Phase 4: Persona system (external YAML configs)
 - ✅ Phase 5: Wake word detection (Vosk offline)
 - ✅ Phase 6: Memory integration (HTTP client + local cache)
+- ✅ Phase 7: Main entry point and integration testing
 
-**Next**: Phase 2 (MOSHI integration)
-**Remaining**: ~3 hours of implementation
+**Total Lines of Code**: ~4,000 LOC across 7 phases
 
-**Total Lines of Code**: ~3,100 LOC
 - Phase 1: ~470 LOC (config, structure)
+- Phase 2: ~600 LOC (MOSHI bridge, audio I/O, VAD)
 - Phase 3: ~530 LOC (dashboard, visualizer, widgets, tests)
 - Phase 4: ~500 LOC (persona models, manager, example persona)
 - Phase 5: ~800 LOC (wake word detector, scripts, tests, docs)
 - Phase 6: ~800 LOC (memory client, manager, cache, tests)
+- Phase 7: ~300 LOC (main entry point, integration tests, CLI)
 
 ---
 
-**Status**: Dashboard ready, personas ready, wake word detection ready, memory integration ready, waiting for MOSHI integration to bring it to life! 🎉
+**The assistant is now complete and ready for user testing!** 🎉
+
+Run `assistant --help` to get started!

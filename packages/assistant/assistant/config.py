@@ -34,6 +34,9 @@ class Config(BaseModel):
     api_token: Optional[str] = None
     memory_enabled: bool = True
 
+    # Persona settings
+    default_persona: Optional[str] = None
+
     class Config:
         """Pydantic configuration"""
         arbitrary_types_allowed = True
