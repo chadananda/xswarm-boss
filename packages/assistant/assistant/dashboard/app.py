@@ -39,6 +39,11 @@ class VoiceAssistantApp(App):
     amplitude = reactive(0.0)
     current_persona_name = reactive("Default")  # Current persona name
 
+    # Reactive theme colors - automatically update UI when changed
+    theme_shade_2 = reactive("#363d47")
+    theme_shade_3 = reactive("#4d5966")
+    theme_shade_4 = reactive("#6b7a8a")
+
     def __init__(self, config: Config, personas_dir: Path):
         super().__init__()
         self.config = config
@@ -183,13 +188,15 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             # Regenerate theme palette
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
+            # Update reactive theme colors - this will trigger watchers automatically!
+            self.theme_shade_2 = self._theme_palette.shade_2
+            self.theme_shade_3 = self._theme_palette.shade_3
+            self.theme_shade_4 = self._theme_palette.shade_4
+
             # Log the theme colors being applied
-            self.update_activity(f"🎨 Theme: shade-3={self._theme_palette.shade_3}, shade-5={self._theme_palette.shade_5}")
+            self.update_activity(f"🎨 Theme colors updated: {self.theme_shade_3}")
 
-            # Apply theme colors directly to widgets using Python styles
-            self._apply_theme_to_widgets()
-
-        # Update current persona name
+        # Update current persona name (reactive - triggers watcher)
         self.current_persona_name = persona.name
 
         # Update title
@@ -205,51 +212,56 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         except Exception:
             pass
 
-    def _apply_theme_to_widgets(self):
-        """Apply the current theme palette to all widgets using Python styles"""
+    def watch_theme_shade_3(self, new_color: str) -> None:
+        """Reactive watcher - called automatically when theme_shade_3 changes"""
         try:
-            # Import Color class from Textual
             from textual.color import Color
+            color = Color.parse(new_color)
 
-            # Get all widgets
+            # Update main widget borders
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
             status = self.query_one("#status", StatusWidget)
-            footer = self.query_one("#footer", CyberpunkFooter)
-            header = self.query_one(CyberpunkHeader)
 
-            # Convert hex colors to Textual Color objects
-            color3 = Color.parse(self._theme_palette.shade_3)
-            color4 = Color.parse(self._theme_palette.shade_4)
-            color2 = Color.parse(self._theme_palette.shade_2)
+            visualizer.styles.border = ("solid", color)
+            activity.styles.border = ("solid", color)
+            status.styles.border = ("solid", color)
 
-            # Update border colors using Color objects
-            visualizer.styles.border = ("solid", color3)
-            activity.styles.border = ("solid", color3)
-            status.styles.border = ("solid", color3)
-            header.styles.border = ("solid", color2)
-            footer.styles.border = ("solid", color2)
+            self.update_activity(f"✅ Borders updated to {new_color}")
+        except Exception:
+            pass  # Widgets not ready yet
+
+    def watch_theme_shade_4(self, new_color: str) -> None:
+        """Reactive watcher - called automatically when theme_shade_4 changes"""
+        try:
+            from textual.color import Color
+            color = Color.parse(new_color)
 
             # Update border title colors
-            visualizer.styles.border_title_color = color4
-            activity.styles.border_title_color = color4
-            status.styles.border_title_color = color4
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            activity = self.query_one("#activity", ActivityFeed)
+            status = self.query_one("#status", StatusWidget)
 
-            # Force refresh to show new colors
-            visualizer.refresh()
-            activity.refresh()
-            status.refresh()
-            header.refresh()
-            footer.refresh()
+            visualizer.styles.border_title_color = color
+            activity.styles.border_title_color = color
+            status.styles.border_title_color = color
+        except Exception:
+            pass  # Widgets not ready yet
 
-            self.update_activity(f"✅ Applied colors: border={str(color3)}, title={str(color4)}")
+    def watch_theme_shade_2(self, new_color: str) -> None:
+        """Reactive watcher - called automatically when theme_shade_2 changes"""
+        try:
+            from textual.color import Color
+            color = Color.parse(new_color)
 
-        except Exception as e:
-            # Log any errors
-            try:
-                self.update_activity(f"❌ Theme application error: {str(e)}")
-            except:
-                pass
+            # Update header/footer borders
+            header = self.query_one(CyberpunkHeader)
+            footer = self.query_one("#footer", CyberpunkFooter)
+
+            header.styles.border = ("solid", color)
+            footer.styles.border = ("solid", color)
+        except Exception:
+            pass  # Widgets not ready yet
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
