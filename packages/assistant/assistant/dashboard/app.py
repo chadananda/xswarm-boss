@@ -183,11 +183,22 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             # Regenerate theme palette
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
-            # Refresh CSS by triggering a recompose
+            # Generate new CSS with updated theme
+            new_css = self.CSS
+
+            # Update the stylesheet directly
             try:
-                self.refresh_css(animate=False)
+                # Textual way to update CSS dynamically
+                from textual.css.stylesheet import Stylesheet
+                from io import StringIO
+
+                stylesheet = Stylesheet()
+                stylesheet.read(StringIO(new_css))
+                self.stylesheet = stylesheet
+                self.refresh(layout=True)
             except Exception as e:
-                pass  # CSS refresh may fail on older Textual versions
+                # Fallback: just refresh everything
+                self.refresh(layout=True, repaint=True)
 
         # Update current persona name
         self.current_persona_name = persona.name
@@ -201,7 +212,7 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         # Update visualizer border title
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            visualizer.border_title = f"Voice - {persona.name}"
+            visualizer.border_title = persona.name
         except Exception:
             pass
 
