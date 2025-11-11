@@ -194,6 +194,22 @@ class VoiceVisualizerPanel(Static):
         """
         result = Text()
 
+        # Use dynamic theme colors if available
+        theme = getattr(self, 'theme_colors', None)
+        if theme:
+            shade_1 = theme["shade_1"]
+            shade_2 = theme["shade_2"]
+            shade_3 = theme["shade_3"]
+            shade_4 = theme["shade_4"]
+            shade_5 = theme["shade_5"]
+        else:
+            # Fallback to default grayscale
+            shade_1 = "#252a33"
+            shade_2 = "#363d47"
+            shade_3 = "#4d5966"
+            shade_4 = "#6b7a8a"
+            shade_5 = "#8899aa"
+
         # Characters for different amplitude levels
         # Low amplitude = thin line, high amplitude = filled block
         fill_chars = [
@@ -227,15 +243,15 @@ class VoiceVisualizerPanel(Static):
 
                 # Color based on amplitude - subtle shade variations
                 if avg_amplitude > 0.7:
-                    result.append(char, style="#8899aa")  # shade-5 (lightest)
+                    result.append(char, style=shade_5)  # shade-5 (lightest)
                 elif avg_amplitude > 0.5:
-                    result.append(char, style="#6b7a8a")  # shade-4 (light)
+                    result.append(char, style=shade_4)  # shade-4 (light)
                 elif avg_amplitude > 0.3:
-                    result.append(char, style="#4d5966")  # shade-3 (medium)
+                    result.append(char, style=shade_3)  # shade-3 (medium)
                 elif avg_amplitude > 0.1:
-                    result.append(char, style="#363d47")  # shade-2 (dark)
+                    result.append(char, style=shade_2)  # shade-2 (dark)
                 else:
-                    result.append(char, style="#252a33")  # shade-1 (darkest)
+                    result.append(char, style=shade_1)  # shade-1 (darkest)
 
         return result
 
@@ -390,6 +406,22 @@ class VoiceVisualizerPanel(Static):
         """
         result = Text()
 
+        # Use dynamic theme colors if available
+        theme = getattr(self, 'theme_colors', None)
+        if theme:
+            shade_1 = theme["shade_1"]
+            shade_2 = theme["shade_2"]
+            shade_3 = theme["shade_3"]
+            shade_4 = theme["shade_4"]
+            shade_5 = theme["shade_5"]
+        else:
+            # Fallback to default grayscale
+            shade_1 = "#252a33"
+            shade_2 = "#363d47"
+            shade_3 = "#4d5966"
+            shade_4 = "#6b7a8a"
+            shade_5 = "#8899aa"
+
         # Dot characters for different amplitudes
         dot_chars = [" ", "·", "•", "●", "⬤"]
 
@@ -416,15 +448,15 @@ class VoiceVisualizerPanel(Static):
 
                 # Grayscale intensity based on amplitude - subtle shades
                 if avg_amplitude > 0.8:
-                    result.append(char, style="#8899aa")  # shade-5 (lightest)
+                    result.append(char, style=shade_5)  # shade-5 (lightest)
                 elif avg_amplitude > 0.6:
-                    result.append(char, style="#6b7a8a")  # shade-4 (light)
+                    result.append(char, style=shade_4)  # shade-4 (light)
                 elif avg_amplitude > 0.4:
-                    result.append(char, style="#4d5966")  # shade-3 (medium)
+                    result.append(char, style=shade_3)  # shade-3 (medium)
                 elif avg_amplitude > 0.2:
-                    result.append(char, style="#363d47")  # shade-2 (dark)
+                    result.append(char, style=shade_2)  # shade-2 (dark)
                 else:
-                    result.append(char, style="#252a33")  # shade-1 (darkest)
+                    result.append(char, style=shade_1)  # shade-1 (darkest)
 
         return result
 
@@ -692,6 +724,18 @@ class VoiceVisualizerPanel(Static):
         else:
             viz_lines = [""] * circular_viz_lines
 
+        # Use dynamic theme colors if available
+        theme = getattr(self, 'theme_colors', None)
+        if theme:
+            shade_3 = theme["shade_3"]
+            shade_4 = theme["shade_4"]
+            shade_5 = theme["shade_5"]
+        else:
+            # Fallback to default grayscale
+            shade_3 = "#4d5966"
+            shade_4 = "#6b7a8a"
+            shade_5 = "#8899aa"
+
         # Add circular visualization with gradient effect (subtle shades)
         for i, line in enumerate(viz_lines):
             # Create gradient from top (dim) to center (bright) to bottom (dim)
@@ -700,16 +744,16 @@ class VoiceVisualizerPanel(Static):
 
             # Apply gradient based on distance from center - subtle shade variations
             if distance_from_center < 0.3:
-                style = "#8899aa"  # shade-5 (lightest) - Brightest in center
+                style = shade_5  # shade-5 (lightest) - Brightest in center
             elif distance_from_center < 0.6:
-                style = "#6b7a8a"  # shade-4 (light) - Medium
+                style = shade_4  # shade-4 (light) - Medium
             else:
-                style = "#4d5966"  # shade-3 (medium) - Dimmer at edges
+                style = shade_3  # shade-3 (medium) - Dimmer at edges
 
             result.append(line + "\n", style=style)
 
         # Separator with subtle shade
-        result.append("─" * content_width + "\n", style="#4d5966")  # shade-3
+        result.append("─" * content_width + "\n", style=shade_3)  # shade-3
 
         # Microphone waveform at bottom with cyan tint
         waveform = self._render_waveform(content_width)

@@ -24,6 +24,9 @@ class CyberpunkHeader(Static):
     persona_name = reactive("JARVIS")
     system_status = reactive("INITIALIZING")
 
+    # Theme colors dictionary (set dynamically by app)
+    theme_colors = None
+
     # ASCII art logo using box-drawing characters
     LOGO = """
 ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -51,6 +54,12 @@ class CyberpunkHeader(Static):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.boot_messages = []
+
+    def _get_theme_color(self, shade: str, fallback: str) -> str:
+        """Get theme color from palette or fallback to default."""
+        if self.theme_colors and shade in self.theme_colors:
+            return self.theme_colors[shade]
+        return fallback
 
     def on_mount(self) -> None:
         """Start boot sequence animation when mounted"""
@@ -91,18 +100,23 @@ class CyberpunkHeader(Static):
     def _render_minimal(self) -> Text:
         """Minimal 1-line header for tiny terminals"""
         result = Text()
-        result.append("▓▒░ ", style="bold cyan")
-        result.append("XSWARM", style="bold yellow")
-        result.append(" ░▒▓", style="bold cyan")
+        # Use theme colors with fallbacks
+        primary = self._get_theme_color("shade_3", "cyan")
+        accent = self._get_theme_color("shade_4", "yellow")
+        highlight = self._get_theme_color("shade_5", "green")
+
+        result.append("▓▒░ ", style=f"bold {primary}")
+        result.append("XSWARM", style=f"bold {accent}")
+        result.append(" ░▒▓", style=f"bold {primary}")
 
         if not self.boot_complete:
             result.append(" ", style="")
-            result.append(self.boot_messages[-1] if self.boot_messages else "BOOTING", style="dim green")
+            result.append(self.boot_messages[-1] if self.boot_messages else "BOOTING", style=f"dim {highlight}")
         else:
             result.append(" ", style="")
-            result.append(f"[{self.persona_name}]", style="bold magenta")
+            result.append(f"[{self.persona_name}]", style=f"bold {accent}")
             result.append(" ", style="")
-            result.append(self.system_status, style="bold green")
+            result.append(self.system_status, style=f"bold {highlight}")
 
         return result
 
@@ -112,19 +126,24 @@ class CyberpunkHeader(Static):
         widget_width = self.size.width
         border_width = widget_width - 2
 
-        result.append("╔" + "═" * border_width + "╗\n", style="bold cyan")
-        result.append("║", style="bold cyan")
-        result.append(" XSWARM VOICE ASSISTANT ".center(border_width), style="bold yellow")
-        result.append("║\n", style="bold cyan")
+        # Use theme colors with fallbacks
+        primary = self._get_theme_color("shade_3", "cyan")
+        accent = self._get_theme_color("shade_4", "yellow")
+        highlight = self._get_theme_color("shade_5", "green")
+
+        result.append("╔" + "═" * border_width + "╗\n", style=f"bold {primary}")
+        result.append("║", style=f"bold {primary}")
+        result.append(" XSWARM VOICE ASSISTANT ".center(border_width), style=f"bold {accent}")
+        result.append("║\n", style=f"bold {primary}")
 
         if not self.boot_complete:
             # Show last boot message
-            result.append("║", style="bold cyan")
+            result.append("║", style=f"bold {primary}")
             msg = self.boot_messages[-1] if self.boot_messages else "INITIALIZING"
-            result.append((" ▓▒░ " + msg).center(border_width), style="dim green")
-            result.append("║\n", style="bold cyan")
+            result.append((" ▓▒░ " + msg).center(border_width), style=f"dim {highlight}")
+            result.append("║\n", style=f"bold {primary}")
 
-        result.append("╚" + "═" * border_width + "╝", style="bold cyan")
+        result.append("╚" + "═" * border_width + "╝", style=f"bold {primary}")
 
         return result
 
@@ -136,65 +155,70 @@ class CyberpunkHeader(Static):
         border_width = widget_width - 2  # Account for ╔ and ╗
         inner_width = border_width - 2  # Account for "║ " and " ║"
 
+        # Use theme colors with fallbacks
+        primary = self._get_theme_color("shade_3", "cyan")
+        accent = self._get_theme_color("shade_4", "yellow")
+        highlight = self._get_theme_color("shade_5", "green")
+
         if not self.boot_complete:
             # Boot sequence display
-            result.append("╔" + "═" * border_width + "╗\n", style="bold cyan")
-            result.append("║", style="bold cyan")
-            result.append(" XSWARM VOICE ASSISTANT ".center(border_width), style="bold yellow")
-            result.append("║\n", style="bold cyan")
-            result.append("║", style="bold cyan")
-            result.append(" SYSTEM BOOT SEQUENCE ".center(border_width), style="bold magenta")
-            result.append("║\n", style="bold cyan")
-            result.append("╠" + "═" * border_width + "╣\n", style="bold cyan")
+            result.append("╔" + "═" * border_width + "╗\n", style=f"bold {primary}")
+            result.append("║", style=f"bold {primary}")
+            result.append(" XSWARM VOICE ASSISTANT ".center(border_width), style=f"bold {accent}")
+            result.append("║\n", style=f"bold {primary}")
+            result.append("║", style=f"bold {primary}")
+            result.append(" SYSTEM BOOT SEQUENCE ".center(border_width), style=f"bold {accent}")
+            result.append("║\n", style=f"bold {primary}")
+            result.append("╠" + "═" * border_width + "╣\n", style=f"bold {primary}")
 
             # Show boot messages
             for msg in self.boot_messages[-5:]:  # Last 5 messages
-                result.append("║ ", style="bold cyan")
-                result.append("▓▒░ ", style="dim cyan")
-                result.append(msg, style="green")
+                result.append("║ ", style=f"bold {primary}")
+                result.append("▓▒░ ", style=f"dim {primary}")
+                result.append(msg, style=highlight)
                 # Pad to inner_width
                 msg_len = len(msg) + 4  # "▓▒░ " prefix
                 padding = inner_width - msg_len
                 result.append(" " * padding)
-                result.append(" ║\n", style="bold cyan")
+                result.append(" ║\n", style=f"bold {primary}")
 
             # Fill remaining lines
             shown = len(self.boot_messages[-5:])
             for _ in range(5 - shown):
-                result.append("║" + " " * border_width + "║\n", style="bold cyan")
+                result.append("║" + " " * border_width + "║\n", style=f"bold {primary}")
 
-            result.append("╚" + "═" * border_width + "╝", style="bold cyan")
+            result.append("╚" + "═" * border_width + "╝", style=f"bold {primary}")
 
         else:
-            # Main logo display - fixed width ASCII art
-            result.append(self.LOGO, style="bold cyan")
+            # Main logo display - use theme color
+            result.append(self.LOGO, style=f"bold {primary}")
 
             # Status bar - responsive
             result.append("\n")
-            result.append("╔" + "═" * border_width + "╗\n", style="bold magenta")
-            result.append("║ ", style="bold magenta")
+            result.append("╔" + "═" * border_width + "╗\n", style=f"bold {primary}")
+            result.append("║ ", style=f"bold {primary}")
 
             # Build status line
             status_line = f"◉ PERSONA: {self.persona_name}  ◉ STATUS: {self.system_status}  ◉ NEURAL LINK: ACTIVE"
 
             # Left side: Persona
             result.append("◉ PERSONA: ", style="dim white")
-            result.append(self.persona_name, style="bold yellow")
+            result.append(self.persona_name, style=f"bold {accent}")
 
             # Center: Status
             result.append("  ◉ STATUS: ", style="dim white")
-            result.append(self.system_status, style="bold green" if self.system_status == "ONLINE" else "dim white")
+            result.append(self.system_status, style=f"bold {highlight}" if self.system_status == "ONLINE" else "dim white")
 
             # Right side: System indicator
             result.append("  ◉ NEURAL LINK: ", style="dim white")
-            result.append("ACTIVE", style="bold green")
+            result.append("ACTIVE", style=f"bold {highlight}")
 
             # Padding to fit width
             padding = inner_width - len(status_line)
             result.append(" " * padding)
 
-            result.append(" ║\n", style="bold magenta")
-            result.append("╚" + "═" * border_width + "╝", style="bold magenta")
+            result.append(" ║\n", style=f"bold {primary}")
+            result.append("╚" + "═" * border_width + "╝", style=f"bold {primary}")
 
         return result
 
@@ -221,16 +245,30 @@ class CompactCyberpunkHeader(Static):
     persona_name = reactive("JARVIS")
     system_status = reactive("ONLINE")
 
+    # Theme colors dictionary (set dynamically by app)
+    theme_colors = None
+
+    def _get_theme_color(self, shade: str, fallback: str) -> str:
+        """Get theme color from palette or fallback to default."""
+        if self.theme_colors and shade in self.theme_colors:
+            return self.theme_colors[shade]
+        return fallback
+
     def render(self) -> Text:
         """Render compact header"""
         result = Text()
 
-        result.append("▓▒░ ", style="bold cyan")
-        result.append("XSWARM", style="bold yellow")
-        result.append(" ░▒▓ ", style="bold cyan")
-        result.append(f"[{self.persona_name}]", style="bold magenta")
+        # Use theme colors with fallbacks
+        primary = self._get_theme_color("shade_3", "cyan")
+        accent = self._get_theme_color("shade_4", "yellow")
+        highlight = self._get_theme_color("shade_5", "green")
+
+        result.append("▓▒░ ", style=f"bold {primary}")
+        result.append("XSWARM", style=f"bold {accent}")
+        result.append(" ░▒▓ ", style=f"bold {primary}")
+        result.append(f"[{self.persona_name}]", style=f"bold {accent}")
         result.append(" ◉ ", style="dim white")
-        result.append(self.system_status, style="bold green")
+        result.append(self.system_status, style=f"bold {highlight}")
 
         return result
 
