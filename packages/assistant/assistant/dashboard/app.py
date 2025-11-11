@@ -52,6 +52,8 @@ class VoiceAssistantApp(App):
                 )
                 viz_panel.id = "visualizer"
                 viz_panel.simulation_mode = True
+                # Set initial title to xSwarm (will be updated with persona name later)
+                viz_panel.panel_title = "xSwarm"
                 yield viz_panel
 
                 # Main activity feed / chat - takes most space
@@ -95,7 +97,7 @@ class VoiceAssistantApp(App):
             # Update visualizer with persona name
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             persona_name = self.config.default_persona or "JARVIS"
-            visualizer.border_title = f"xSwarm - {persona_name}"
+            visualizer.panel_title = f"xSwarm - {persona_name}"
 
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
@@ -107,7 +109,7 @@ class VoiceAssistantApp(App):
 
             # Update visualizer title to show error
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            visualizer.border_title = "xSwarm - ERROR"
+            visualizer.panel_title = "xSwarm - ERROR"
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
