@@ -208,6 +208,9 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
     def _apply_theme_to_widgets(self):
         """Apply the current theme palette to all widgets using Python styles"""
         try:
+            # Import Color class from Textual
+            from textual.color import Color
+
             # Get all widgets
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
@@ -215,18 +218,22 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             footer = self.query_one("#footer", CyberpunkFooter)
             header = self.query_one(CyberpunkHeader)
 
-            # Update border colors (use the shade_3 color)
-            border_color = self._theme_palette.shade_3
-            visualizer.styles.border = ("solid", border_color)
-            activity.styles.border = ("solid", border_color)
-            status.styles.border = ("solid", border_color)
-            header.styles.border = ("solid", self._theme_palette.shade_2)
-            footer.styles.border = ("solid", self._theme_palette.shade_2)
+            # Convert hex colors to Textual Color objects
+            color3 = Color.parse(self._theme_palette.shade_3)
+            color4 = Color.parse(self._theme_palette.shade_4)
+            color2 = Color.parse(self._theme_palette.shade_2)
 
-            # Also try updating border_title_color to make it more visible
-            visualizer.styles.border_title_color = self._theme_palette.shade_4
-            activity.styles.border_title_color = self._theme_palette.shade_4
-            status.styles.border_title_color = self._theme_palette.shade_4
+            # Update border colors using Color objects
+            visualizer.styles.border = ("solid", color3)
+            activity.styles.border = ("solid", color3)
+            status.styles.border = ("solid", color3)
+            header.styles.border = ("solid", color2)
+            footer.styles.border = ("solid", color2)
+
+            # Update border title colors
+            visualizer.styles.border_title_color = color4
+            activity.styles.border_title_color = color4
+            status.styles.border_title_color = color4
 
             # Force refresh to show new colors
             visualizer.refresh()
@@ -234,6 +241,8 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             status.refresh()
             header.refresh()
             footer.refresh()
+
+            self.update_activity(f"✅ Applied colors: border={str(color3)}, title={str(color4)}")
 
         except Exception as e:
             # Log any errors
