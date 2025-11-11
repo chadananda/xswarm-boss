@@ -697,15 +697,28 @@ class VoiceVisualizerPanel(Static):
         else:
             viz_lines = [""] * circular_viz_lines
 
-        # Add circular visualization
-        for line in viz_lines:
-            result.append(line + "\n")
+        # Add circular visualization with gradient effect
+        for i, line in enumerate(viz_lines):
+            # Create gradient from top (dim) to center (bright) to bottom (dim)
+            center = len(viz_lines) / 2
+            distance_from_center = abs(i - center) / center
 
-        # Separator
-        result.append("─" * content_width + "\n", style="dim cyan")
+            # Apply gradient based on distance from center
+            if distance_from_center < 0.3:
+                style = "bold white"  # Brightest in center
+            elif distance_from_center < 0.6:
+                style = "white"  # Medium
+            else:
+                style = "dim white"  # Dimmer at edges
 
-        # Microphone waveform at bottom
-        result.append(self._render_waveform(content_width))
+            result.append(line + "\n", style=style)
+
+        # Separator with gradient
+        result.append("─" * content_width + "\n", style="dim white")
+
+        # Microphone waveform at bottom with cyan tint
+        waveform = self._render_waveform(content_width)
+        result.append(waveform)
 
         return result
 
