@@ -14,7 +14,7 @@ import math
 import random
 from dataclasses import dataclass, field
 from rich.text import Text
-from .panel_base import PanelBase
+from textual.widgets import Static
 
 
 class VisualizationStyle(Enum):
@@ -43,7 +43,7 @@ class AudioFrame:
     timestamp: datetime = field(default_factory=datetime.now)
 
 
-class VoiceVisualizerPanel(PanelBase):
+class VoiceVisualizerPanel(Static):
     """
     Voice visualizer panel with real-time audio visualization.
 
@@ -61,13 +61,7 @@ class VoiceVisualizerPanel(PanelBase):
         **kwargs
     ):
         """Initialize voice visualizer panel."""
-        super().__init__(
-            panel_id="voice_visualizer",
-            title="Voice Activity",
-            min_width=20,
-            min_height=8,
-            **kwargs
-        )
+        super().__init__(**kwargs)
 
         # Visualization settings
         self.visualization_style = visualization_style
@@ -660,7 +654,7 @@ class VoiceVisualizerPanel(PanelBase):
 
         return lines
 
-    def render_content(self) -> Text:
+    def render(self) -> Text:
         """
         Render voice visualizer with current style.
 
@@ -670,23 +664,21 @@ class VoiceVisualizerPanel(PanelBase):
         result = Text()
 
         # Calculate available space
-        widget_width = max(self.size.width, self.min_width)
-        widget_height = max(self.size.height, self.min_height)
-        content_width = widget_width - 4
-        available_lines = widget_height - 2
+        widget_width = max(self.size.width, 20)
+        widget_height = max(self.size.height, 8)
+        content_width = widget_width
+        available_lines = widget_height
 
-        # Reserve 3 lines for waveform section at bottom
-        waveform_lines = 3
+        # Reserve 2 lines for waveform section at bottom (mic label + waveform)
+        waveform_lines = 2
         circular_viz_lines = available_lines - waveform_lines
 
-        if circular_viz_lines < 5:
+        if circular_viz_lines < 4:
             # Too small, just show waveform
-            result.append("Audio Visualization\n", style="bold cyan")
-            result.append("(Terminal too small)\n", style="dim white")
+            result.append("▓▒░", style="bold cyan")
             result.append("\n")
-            result.append("Mic: ", style="bold white")
-            result.append(self._render_waveform(content_width - 5))
-            result.append("\n")
+            waveform = self._render_waveform(content_width)
+            result.append(waveform)
             return result
 
         # Render circular visualization based on style
@@ -705,23 +697,15 @@ class VoiceVisualizerPanel(PanelBase):
         else:
             viz_lines = [""] * circular_viz_lines
 
-        # Add circular visualization with color
+        # Add circular visualization
         for line in viz_lines:
-            # Pad to full width
-            padded = line.ljust(content_width)
-            result.append(padded + "\n", style="cyan")
+            result.append(line + "\n")
 
         # Separator
         result.append("─" * content_width + "\n", style="dim cyan")
 
-        # Microphone waveform
-        result.append("Mic: ", style="bold white")
-        result.append(self._render_waveform(content_width - 5))
-        result.append("\n")
-
-        # Style indicator
-        style_name = self.visualization_style.value.replace("_", " ").title()
-        result.append(f"Style: {style_name}", style="dim cyan")
+        # Microphone waveform at bottom
+        result.append(self._render_waveform(content_width))
 
         return result
 
