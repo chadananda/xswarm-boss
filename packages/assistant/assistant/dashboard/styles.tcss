@@ -70,7 +70,7 @@ Footer {
     min-width: 20;
     height: 100%;
     max-height: 14;
-    background: $darker-bg;
+    /* background set dynamically from Python */
     border: solid $shade-3;
     border-title-align: left;
     border-title-style: bold;
@@ -84,7 +84,7 @@ Footer {
 #activity {
     width: 1fr;
     height: 100%;
-    background: $darker-bg;
+    /* background set dynamically from Python */
     border: solid $shade-3;
     border-title-align: left;
     border-title-style: bold;
@@ -98,7 +98,7 @@ Footer {
 #status {
     width: 100%;
     height: 3;
-    background: $darker-bg;
+    /* background set dynamically from Python */
     border: solid $shade-3;
     border-title-align: left;
     border-title-style: bold;

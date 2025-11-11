@@ -212,12 +212,13 @@ class VoiceAssistantApp(App):
             activity.styles.border = ("solid", color)
             status.styles.border = ("solid", color)
 
-            # Also update text colors to match theme
-            visualizer.styles.color = Color.parse(self._theme_palette.shade_5)
-            activity.styles.color = Color.parse(self._theme_palette.shade_5)
+            # Update text colors
+            text_color = Color.parse(self._theme_palette.shade_5)
+            visualizer.styles.color = text_color
+            activity.styles.color = text_color
             status.styles.color = Color.parse(self._theme_palette.shade_4)
 
-            # Subtle background tinting
+            # Update background colors with transparency
             bg_color = Color.parse(self._theme_palette.shade_1)
             visualizer.styles.background = bg_color.with_alpha(0.3)
             activity.styles.background = bg_color.with_alpha(0.2)
