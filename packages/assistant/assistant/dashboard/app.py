@@ -23,7 +23,9 @@ from .widgets.footer import CyberpunkFooter
 from .screens import SettingsScreen, WizardScreen, VoiceVizDemoScreen
 from ..config import Config
 from .theme import generate_palette, get_theme_preset, THEME_PRESETS
+from ..personas.manager import PersonaManager
 import re
+import random
 
 
 class VoiceAssistantApp(App):
@@ -35,6 +37,7 @@ class VoiceAssistantApp(App):
     # Reactive state
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
+    current_persona_name = reactive("Default")  # Current persona name
 
     def __init__(self, config: Config, personas_dir: Path):
         super().__init__()
@@ -42,6 +45,10 @@ class VoiceAssistantApp(App):
         self.personas_dir = personas_dir
         self.moshi_bridge: Optional[object] = None
         self.audio_io: Optional[object] = None
+
+        # Load personas
+        self.persona_manager = PersonaManager(personas_dir)
+        self.available_personas = list(self.persona_manager.personas.values())
 
         # Generate dynamic theme colors
         self._theme_palette = self._load_theme(config.theme_base_color)
@@ -114,6 +121,12 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         """Initialize on mount"""
         self.set_interval(1/30, self.update_visualizer)  # 30 FPS
 
+        # Start persona rotation every 30 seconds
+        if self.available_personas:
+            self.set_interval(30.0, self.rotate_persona)  # Rotate every 30 seconds
+            # Do first rotation immediately
+            self.rotate_persona()
+
         # Start visualizer animation
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
@@ -156,6 +169,41 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             # Update visualizer title to show error
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             visualizer.border_title = "xSwarm - ERROR"
+
+    def rotate_persona(self):
+        """Randomly switch to a different persona"""
+        if not self.available_personas:
+            return
+
+        # Pick a random persona
+        persona = random.choice(self.available_personas)
+
+        # Update theme if persona has a theme_color
+        if persona.theme and persona.theme.theme_color:
+            # Regenerate theme palette
+            self._theme_palette = self._load_theme(persona.theme.theme_color)
+
+            # Refresh CSS by triggering a recompose
+            try:
+                self.refresh_css(animate=False)
+            except Exception as e:
+                pass  # CSS refresh may fail on older Textual versions
+
+        # Update current persona name
+        self.current_persona_name = persona.name
+
+        # Update title
+        self.title = f"xSwarm Voice Assistant - {persona.name}"
+
+        # Log the switch to activity feed
+        self.update_activity(f"🎨 Switched to persona: {persona.name}")
+
+        # Update visualizer border title
+        try:
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            visualizer.border_title = f"Voice - {persona.name}"
+        except Exception:
+            pass
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
