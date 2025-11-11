@@ -37,7 +37,7 @@ class VoiceAssistantApp(App):
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
     current_persona_name = reactive("Default")  # Current persona name
-    active_tab = reactive("status")  # status, settings, chat
+    active_tab = reactive("status")  # status, settings, chat, projects, schedule, workers
 
     # Reactive theme colors - automatically update UI when changed
     theme_shade_2 = reactive("#363d47")
@@ -80,7 +80,8 @@ class VoiceAssistantApp(App):
         return generate_palette(theme_input)
 
     def compose(self) -> ComposeResult:
-        """Compose the dashboard layout: left column (visualizer + tabs) + right column (content)"""
+        """Compose the dashboard layout: left column (visualizer + tabs) + right column (content) + footer at bottom"""
+        # Main content area with two columns
         with Horizontal(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
             with Vertical(id="left-column"):
@@ -94,19 +95,24 @@ class VoiceAssistantApp(App):
 
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
-                    yield Button("Status", id="tab-status", classes="tab-button active-tab")
-                    yield Button("Settings", id="tab-settings", classes="tab-button")
-                    yield Button("Chat", id="tab-chat", classes="tab-button")
+                    yield Button("📊 Status", id="tab-status", classes="tab-button active-tab")
+                    yield Button("⚙ Settings", id="tab-settings", classes="tab-button")
+                    yield Button("💬 Chat", id="tab-chat", classes="tab-button")
+                    yield Button("📁 Projects", id="tab-projects", classes="tab-button")
+                    yield Button("📅 Schedule", id="tab-schedule", classes="tab-button")
+                    yield Button("🖥 Workers", id="tab-workers", classes="tab-button")
 
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
                 # Status content - Activity feed + Status widget
                 with Container(id="content-status", classes="content-pane active-pane"):
+                    yield Label("📊 Status", classes="pane-header")
                     yield ActivityFeed(id="activity")
                     yield StatusWidget(id="status")
 
                 # Settings content
                 with Container(id="content-settings", classes="content-pane"):
+                    yield Label("⚙ Settings", classes="pane-header")
                     yield Label("Theme Selection", id="settings-title")
                     yield Label("Select a theme color:", id="theme-label")
                     with RadioSet(id="theme-selector"):
@@ -115,9 +121,25 @@ class VoiceAssistantApp(App):
 
                 # Chat content
                 with Container(id="content-chat", classes="content-pane"):
+                    yield Label("💬 Chat", classes="pane-header")
                     yield Label("Conversation History", id="chat-title")
                     yield Static("", id="chat-history")
 
+                # Projects content
+                with Container(id="content-projects", classes="content-pane"):
+                    yield Label("📁 Projects", classes="pane-header")
+                    yield Label("Projects management coming soon...", classes="placeholder-text")
+
+                # Schedule content
+                with Container(id="content-schedule", classes="content-pane"):
+                    yield Label("📅 Schedule", classes="pane-header")
+                    yield Label("Schedule management coming soon...", classes="placeholder-text")
+
+                # Workers content
+                with Container(id="content-workers", classes="content-pane"):
+                    yield Label("🖥 Workers", classes="pane-header")
+                    yield Label("Worker management coming soon...", classes="placeholder-text")
+        # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
 
     def on_mount(self) -> None:
@@ -174,12 +196,18 @@ class VoiceAssistantApp(App):
             self.active_tab = "settings"
         elif button_id == "tab-chat":
             self.active_tab = "chat"
+        elif button_id == "tab-projects":
+            self.active_tab = "projects"
+        elif button_id == "tab-schedule":
+            self.active_tab = "schedule"
+        elif button_id == "tab-workers":
+            self.active_tab = "workers"
 
     def watch_active_tab(self, new_tab: str) -> None:
         """Reactive watcher - called when active_tab changes"""
         try:
             # Update button styles
-            for button_id in ["tab-status", "tab-settings", "tab-chat"]:
+            for button_id in ["tab-status", "tab-settings", "tab-chat", "tab-projects", "tab-schedule", "tab-workers"]:
                 button = self.query_one(f"#{button_id}", Button)
                 if button_id == f"tab-{new_tab}":
                     button.add_class("active-tab")
@@ -187,7 +215,7 @@ class VoiceAssistantApp(App):
                     button.remove_class("active-tab")
 
             # Update content pane visibility
-            for content_id in ["content-status", "content-settings", "content-chat"]:
+            for content_id in ["content-status", "content-settings", "content-chat", "content-projects", "content-schedule", "content-workers"]:
                 pane = self.query_one(f"#{content_id}", Container)
                 if content_id == f"content-{new_tab}":
                     pane.add_class("active-pane")

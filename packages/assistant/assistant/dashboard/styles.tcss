@@ -43,6 +43,14 @@ Footer {
     height: 1;
 }
 
+#footer {
+    dock: bottom;
+    width: 100%;
+    height: 3;
+    background: $dark-bg;
+    border: solid $shade-2;
+}
+
 /* ▓▒░ MAIN CONTAINER - ACTIVITY-FOCUSED LAYOUT ░▒▓ */
 #main-container {
     layout: vertical;
@@ -214,7 +222,6 @@ Footer {
     width: 100%;
     height: 1fr;
     background: $dark-bg;
-    border-right: solid $shade-2;
     padding: 1 0;
 }
 
@@ -299,6 +306,35 @@ Footer {
     border: solid $shade-3;
     padding: 1 2;
     overflow-y: auto;
+}
+
+/* Pane header styling */
+.pane-header {
+    color: $shade-5;
+    text-style: bold;
+    text-align: center;
+    margin: 1 0;
+    height: 1;
+}
+
+/* Placeholder text for coming soon content */
+.placeholder-text {
+    color: $shade-3;
+    text-align: center;
+    margin: 2 0;
+    text-style: italic;
+}
+
+#content-projects {
+    padding: 2 4;
+}
+
+#content-schedule {
+    padding: 2 4;
+}
+
+#content-workers {
+    padding: 2 4;
 }
 
 /* ▓▒░ END TRANSMISSION ░▒▓ */
