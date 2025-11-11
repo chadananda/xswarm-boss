@@ -60,19 +60,19 @@ class ActivityFeed(Static):
             return "info"
 
     def _format_message(self, msg: dict) -> Text:
-        """Format a single message with cyberpunk styling"""
+        """Format a single message with unified cyan/grayscale styling"""
         result = Text()
 
-        # Message type indicator
+        # Message type indicator - unified to cyan/white/gray
         type_indicators = {
-            "info": ("▓▒░", "cyan"),
-            "success": ("✓✓✓", "green"),
-            "warning": ("⚠⚠⚠", "yellow"),
-            "error": ("✖✖✖", "red"),
-            "system": ("◉◉◉", "magenta")
+            "info": ("▓", "cyan"),
+            "success": ("✓", "bold cyan"),
+            "warning": ("⚠", "white"),
+            "error": ("✖", "bold white"),
+            "system": ("◉", "dim cyan")
         }
 
-        indicator, color = type_indicators.get(msg["type"], ("▓▒░", "cyan"))
+        indicator, color = type_indicators.get(msg["type"], ("▓", "cyan"))
 
         # Line number (4 digits, zero-padded)
         result.append(f"{msg['id']:04d} ", style="dim white")
@@ -81,10 +81,19 @@ class ActivityFeed(Static):
         result.append(f"[{msg['timestamp']}] ", style="dim cyan")
 
         # Type indicator
-        result.append(f"{indicator} ", style=f"bold {color}")
+        result.append(f"{indicator} ", style=color)
 
-        # Message text
-        result.append(msg["message"], style=color)
+        # Message text - unified colors
+        if msg["type"] == "error":
+            text_style = "bold white"
+        elif msg["type"] == "success":
+            text_style = "cyan"
+        elif msg["type"] == "system":
+            text_style = "dim cyan"
+        else:
+            text_style = "white"
+
+        result.append(msg["message"], style=text_style)
 
         return result
 
