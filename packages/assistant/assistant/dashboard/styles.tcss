@@ -22,6 +22,13 @@ $dim-magenta: #4d004d;
 /* ▓▒░ BASE APPLICATION ░▒▓ */
 Screen {
     background: $darker-bg;
+    overflow: hidden;
+    scrollbar-size: 0 0;
+}
+
+* {
+    scrollbar-size: 0 0;
+    overflow: hidden;
 }
 
 /* ▓▒░ HEADER & FOOTER ░▒▓ */
@@ -69,12 +76,9 @@ Footer {
     height: 100%;
     max-height: 20;
     background: $darker-bg;
-    border: solid $neon-cyan;
-    border-title-align: left;
-    border-title-style: bold;
-    border-title-color: $neon-cyan;
-    padding: 0 1;
+    padding: 0;
     overflow: hidden;
+    scrollbar-size: 0 0;
 }
 
 /* ▓▒░ ACTIVITY FEED - MAIN FOCUS ░▒▓ */

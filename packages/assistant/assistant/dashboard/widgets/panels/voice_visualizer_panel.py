@@ -27,6 +27,15 @@ class VisualizationStyle(Enum):
     SOUND_WAVE_CIRCLE = "sound_wave_circle"
 
 
+class MicrophoneWaveformStyle(Enum):
+    """Microphone waveform visualization styles."""
+    SCROLLING_FILL = "scrolling_fill"  # Scrolling timeline that fills when speaking
+    VERTICAL_BARS = "vertical_bars"  # Classic audio waveform ▁▂▃▄▅▆▇█
+    WAVE_CHARACTERS = "wave_characters"  # Simple wave chars ◡◠
+    LINE_WAVE = "line_wave"  # Continuous line wave
+    DOTS = "dots"  # Dot pattern visualization
+
+
 @dataclass
 class AudioFrame:
     """Represents a single audio amplitude sample."""
@@ -48,19 +57,21 @@ class VoiceVisualizerPanel(PanelBase):
     def __init__(
         self,
         visualization_style: VisualizationStyle = VisualizationStyle.CONCENTRIC_CIRCLES,
+        microphone_waveform_style: MicrophoneWaveformStyle = MicrophoneWaveformStyle.DOTS,
         **kwargs
     ):
         """Initialize voice visualizer panel."""
         super().__init__(
             panel_id="voice_visualizer",
             title="Voice Activity",
-            min_width=40,
-            min_height=12,
+            min_width=20,
+            min_height=8,
             **kwargs
         )
 
         # Visualization settings
         self.visualization_style = visualization_style
+        self.microphone_waveform_style = microphone_waveform_style
         self.animation_frame = 0
         self.fps = 20
 
@@ -152,7 +163,142 @@ class VoiceVisualizerPanel(PanelBase):
 
     def _render_waveform(self, width: int) -> Text:
         """
-        Render scrolling waveform using wave characters.
+        Render scrolling waveform using selected style.
+
+        Args:
+            width: Available width for waveform
+
+        Returns:
+            Rich Text with waveform
+        """
+        if self.microphone_waveform_style == MicrophoneWaveformStyle.SCROLLING_FILL:
+            return self._render_waveform_scrolling_fill(width)
+        elif self.microphone_waveform_style == MicrophoneWaveformStyle.VERTICAL_BARS:
+            return self._render_waveform_vertical_bars(width)
+        elif self.microphone_waveform_style == MicrophoneWaveformStyle.WAVE_CHARACTERS:
+            return self._render_waveform_wave_chars(width)
+        elif self.microphone_waveform_style == MicrophoneWaveformStyle.LINE_WAVE:
+            return self._render_waveform_line(width)
+        elif self.microphone_waveform_style == MicrophoneWaveformStyle.DOTS:
+            return self._render_waveform_dots(width)
+        else:
+            return self._render_waveform_scrolling_fill(width)
+
+    def _render_waveform_scrolling_fill(self, width: int) -> Text:
+        """
+        Render scrolling timeline that fills when speaking.
+        Creates a constantly scrolling line from right to left.
+        When you speak, the line fills in (thick bars).
+        When silent, the line stays thin.
+        The filled bits scroll off the screen to the left.
+
+        Args:
+            width: Available width for waveform
+
+        Returns:
+            Rich Text with scrolling fill effect
+        """
+        result = Text()
+
+        # Characters for different amplitude levels
+        # Low amplitude = thin line, high amplitude = filled block
+        fill_chars = [
+            "─",  # 0.0-0.1: Silent (thin line)
+            "▁",  # 0.1-0.2: Very quiet
+            "▂",  # 0.2-0.3: Quiet
+            "▃",  # 0.3-0.4: Low
+            "▄",  # 0.4-0.5: Medium-low
+            "▅",  # 0.5-0.6: Medium
+            "▆",  # 0.6-0.7: Medium-high
+            "▇",  # 0.7-0.8: Loud
+            "█",  # 0.8-1.0: Very loud (filled)
+        ]
+
+        # Sample waveform data to fit width
+        samples_per_char = len(self.mic_waveform) // width
+        if samples_per_char == 0:
+            samples_per_char = 1
+
+        for i in range(min(width, len(self.mic_waveform))):
+            # Get average amplitude for this position
+            start_idx = i * samples_per_char
+            end_idx = min(start_idx + samples_per_char, len(self.mic_waveform))
+
+            if start_idx < len(self.mic_waveform):
+                avg_amplitude = sum(self.mic_waveform[start_idx:end_idx]) / max(1, end_idx - start_idx)
+
+                # Map amplitude to fill character
+                char_idx = int(avg_amplitude * (len(fill_chars) - 1))
+                char = fill_chars[char_idx]
+
+                # Color based on amplitude - emphasize the "fill"
+                if avg_amplitude > 0.7:
+                    # Very loud = bold red (hot)
+                    result.append(char, style="bold red")
+                elif avg_amplitude > 0.5:
+                    # Loud = bold yellow (warm)
+                    result.append(char, style="bold yellow")
+                elif avg_amplitude > 0.3:
+                    # Medium = bold green (active)
+                    result.append(char, style="bold green")
+                elif avg_amplitude > 0.1:
+                    # Quiet = cyan (low activity)
+                    result.append(char, style="cyan")
+                else:
+                    # Silent = dim white (baseline)
+                    result.append(char, style="dim white")
+
+        return result
+
+    def _render_waveform_vertical_bars(self, width: int) -> Text:
+        """
+        Render scrolling waveform using vertical bar characters.
+        This is the classic audio waveform visualization.
+
+        Args:
+            width: Available width for waveform
+
+        Returns:
+            Rich Text with waveform
+        """
+        result = Text()
+
+        # Vertical bar characters for different amplitudes (8 levels)
+        bar_chars = [" ", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+        # Sample waveform data to fit width
+        samples_per_char = len(self.mic_waveform) // width
+        if samples_per_char == 0:
+            samples_per_char = 1
+
+        for i in range(min(width, len(self.mic_waveform))):
+            # Get average amplitude for this position
+            start_idx = i * samples_per_char
+            end_idx = min(start_idx + samples_per_char, len(self.mic_waveform))
+
+            if start_idx < len(self.mic_waveform):
+                avg_amplitude = sum(self.mic_waveform[start_idx:end_idx]) / max(1, end_idx - start_idx)
+
+                # Map amplitude to bar character (0-8 range)
+                char_idx = int(avg_amplitude * (len(bar_chars) - 1))
+                char = bar_chars[char_idx]
+
+                # Color based on amplitude
+                if avg_amplitude > 0.7:
+                    result.append(char, style="bold red")
+                elif avg_amplitude > 0.4:
+                    result.append(char, style="bold yellow")
+                elif avg_amplitude > 0.1:
+                    result.append(char, style="bold green")
+                else:
+                    result.append(char, style="dim cyan")
+
+        return result
+
+    def _render_waveform_wave_chars(self, width: int) -> Text:
+        """
+        Render scrolling waveform using simple wave characters.
+        Original implementation with ◡◠ characters.
 
         Args:
             width: Available width for waveform
@@ -191,6 +337,105 @@ class VoiceVisualizerPanel(PanelBase):
                     result.append(char, style="bold cyan")
                 else:
                     result.append(char, style="dim white")
+
+        return result
+
+    def _render_waveform_line(self, width: int) -> Text:
+        """
+        Render scrolling waveform as a continuous line.
+        Uses box drawing characters for smooth line.
+
+        Args:
+            width: Available width for waveform
+
+        Returns:
+            Rich Text with waveform
+        """
+        result = Text()
+
+        # Box drawing characters for line segments
+        line_chars = ["_", "▁", "▂", "▃", "▄", "▅", "▆", "▇", "▔"]
+
+        # Sample waveform data to fit width
+        samples_per_char = len(self.mic_waveform) // width
+        if samples_per_char == 0:
+            samples_per_char = 1
+
+        for i in range(min(width, len(self.mic_waveform))):
+            # Get average amplitude for this position
+            start_idx = i * samples_per_char
+            end_idx = min(start_idx + samples_per_char, len(self.mic_waveform))
+
+            if start_idx < len(self.mic_waveform):
+                avg_amplitude = sum(self.mic_waveform[start_idx:end_idx]) / max(1, end_idx - start_idx)
+
+                # Map amplitude to line height
+                char_idx = int(avg_amplitude * (len(line_chars) - 1))
+                char = line_chars[char_idx]
+
+                # Color gradient based on amplitude
+                if avg_amplitude > 0.7:
+                    result.append(char, style="bold red")
+                elif avg_amplitude > 0.5:
+                    result.append(char, style="bold yellow")
+                elif avg_amplitude > 0.3:
+                    result.append(char, style="bold green")
+                elif avg_amplitude > 0.1:
+                    result.append(char, style="cyan")
+                else:
+                    result.append(char, style="dim white")
+
+        return result
+
+    def _render_waveform_dots(self, width: int) -> Text:
+        """
+        Render scrolling waveform using dots of varying sizes.
+        Minimalist dot pattern visualization with grayscale intensity.
+        Scrolls right (new data appears on left).
+
+        Args:
+            width: Available width for waveform
+
+        Returns:
+            Rich Text with waveform
+        """
+        result = Text()
+
+        # Dot characters for different amplitudes
+        dot_chars = [" ", "·", "•", "●", "⬤"]
+
+        # Sample waveform data to fit width
+        samples_per_char = len(self.mic_waveform) // width
+        if samples_per_char == 0:
+            samples_per_char = 1
+
+        # For right-scrolling: start from END of buffer (newest) and work backwards
+        buffer_len = len(self.mic_waveform)
+        num_chars = min(width, buffer_len // samples_per_char)
+
+        for i in range(num_chars):
+            # Sample from end of buffer backwards (newest first)
+            end_idx = buffer_len - (i * samples_per_char)
+            start_idx = max(0, end_idx - samples_per_char)
+
+            if start_idx < buffer_len and end_idx > 0:
+                avg_amplitude = sum(self.mic_waveform[start_idx:end_idx]) / max(1, end_idx - start_idx)
+
+                # Map amplitude to dot size
+                char_idx = int(avg_amplitude * (len(dot_chars) - 1))
+                char = dot_chars[char_idx]
+
+                # Grayscale intensity based on amplitude
+                if avg_amplitude > 0.8:
+                    result.append(char, style="bold white")  # Brightest
+                elif avg_amplitude > 0.6:
+                    result.append(char, style="white")       # Bright
+                elif avg_amplitude > 0.4:
+                    result.append(char, style="bright_black") # Medium gray
+                elif avg_amplitude > 0.2:
+                    result.append(char, style="dim white")   # Light gray
+                else:
+                    result.append(char, style="dim bright_black") # Dark gray
 
         return result
 
