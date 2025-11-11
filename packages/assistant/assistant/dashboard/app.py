@@ -80,8 +80,27 @@ class VoiceAssistantApp(App):
         return generate_palette(theme_input)
 
     def compose(self) -> ComposeResult:
-        """Compose the dashboard layout with left sidebar and content area"""
-        with Horizontal(id="main-layout"):
+        """Compose the dashboard layout with top voice area and bottom tabbed interface"""
+        # Top section: Voice visualizer + Activity + Status (always visible)
+        with Container(id="voice-section"):
+            # Top row: Voice visualizer (left corner) + Activity (main)
+            with Horizontal(id="top-row"):
+                # Voice visualizer - small square in LEFT corner
+                viz_panel = VoiceVisualizerPanel(
+                    visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
+                )
+                viz_panel.id = "visualizer"
+                viz_panel.simulation_mode = True
+                yield viz_panel
+
+                # Main activity feed
+                yield ActivityFeed(id="activity")
+
+            # Bottom row: Status (compact)
+            yield StatusWidget(id="status")
+
+        # Bottom section: Tabbed interface (sidebar + content)
+        with Horizontal(id="tabbed-section"):
             # Left sidebar - vertical tab buttons
             with Vertical(id="sidebar"):
                 yield Button("Status", id="tab-status", classes="tab-button active-tab")
@@ -92,21 +111,8 @@ class VoiceAssistantApp(App):
             with Container(id="content-area"):
                 # Status content
                 with Container(id="content-status", classes="content-pane active-pane"):
-                    # Top row: Voice visualizer (left corner) + Activity (main)
-                    with Horizontal(id="top-row"):
-                        # Voice visualizer - small square in LEFT corner
-                        viz_panel = VoiceVisualizerPanel(
-                            visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
-                        )
-                        viz_panel.id = "visualizer"
-                        viz_panel.simulation_mode = True
-                        yield viz_panel
-
-                        # Main activity feed
-                        yield ActivityFeed(id="activity")
-
-                    # Bottom row: Status (compact)
-                    yield StatusWidget(id="status")
+                    yield Label("Status Details", id="status-details-title")
+                    yield Static("Additional status information will appear here.", id="status-details")
 
                 # Settings content
                 with Container(id="content-settings", classes="content-pane"):
