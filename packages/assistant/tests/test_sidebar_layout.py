@@ -13,7 +13,7 @@ async def test_sidebar_layout():
     personas_dir = Path(__file__).parent.parent / "packages" / "personas"
     app = VoiceAssistantApp(config, personas_dir)
 
-    async with app.run_test() as pilot:
+    async with app.run_test(size=(120, 40)) as pilot:
         print("✓ App initialized")
         await pilot.pause(1.0)
 
