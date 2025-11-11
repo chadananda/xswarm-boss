@@ -38,13 +38,13 @@ class StatusWidget(Static):
     }
 
     STATE_COLORS = {
-        "initializing": "blue",
-        "idle": "cyan",
-        "ready": "green",
-        "listening": "yellow",
-        "speaking": "magenta",
-        "thinking": "purple",
-        "error": "red"
+        "initializing": "dim cyan",
+        "idle": "dim white",
+        "ready": "cyan",
+        "listening": "bold cyan",
+        "speaking": "bold white",
+        "thinking": "white",
+        "error": "bold white"
     }
 
     def on_mount(self) -> None:
@@ -101,14 +101,14 @@ class StatusWidget(Static):
         # Server status
         result.append("  │  ", style="dim white")
         result.append("Server: ", style="dim white")
-        server_color = "green" if self.server_status == "connected" else "red"
+        server_color = "cyan" if self.server_status == "connected" else "dim white"
         result.append(f"{self.server_status.upper()}", style=f"bold {server_color}")
 
         # Uptime
         uptime = self._get_uptime()
         result.append("  │  ", style="dim white")
         result.append("Uptime: ", style="dim white")
-        result.append(f"{uptime}", style="bold green")
+        result.append(f"{uptime}", style="cyan")
 
         return result
 

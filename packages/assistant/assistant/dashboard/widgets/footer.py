@@ -38,17 +38,17 @@ class CyberpunkFooter(Static):
             self.mem_percent = 0.0
 
     def _get_bar(self, percent: float, width: int = 10) -> tuple[str, str]:
-        """Create a progress bar"""
+        """Create a progress bar with unified cyan/gray colors"""
         filled = int((percent / 100) * width)
         bar = "█" * filled + "░" * (width - filled)
 
-        # Color based on percentage
+        # Color based on percentage - unified to cyan/white
         if percent < 50:
-            color = "green"
+            color = "cyan"
         elif percent < 75:
-            color = "yellow"
+            color = "white"
         else:
-            color = "red"
+            color = "bold white"
 
         return bar, color
 
@@ -128,7 +128,7 @@ class CyberpunkFooter(Static):
 
             # Network status
             result.append("NET:", style="dim white")
-            net_color = "green" if self.network_status == "online" else "red"
+            net_color = "cyan" if self.network_status == "online" else "dim white"
             result.append(f"{self.network_status.upper()}", style=f"bold {net_color}")
 
             # Keyboard shortcuts (right side)

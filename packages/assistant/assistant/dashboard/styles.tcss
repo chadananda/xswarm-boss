@@ -42,8 +42,8 @@ Header {
 
 Footer {
     background: $dark-bg;
-    color: $neon-green;
-    border: solid $neon-green;
+    color: $neon-cyan;
+    border: solid $neon-cyan;
     text-style: bold;
     height: 1;
 }
@@ -90,10 +90,10 @@ Footer {
     width: 1fr;
     height: 100%;
     background: $darker-bg;
-    border: solid $neon-magenta;
+    border: solid $neon-cyan;
     border-title-align: left;
     border-title-style: bold;
-    border-title-color: $neon-magenta;
+    border-title-color: $neon-cyan;
     padding: 0 1;
     overflow: hidden;
     scrollbar-size: 0 0;
@@ -104,10 +104,10 @@ Footer {
     width: 100%;
     height: 3;
     background: $darker-bg;
-    border: solid $neon-yellow;
+    border: solid $neon-cyan;
     border-title-align: left;
     border-title-style: bold;
-    border-title-color: $neon-yellow;
+    border-title-color: $neon-cyan;
     padding: 0 1;
     overflow: hidden;
 }
