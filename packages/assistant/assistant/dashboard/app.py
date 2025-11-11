@@ -31,7 +31,6 @@ import random
 class VoiceAssistantApp(App):
     """Voice Assistant TUI Application"""
 
-    CSS_PATH = "styles.tcss"
     TITLE = "Voice Assistant"
 
     # Reactive state
@@ -43,6 +42,8 @@ class VoiceAssistantApp(App):
     theme_shade_2 = reactive("#363d47")
     theme_shade_3 = reactive("#4d5966")
     theme_shade_4 = reactive("#6b7a8a")
+
+    CSS_PATH = "styles.tcss"
 
     def __init__(self, config: Config, personas_dir: Path):
         super().__init__()
@@ -74,32 +75,6 @@ class VoiceAssistantApp(App):
 
         # Otherwise treat as hex color
         return generate_palette(theme_input)
-
-    @property
-    def CSS(self) -> str:
-        """
-        Generate CSS with dynamic theme colors.
-
-        Reads the base styles.tcss and replaces shade variables with theme colors.
-        """
-        # Read base CSS file
-        css_path = Path(__file__).parent / "styles.tcss"
-        base_css = css_path.read_text()
-
-        # Replace shade variable definitions with theme colors
-        # Match the entire palette block and replace it
-        palette_pattern = r'/\* ▓▒░ SUBTLE GRAYSCALE PALETTE ░▒▓ \*/.*?\$shade-1: #[0-9a-fA-F]{6};'
-
-        replacement = f"""/* ▓▒░ DYNAMIC THEME PALETTE ░▒▓ */
-$shade-5: {self._theme_palette.shade_5};  /* Lightest */
-$shade-4: {self._theme_palette.shade_4};  /* Light */
-$shade-3: {self._theme_palette.shade_3};  /* Medium */
-$shade-2: {self._theme_palette.shade_2};  /* Dark */
-$shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
-
-        themed_css = re.sub(palette_pattern, replacement, base_css, flags=re.DOTALL)
-
-        return themed_css
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout - activity is main focus"""
@@ -180,23 +155,33 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         if not self.available_personas:
             return
 
-        # Pick a random persona
-        persona = random.choice(self.available_personas)
+        # Only select personas that have theme_color defined
+        themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
+
+        if not themed_personas:
+            # Fallback to any persona if none have themes
+            persona = random.choice(self.available_personas)
+        else:
+            # Pick a random persona with theme
+            persona = random.choice(themed_personas)
 
         # Update theme if persona has a theme_color
         if persona.theme and persona.theme.theme_color:
+            # Log what we're doing
+            self.update_activity(f"🔄 Switching to {persona.name} theme color {persona.theme.theme_color}")
+
             # Regenerate theme palette
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
-            # Update reactive theme colors - this will trigger watchers automatically!
+            # Update reactive colors - THIS is what actually changes the UI
+            # These trigger the watch_theme_shade_* methods which update widget styles
             self.theme_shade_2 = self._theme_palette.shade_2
             self.theme_shade_3 = self._theme_palette.shade_3
             self.theme_shade_4 = self._theme_palette.shade_4
 
-            # Log the theme colors being applied
-            self.update_activity(f"🎨 Theme colors updated: {self.theme_shade_3}")
+            self.update_activity(f"   Colors: {self._theme_palette.shade_1} → {self._theme_palette.shade_5}")
 
-        # Update current persona name (reactive - triggers watcher)
+        # Update current persona name
         self.current_persona_name = persona.name
 
         # Update title
@@ -226,8 +211,6 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             visualizer.styles.border = ("solid", color)
             activity.styles.border = ("solid", color)
             status.styles.border = ("solid", color)
-
-            self.update_activity(f"✅ Borders updated to {new_color}")
         except Exception:
             pass  # Widgets not ready yet
 

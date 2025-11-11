@@ -33,5 +33,10 @@ voice:
   tone: "professional"        # Professional tone
   quality: 0.9                # High quality generation
 
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#00D4FF"  # Signature JARVIS cyan/blue
+
 # Custom wake word (optional)
 wake_word: "jarvis"
