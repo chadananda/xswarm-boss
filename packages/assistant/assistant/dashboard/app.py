@@ -102,12 +102,6 @@ class VoiceAssistantApp(App):
         """Initialize on mount"""
         self.set_interval(1/30, self.update_visualizer)  # 30 FPS
 
-        # Start persona rotation every 5 seconds (for testing)
-        if self.available_personas:
-            self.set_interval(5.0, self.rotate_persona)  # Rotate every 5 seconds for demo
-            # Do first rotation immediately
-            self.rotate_persona()
-
         # Start visualizer animation
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
@@ -115,7 +109,7 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-        # Load MOSHI in background
+        # Load MOSHI and start immediately
         asyncio.create_task(self.initialize_moshi())
 
     def on_unmount(self) -> None:
@@ -160,9 +154,6 @@ class VoiceAssistantApp(App):
             self.audio_io.start_output()
             self.update_activity("✓ Audio streams started")
 
-            self.state = "ready"
-            self.update_activity(f"✓ Voice assistant ready on {device}")
-
             # Update status widget
             status = self.query_one("#status", StatusWidget)
             status.device_name = str(device)
@@ -172,6 +163,11 @@ class VoiceAssistantApp(App):
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             persona_name = self.config.default_persona or "JARVIS"
             visualizer.border_title = f"xSwarm - {persona_name}"
+
+            # Generate greeting immediately
+            self.state = "ready"
+            self.update_activity(f"✓ Voice assistant ready on {device}")
+            await self.generate_greeting()
 
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
@@ -184,6 +180,69 @@ class VoiceAssistantApp(App):
             # Update visualizer title to show error
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             visualizer.border_title = "xSwarm - ERROR"
+
+    async def generate_greeting(self):
+        """Generate and play automatic greeting on startup"""
+        import numpy as np
+
+        try:
+            self.state = "speaking"
+            self.update_activity("👋 Generating greeting...")
+
+            # Get current persona
+            persona_name = self.config.default_persona or "JARVIS"
+            persona = self.persona_manager.get_persona(persona_name)
+
+            # Create greeting prompt
+            greeting_prompt = f"Hello! I'm {persona_name}. How can I help you today?"
+            if persona and persona.system_prompt:
+                # Use first 150 chars of system prompt for context
+                greeting_prompt = persona.system_prompt[:150] + "\n\nGreet the user warmly."
+
+            # Generate silent audio input (MOSHI needs input audio)
+            silent_audio = np.zeros(1920, dtype=np.float32)
+
+            # Generate greeting through MOSHI
+            response_audio, response_text = self.moshi_bridge.generate_response(
+                silent_audio,
+                text_prompt=greeting_prompt,
+                max_tokens=200  # Shorter for greeting
+            )
+
+            # Log the greeting text
+            if response_text:
+                self.update_activity(f"💬 {response_text}")
+
+            # Play greeting with amplitude updates
+            await self.play_audio_with_visualization(response_audio)
+
+            self.state = "ready"
+            self.update_activity("✓ Ready to listen (press SPACE)")
+
+        except Exception as e:
+            self.update_activity(f"Error generating greeting: {e}")
+            self.state = "ready"
+
+    async def play_audio_with_visualization(self, audio: "np.ndarray"):
+        """Play audio and update visualizer amplitude during playback"""
+        import numpy as np
+
+        # Calculate frame size for chunking
+        frame_size = 1920  # 80ms at 24kHz
+        num_frames = len(audio) // frame_size
+
+        # Queue audio for playback
+        self.audio_io.play_audio(audio)
+
+        # Update visualizer amplitude during playback
+        for i in range(num_frames):
+            frame = audio[i * frame_size:(i + 1) * frame_size]
+            amplitude = self.moshi_bridge.get_amplitude(frame)
+            self.amplitude = amplitude
+            await asyncio.sleep(0.08)  # 80ms per frame
+
+        # Reset amplitude after playback
+        self.amplitude = 0.0
 
     def rotate_persona(self):
         """Randomly switch to a different persona"""
@@ -474,8 +533,8 @@ class VoiceAssistantApp(App):
             if response_text:
                 self.update_activity(f"💬 {response_text[:100]}")
 
-            # Play response audio
-            self.audio_io.play_audio(response_audio)
+            # Play response audio with visualization
+            await self.play_audio_with_visualization(response_audio)
             self.update_activity("✓ Response complete")
 
             self.state = "ready"
