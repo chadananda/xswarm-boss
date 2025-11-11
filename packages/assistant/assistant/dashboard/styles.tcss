@@ -109,51 +109,51 @@ Footer {
 
 /* ▓▒░ STATE-SPECIFIC STYLES ░▒▓ */
 .state-idle {
-    color: $neon-cyan;
+    color: $shade-3;  /* medium - calm state */
     text-style: bold;
 }
 
 .state-listening {
-    color: $neon-green;
+    color: $shade-5;  /* lightest - active state */
     text-style: bold;
 }
 
 .state-speaking {
-    color: $neon-yellow;
+    color: $shade-5;  /* lightest - active state */
     text-style: bold;
 }
 
 .state-thinking {
-    color: $neon-magenta;
+    color: $shade-4;  /* light - processing state */
     text-style: bold;
 }
 
 .state-error {
-    color: $neon-red;
+    color: $shade-5;  /* lightest - alert state */
     text-style: bold;
 }
 
 /* ▓▒░ MESSAGE TYPE STYLES ░▒▓ */
 .msg-info {
-    color: $neon-cyan;
+    color: $shade-4;  /* light */
 }
 
 .msg-success {
-    color: $neon-green;
+    color: $shade-5;  /* lightest */
     text-style: bold;
 }
 
 .msg-warning {
-    color: $neon-yellow;
+    color: $shade-4;  /* light */
 }
 
 .msg-error {
-    color: $neon-red;
+    color: $shade-5;  /* lightest */
     text-style: bold;
 }
 
 .msg-system {
-    color: $neon-purple;
+    color: $shade-3;  /* medium */
     text-style: bold;
 }
 
@@ -163,36 +163,36 @@ Footer {
 }
 
 .scanline {
-    color: $dim-cyan;
+    color: $shade-2;  /* dark */
     text-style: dim;
 }
 
 .highlight {
-    background: $dim-green;
-    color: $neon-green;
+    background: $shade-2;  /* dark background */
+    color: $shade-5;       /* lightest text */
     text-style: bold;
 }
 
 /* ▓▒░ PROGRESS BARS ░▒▓ */
 .progress-bar {
-    color: $neon-cyan;
+    color: $shade-4;  /* light */
     text-style: bold;
 }
 
 .progress-fill {
-    background: $dim-cyan;
-    color: $neon-cyan;
+    background: $shade-3;  /* medium background */
+    color: $shade-5;       /* lightest text */
     text-style: bold;
 }
 
 /* ▓▒░ ASCII ART HEADER ░▒▓ */
 .ascii-logo {
-    color: $neon-cyan;
+    color: $shade-4;  /* light */
     text-style: bold;
 }
 
 .ascii-accent {
-    color: $neon-magenta;
+    color: $shade-5;  /* lightest */
     text-style: bold;
 }
 
