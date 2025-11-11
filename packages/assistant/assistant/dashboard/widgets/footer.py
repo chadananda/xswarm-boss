@@ -20,7 +20,11 @@ class CyberpunkFooter(Static):
     # Mock data (will be replaced with real data later)
     gpu_sufficient = reactive(True)
     total_projects = reactive(3)
-    projects_progress = reactive({"Alpha": 45, "Beta": 78, "Gamma": 12})
+    projects_progress = reactive([
+        ("Authentication", 78),
+        ("Marketing", 45),
+        ("Product", 12)
+    ])
     workers_online = reactive(2)
     workers_total = reactive(3)
     subscription_plan = reactive("Pro")
@@ -56,38 +60,42 @@ class CyberpunkFooter(Static):
         """Render footer with GPU, projects, workers, and subscription status"""
         result = Text()
         widget_width = self.size.width
+        primary = self._get_theme_color("primary", "cyan")
         shade_3 = self._get_theme_color("shade_3", "#4d5966")
         shade_4 = self._get_theme_color("shade_4", "#6b7a8a")
         # Top separator line
         result.append("═" * widget_width + "\n", style=shade_4)
-        result.append("▓▒░ ", style=shade_4)
+        result.append("▓▒░ ", style=f"bold {primary}")
         # 1. GPU Status
-        result.append("GPU: ", style=shade_3)
-        if self.gpu_sufficient:
-            result.append("✓", style="green")
-        else:
-            result.append("✗", style="red")
+        result.append("GPU: ", style=shade_4)
+        gpu_icon = "✓" if self.gpu_sufficient else "✗"
+        gpu_color = "green" if self.gpu_sufficient else "red"
+        result.append(gpu_icon, style=f"bold {gpu_color}")
         result.append(" │ ", style=shade_3)
-        # 2. Number of Projects
-        result.append(f"Projects: {self.total_projects}", style=shade_4)
-        result.append(" │ ", style=shade_3)
-        # 3. Project Progress (each with color coding)
+        # 2. Projects: count [name:percent% name:percent%]
+        result.append(f"Projects: {self.total_projects} ", style=shade_4)
+        # Build project progress list with shortened names
         project_parts = []
-        for name, progress in self.projects_progress.items():
+        for name, progress in self.projects_progress:
+            # Shorten project names (first word or abbreviation, max 8 chars)
+            short_name = name.split()[0][:8]
             color = self._get_progress_color(progress)
-            project_parts.append(f"[{color}]{name}: {progress}%[/{color}]")
-        result.append_text(Text.from_markup(" ".join(project_parts)))
+            project_parts.append(f"[{color}]{short_name}:{progress}%[/{color}]")
+        projects_str = " ".join(project_parts) if project_parts else "None"
+        result.append("[", style=shade_4)
+        result.append_text(Text.from_markup(projects_str))
+        result.append("]", style=shade_4)
         result.append(" │ ", style=shade_3)
-        # 4. Number of Workers
-        result.append("Workers: ", style=shade_3)
+        # 3. Workers: online/total count
+        result.append("Workers: ", style=shade_4)
         worker_color = "green" if self.workers_online > 0 else "red"
-        result.append(f"{self.workers_online}/{self.workers_total}", style=worker_color)
+        result.append(f"{self.workers_online}/{self.workers_total} online", style=f"bold {worker_color}")
         result.append(" │ ", style=shade_3)
-        # 5. Subscription Mode
-        result.append("Plan: ", style=shade_3)
+        # 4. Subscription Plan
+        result.append("Plan: ", style=shade_4)
         plan_color = "cyan" if self.subscription_plan == "Pro" else "dim"
-        result.append(self.subscription_plan, style=plan_color)
-        result.append(" ░▒▓", style=shade_4)
+        result.append(self.subscription_plan, style=f"bold {plan_color}")
+        result.append(" ░▒▓", style=f"bold {primary}")
         return result
 
 
