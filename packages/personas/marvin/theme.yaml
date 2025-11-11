@@ -27,3 +27,8 @@ personality_traits:
   - bored
   - philosophical
   - miserable
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#4A5568"  # Marvin's depressed gray-blue

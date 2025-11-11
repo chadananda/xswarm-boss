@@ -27,3 +27,8 @@ personality_traits:
   - direct
   - self-aware
   - pragmatic
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#C0C0C0"  # TARS metallic silver

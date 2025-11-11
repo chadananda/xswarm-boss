@@ -4,8 +4,8 @@ Replaces Rust Ratatui dashboard.
 """
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Header, Footer, Static, Label, Button, RadioButton, RadioSet
+from textual.containers import Container, Vertical, Horizontal, Grid, ScrollableContainer
+from textual.widgets import Header, Footer, Static, Label, Button, RadioButton, RadioSet, Input, Tree
 from textual.reactive import reactive
 from textual import events
 from rich.text import Text
@@ -13,6 +13,7 @@ import asyncio
 from typing import Optional
 from pathlib import Path
 import pyperclip
+import datetime
 
 from .widgets.visualizer import AudioVisualizer, CyberpunkVisualizer
 from .widgets.panels import VoiceVisualizerPanel, VisualizationStyle
@@ -37,7 +38,7 @@ class VoiceAssistantApp(App):
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
     current_persona_name = reactive("Default")  # Current persona name
-    active_tab = reactive("status")  # status, settings, chat, projects, schedule, workers
+    active_tab = reactive("status")  # status, settings, tools, chat, projects, schedule, workers
 
     # Reactive theme colors - automatically update UI when changed
     theme_shade_2 = reactive("#363d47")
@@ -95,49 +96,57 @@ class VoiceAssistantApp(App):
 
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
-                    yield Button("📊 Status", id="tab-status", classes="tab-button active-tab")
-                    yield Button("⚙ Settings", id="tab-settings", classes="tab-button")
-                    yield Button("💬 Chat", id="tab-chat", classes="tab-button")
-                    yield Button("📁 Projects", id="tab-projects", classes="tab-button")
-                    yield Button("📅 Schedule", id="tab-schedule", classes="tab-button")
-                    yield Button("🖥 Workers", id="tab-workers", classes="tab-button")
+                    yield Button("●  Status", id="tab-status", classes="tab-button active-tab")
+                    yield Button("◆  Settings", id="tab-settings", classes="tab-button")
+                    yield Button("◉  Tools", id="tab-tools", classes="tab-button")
+                    yield Button("◈  Chat", id="tab-chat", classes="tab-button")
+                    yield Button("■  Projects", id="tab-projects", classes="tab-button")
+                    yield Button("◇  Schedule", id="tab-schedule", classes="tab-button")
+                    yield Button("▣  Workers", id="tab-workers", classes="tab-button")
 
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
                 # Status content - Activity feed + Status widget
                 with Container(id="content-status", classes="content-pane active-pane"):
-                    yield Label("📊 Status", classes="pane-header")
+                    yield Label("● Status", classes="pane-inner-header")
                     yield ActivityFeed(id="activity")
                     yield StatusWidget(id="status")
 
                 # Settings content
                 with Container(id="content-settings", classes="content-pane"):
-                    yield Label("⚙ Settings", classes="pane-header")
+                    yield Label("◆ Settings", classes="pane-inner-header")
                     yield Label("Theme Selection", id="settings-title")
                     yield Label("Select a theme color:", id="theme-label")
                     with RadioSet(id="theme-selector"):
                         # Will be populated dynamically with available themes
                         pass
 
+                # Tools content
+                with Container(id="content-tools", classes="content-pane"):
+                    yield Label("◉ Tools", classes="pane-inner-header")
+                    yield Tree("Tool Permissions", id="tools-tree")
+                    yield Label("Enable or disable assistant capabilities", classes="placeholder-text")
+
                 # Chat content
                 with Container(id="content-chat", classes="content-pane"):
-                    yield Label("💬 Chat", classes="pane-header")
-                    yield Label("Conversation History", id="chat-title")
-                    yield Static("", id="chat-history")
+                    yield Label("◈ Chat", classes="pane-inner-header")
+                    with ScrollableContainer(id="chat-scroll-container"):
+                        yield Static("", id="chat-history")
+                    yield Input(placeholder="Type a message...", id="chat-input")
 
                 # Projects content
                 with Container(id="content-projects", classes="content-pane"):
-                    yield Label("📁 Projects", classes="pane-header")
+                    yield Label("■ Projects", classes="pane-inner-header")
                     yield Label("Projects management coming soon...", classes="placeholder-text")
 
                 # Schedule content
                 with Container(id="content-schedule", classes="content-pane"):
-                    yield Label("📅 Schedule", classes="pane-header")
+                    yield Label("◇ Schedule", classes="pane-inner-header")
                     yield Label("Schedule management coming soon...", classes="placeholder-text")
 
                 # Workers content
                 with Container(id="content-workers", classes="content-pane"):
-                    yield Label("🖥 Workers", classes="pane-header")
+                    yield Label("▣ Workers", classes="pane-inner-header")
                     yield Label("Worker management coming soon...", classes="placeholder-text")
         # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
@@ -156,34 +165,70 @@ class VoiceAssistantApp(App):
         # Populate theme selector with available themes
         self.populate_theme_selector()
 
+        # Populate tools tree with permissions
+        self.populate_tools_tree()
+
+        # Add dummy chat messages
+        self.add_dummy_chat_messages()
+
         # Load MOSHI and start immediately
         asyncio.create_task(self.initialize_moshi())
+
+    def add_dummy_chat_messages(self):
+        """Add dummy chat messages for demonstration"""
+        current_time = datetime.datetime.now()
+        # Add messages with timestamps going back in time
+        dummy_messages = [
+            ("assistant", "Hello! I'm your voice assistant. How can I help you today?", 8),
+            ("user", "Can you tell me about the weather?", 7),
+            ("assistant", "I'd be happy to help with that! However, I don't have access to live weather data at the moment. I can help you with other tasks like managing your schedule, answering questions, or controlling your smart home devices.", 6),
+            ("user", "What can you do?", 5),
+            ("assistant", "I can help you with a variety of tasks including:\n• Managing your schedule and reminders\n• Answering questions and providing information\n• Voice commands for smart home control\n• Natural conversation and assistance", 4),
+            ("user", "That sounds great!", 3),
+            ("assistant", "I'm glad you think so! Feel free to ask me anything or give me a command. Just press the SPACE bar to start talking.", 2),
+            ("user", "How do I change the theme?", 1),
+            ("assistant", "You can change the theme by clicking on the Settings tab in the sidebar, then selecting a theme from the available options. Each persona has its own unique color theme!", 0),
+        ]
+        # Add messages with calculated timestamps
+        for role, message, minutes_ago in dummy_messages:
+            timestamp = (current_time - datetime.timedelta(minutes=minutes_ago)).strftime("%H:%M:%S")
+            self.chat_history.append({
+                "role": role,
+                "message": message,
+                "timestamp": timestamp
+            })
+        # Update the display
+        self.update_chat_display()
 
     def populate_theme_selector(self):
         """Populate theme selector with available persona themes"""
         try:
             radio_set = self.query_one("#theme-selector", RadioSet)
-
             # Get personas with theme colors
             themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
-
-            # Add radio button for each themed persona
+            # Add radio button for each themed persona using call_after_refresh
             for persona in themed_personas:
                 radio_btn = RadioButton(
-                    f"{persona.name} ({persona.theme.theme_color})",
-                    value=persona.name
+                    f"{persona.name} ({persona.theme.theme_color})"
                 )
+                radio_btn.value = persona.name
                 radio_set.mount(radio_btn)
-
-            # Select current persona
-            if self.current_persona_name:
-                try:
-                    radio_set.action_toggle()  # Will select first by default
-                except:
-                    pass
-
+            # Log how many themes we loaded
+            self.update_activity(f"Loaded {len(themed_personas)} themed personas")
         except Exception as e:
             self.update_activity(f"Error populating themes: {e}")
+
+    def populate_tools_tree(self):
+        """Populate tools tree with permission checkboxes"""
+        try:
+            tools_tree = self.query_one("#tools-tree", Tree)
+            # Add checkbox item for theme change permission
+            # Using ☐ for unchecked and ☑ for checked
+            tools_tree.root.add_leaf("☑ Change Application Theme")
+            # Expand the root node
+            tools_tree.root.expand()
+        except Exception as e:
+            self.update_activity(f"Error populating tools tree: {e}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle tab button clicks"""
@@ -194,6 +239,8 @@ class VoiceAssistantApp(App):
             self.active_tab = "status"
         elif button_id == "tab-settings":
             self.active_tab = "settings"
+        elif button_id == "tab-tools":
+            self.active_tab = "tools"
         elif button_id == "tab-chat":
             self.active_tab = "chat"
         elif button_id == "tab-projects":
@@ -207,7 +254,7 @@ class VoiceAssistantApp(App):
         """Reactive watcher - called when active_tab changes"""
         try:
             # Update button styles
-            for button_id in ["tab-status", "tab-settings", "tab-chat", "tab-projects", "tab-schedule", "tab-workers"]:
+            for button_id in ["tab-status", "tab-settings", "tab-tools", "tab-chat", "tab-projects", "tab-schedule", "tab-workers"]:
                 button = self.query_one(f"#{button_id}", Button)
                 if button_id == f"tab-{new_tab}":
                     button.add_class("active-tab")
@@ -215,7 +262,7 @@ class VoiceAssistantApp(App):
                     button.remove_class("active-tab")
 
             # Update content pane visibility
-            for content_id in ["content-status", "content-settings", "content-chat", "content-projects", "content-schedule", "content-workers"]:
+            for content_id in ["content-status", "content-settings", "content-tools", "content-chat", "content-projects", "content-schedule", "content-workers"]:
                 pane = self.query_one(f"#{content_id}", Container)
                 if content_id == f"content-{new_tab}":
                     pane.add_class("active-pane")
