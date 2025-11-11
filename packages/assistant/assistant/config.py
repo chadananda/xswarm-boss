@@ -38,6 +38,10 @@ class Config(BaseModel):
     # Persona settings
     default_persona: Optional[str] = None
 
+    # UI Theme settings
+    theme_base_color: str = "#8899aa"  # Base color for shade palette generation
+    # Can be: hex color ("#8899aa"), or preset name ("blue-gray", "slate", "cyan", etc.)
+
     class Config:
         """Pydantic configuration"""
         arbitrary_types_allowed = True

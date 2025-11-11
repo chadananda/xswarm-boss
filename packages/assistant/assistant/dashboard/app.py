@@ -22,6 +22,8 @@ from .widgets.header import CyberpunkHeader
 from .widgets.footer import CyberpunkFooter
 from .screens import SettingsScreen, WizardScreen, VoiceVizDemoScreen
 from ..config import Config
+from .theme import generate_palette, get_theme_preset, THEME_PRESETS
+import re
 
 
 class VoiceAssistantApp(App):
@@ -40,6 +42,52 @@ class VoiceAssistantApp(App):
         self.personas_dir = personas_dir
         self.moshi_bridge: Optional[object] = None
         self.audio_io: Optional[object] = None
+
+        # Generate dynamic theme colors
+        self._theme_palette = self._load_theme(config.theme_base_color)
+
+    def _load_theme(self, theme_input: str):
+        """
+        Load theme palette from config.
+
+        Args:
+            theme_input: Either a hex color ("#8899aa") or preset name ("blue-gray")
+
+        Returns:
+            ColorPalette instance
+        """
+        # Check if it's a preset name
+        if theme_input in THEME_PRESETS:
+            return get_theme_preset(theme_input)
+
+        # Otherwise treat as hex color
+        return generate_palette(theme_input)
+
+    @property
+    def CSS(self) -> str:
+        """
+        Generate CSS with dynamic theme colors.
+
+        Reads the base styles.tcss and replaces shade variables with theme colors.
+        """
+        # Read base CSS file
+        css_path = Path(__file__).parent / "styles.tcss"
+        base_css = css_path.read_text()
+
+        # Replace shade variable definitions with theme colors
+        # Match the entire palette block and replace it
+        palette_pattern = r'/\* ▓▒░ SUBTLE GRAYSCALE PALETTE ░▒▓ \*/.*?\$shade-1: #[0-9a-fA-F]{6};'
+
+        replacement = f"""/* ▓▒░ DYNAMIC THEME PALETTE ░▒▓ */
+$shade-5: {self._theme_palette.shade_5};  /* Lightest */
+$shade-4: {self._theme_palette.shade_4};  /* Light */
+$shade-3: {self._theme_palette.shade_3};  /* Medium */
+$shade-2: {self._theme_palette.shade_2};  /* Dark */
+$shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
+
+        themed_css = re.sub(palette_pattern, replacement, base_css, flags=re.DOTALL)
+
+        return themed_css
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout - activity is main focus"""
