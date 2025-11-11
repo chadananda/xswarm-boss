@@ -183,22 +183,8 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             # Regenerate theme palette
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
-            # Generate new CSS with updated theme
-            new_css = self.CSS
-
-            # Update the stylesheet directly
-            try:
-                # Textual way to update CSS dynamically
-                from textual.css.stylesheet import Stylesheet
-                from io import StringIO
-
-                stylesheet = Stylesheet()
-                stylesheet.read(StringIO(new_css))
-                self.stylesheet = stylesheet
-                self.refresh(layout=True)
-            except Exception as e:
-                # Fallback: just refresh everything
-                self.refresh(layout=True, repaint=True)
+            # Apply theme colors directly to widgets using Python styles
+            self._apply_theme_to_widgets()
 
         # Update current persona name
         self.current_persona_name = persona.name
@@ -215,6 +201,35 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             visualizer.border_title = f"xSwarm - {persona.name}"
         except Exception:
             pass
+
+    def _apply_theme_to_widgets(self):
+        """Apply the current theme palette to all widgets using Python styles"""
+        try:
+            # Get all widgets
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            activity = self.query_one("#activity", ActivityFeed)
+            status = self.query_one("#status", StatusWidget)
+            footer = self.query_one("#footer", CyberpunkFooter)
+            header = self.query_one(CyberpunkHeader)
+
+            # Update borders with theme colors
+            visualizer.styles.border = ("solid", self._theme_palette.shade_3)
+            activity.styles.border = ("solid", self._theme_palette.shade_3)
+            status.styles.border = ("solid", self._theme_palette.shade_3)
+
+            # Update header/footer borders
+            header.styles.border = ("solid", self._theme_palette.shade_2)
+            footer.styles.border = ("solid", self._theme_palette.shade_2)
+
+            # Force refresh to show new colors
+            visualizer.refresh()
+            activity.refresh()
+            status.refresh()
+            header.refresh()
+            footer.refresh()
+
+        except Exception as e:
+            pass  # Widgets might not be ready yet
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
