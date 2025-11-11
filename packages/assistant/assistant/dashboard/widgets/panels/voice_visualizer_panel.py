@@ -225,22 +225,17 @@ class VoiceVisualizerPanel(Static):
                 char_idx = int(avg_amplitude * (len(fill_chars) - 1))
                 char = fill_chars[char_idx]
 
-                # Color based on amplitude - emphasize the "fill"
+                # Color based on amplitude - subtle shade variations
                 if avg_amplitude > 0.7:
-                    # Very loud = bold red (hot)
-                    result.append(char, style="bold red")
+                    result.append(char, style="#8899aa")  # shade-5 (lightest)
                 elif avg_amplitude > 0.5:
-                    # Loud = bold yellow (warm)
-                    result.append(char, style="bold yellow")
+                    result.append(char, style="#6b7a8a")  # shade-4 (light)
                 elif avg_amplitude > 0.3:
-                    # Medium = bold green (active)
-                    result.append(char, style="bold green")
+                    result.append(char, style="#4d5966")  # shade-3 (medium)
                 elif avg_amplitude > 0.1:
-                    # Quiet = cyan (low activity)
-                    result.append(char, style="cyan")
+                    result.append(char, style="#363d47")  # shade-2 (dark)
                 else:
-                    # Silent = dim white (baseline)
-                    result.append(char, style="dim white")
+                    result.append(char, style="#252a33")  # shade-1 (darkest)
 
         return result
 
@@ -277,15 +272,15 @@ class VoiceVisualizerPanel(Static):
                 char_idx = int(avg_amplitude * (len(bar_chars) - 1))
                 char = bar_chars[char_idx]
 
-                # Color based on amplitude
+                # Color based on amplitude - subtle shade variations
                 if avg_amplitude > 0.7:
-                    result.append(char, style="bold red")
+                    result.append(char, style="#8899aa")  # shade-5 (lightest)
                 elif avg_amplitude > 0.4:
-                    result.append(char, style="bold yellow")
+                    result.append(char, style="#6b7a8a")  # shade-4 (light)
                 elif avg_amplitude > 0.1:
-                    result.append(char, style="bold green")
+                    result.append(char, style="#4d5966")  # shade-3 (medium)
                 else:
-                    result.append(char, style="dim cyan")
+                    result.append(char, style="#363d47")  # shade-2 (dark)
 
         return result
 
@@ -322,15 +317,15 @@ class VoiceVisualizerPanel(Static):
                 char_idx = int(avg_amplitude * (len(wave_chars) - 1))
                 char = wave_chars[char_idx]
 
-                # Color based on amplitude
+                # Color based on amplitude - subtle shade variations
                 if avg_amplitude > 0.7:
-                    result.append(char, style="bold red")
+                    result.append(char, style="#8899aa")  # shade-5 (lightest)
                 elif avg_amplitude > 0.4:
-                    result.append(char, style="bold yellow")
+                    result.append(char, style="#6b7a8a")  # shade-4 (light)
                 elif avg_amplitude > 0.1:
-                    result.append(char, style="bold cyan")
+                    result.append(char, style="#4d5966")  # shade-3 (medium)
                 else:
-                    result.append(char, style="dim white")
+                    result.append(char, style="#363d47")  # shade-2 (dark)
 
         return result
 
@@ -367,17 +362,17 @@ class VoiceVisualizerPanel(Static):
                 char_idx = int(avg_amplitude * (len(line_chars) - 1))
                 char = line_chars[char_idx]
 
-                # Color gradient based on amplitude
+                # Color gradient based on amplitude - subtle shade variations
                 if avg_amplitude > 0.7:
-                    result.append(char, style="bold red")
+                    result.append(char, style="#8899aa")  # shade-5 (lightest)
                 elif avg_amplitude > 0.5:
-                    result.append(char, style="bold yellow")
+                    result.append(char, style="#6b7a8a")  # shade-4 (light)
                 elif avg_amplitude > 0.3:
-                    result.append(char, style="bold green")
+                    result.append(char, style="#4d5966")  # shade-3 (medium)
                 elif avg_amplitude > 0.1:
-                    result.append(char, style="cyan")
+                    result.append(char, style="#363d47")  # shade-2 (dark)
                 else:
-                    result.append(char, style="dim white")
+                    result.append(char, style="#252a33")  # shade-1 (darkest)
 
         return result
 
@@ -419,17 +414,17 @@ class VoiceVisualizerPanel(Static):
                 char_idx = int(avg_amplitude * (len(dot_chars) - 1))
                 char = dot_chars[char_idx]
 
-                # Grayscale intensity based on amplitude
+                # Grayscale intensity based on amplitude - subtle shades
                 if avg_amplitude > 0.8:
-                    result.append(char, style="bold white")  # Brightest
+                    result.append(char, style="#8899aa")  # shade-5 (lightest)
                 elif avg_amplitude > 0.6:
-                    result.append(char, style="white")       # Bright
+                    result.append(char, style="#6b7a8a")  # shade-4 (light)
                 elif avg_amplitude > 0.4:
-                    result.append(char, style="bright_black") # Medium gray
+                    result.append(char, style="#4d5966")  # shade-3 (medium)
                 elif avg_amplitude > 0.2:
-                    result.append(char, style="dim white")   # Light gray
+                    result.append(char, style="#363d47")  # shade-2 (dark)
                 else:
-                    result.append(char, style="dim bright_black") # Dark gray
+                    result.append(char, style="#252a33")  # shade-1 (darkest)
 
         return result
 
@@ -697,24 +692,24 @@ class VoiceVisualizerPanel(Static):
         else:
             viz_lines = [""] * circular_viz_lines
 
-        # Add circular visualization with gradient effect
+        # Add circular visualization with gradient effect (subtle shades)
         for i, line in enumerate(viz_lines):
             # Create gradient from top (dim) to center (bright) to bottom (dim)
             center = len(viz_lines) / 2
             distance_from_center = abs(i - center) / center
 
-            # Apply gradient based on distance from center
+            # Apply gradient based on distance from center - subtle shade variations
             if distance_from_center < 0.3:
-                style = "bold white"  # Brightest in center
+                style = "#8899aa"  # shade-5 (lightest) - Brightest in center
             elif distance_from_center < 0.6:
-                style = "white"  # Medium
+                style = "#6b7a8a"  # shade-4 (light) - Medium
             else:
-                style = "dim white"  # Dimmer at edges
+                style = "#4d5966"  # shade-3 (medium) - Dimmer at edges
 
             result.append(line + "\n", style=style)
 
-        # Separator with gradient
-        result.append("─" * content_width + "\n", style="dim white")
+        # Separator with subtle shade
+        result.append("─" * content_width + "\n", style="#4d5966")  # shade-3
 
         # Microphone waveform at bottom with cyan tint
         waveform = self._render_waveform(content_width)

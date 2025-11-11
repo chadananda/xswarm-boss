@@ -38,13 +38,13 @@ class StatusWidget(Static):
     }
 
     STATE_COLORS = {
-        "initializing": "dim cyan",
-        "idle": "dim white",
-        "ready": "cyan",
-        "listening": "bold cyan",
-        "speaking": "bold white",
-        "thinking": "white",
-        "error": "bold white"
+        "initializing": "#4d5966",  # shade-3 (medium)
+        "idle": "#363d47",          # shade-2 (dark)
+        "ready": "#6b7a8a",         # shade-4 (light)
+        "listening": "#8899aa",     # shade-5 (lightest)
+        "speaking": "#8899aa",      # shade-5 (lightest)
+        "thinking": "#6b7a8a",      # shade-4 (light)
+        "error": "#8899aa"          # shade-5 (lightest)
     }
 
     def on_mount(self) -> None:
@@ -90,25 +90,25 @@ class StatusWidget(Static):
 
         # State indicator
         state_msg = self.STATE_MESSAGES.get(self.state, "UNKNOWN")
-        state_color = self.STATE_COLORS.get(self.state, "white")
-        result.append(f"{state_msg}", style=f"bold {state_color}")
+        state_color = self.STATE_COLORS.get(self.state, "#6b7a8a")
+        result.append(f"{state_msg}", style=state_color)
 
         # Device
-        result.append("  │  ", style="dim white")
-        result.append("Device: ", style="dim white")
-        result.append(f"{self.device_name}", style="bold cyan")
+        result.append("  │  ", style="#4d5966")  # shade-3
+        result.append("Device: ", style="#4d5966")  # shade-3
+        result.append(f"{self.device_name}", style="#6b7a8a")  # shade-4
 
         # Server status
-        result.append("  │  ", style="dim white")
-        result.append("Server: ", style="dim white")
-        server_color = "cyan" if self.server_status == "connected" else "dim white"
-        result.append(f"{self.server_status.upper()}", style=f"bold {server_color}")
+        result.append("  │  ", style="#4d5966")  # shade-3
+        result.append("Server: ", style="#4d5966")  # shade-3
+        server_color = "#6b7a8a" if self.server_status == "connected" else "#363d47"  # shade-4 or shade-2
+        result.append(f"{self.server_status.upper()}", style=server_color)
 
         # Uptime
         uptime = self._get_uptime()
-        result.append("  │  ", style="dim white")
-        result.append("Uptime: ", style="dim white")
-        result.append(f"{uptime}", style="cyan")
+        result.append("  │  ", style="#4d5966")  # shade-3
+        result.append("Uptime: ", style="#4d5966")  # shade-3
+        result.append(f"{uptime}", style="#6b7a8a")  # shade-4
 
         return result
 
@@ -129,19 +129,19 @@ class CompactStatusWidget(Static):
         result = Text()
 
         # State indicator
-        state_color = StatusWidget.STATE_COLORS.get(self.state, "white")
-        result.append("◉", style=f"bold {state_color}")
-        result.append(f" {self.state.upper()} ", style=f"bold {state_color}")
+        state_color = StatusWidget.STATE_COLORS.get(self.state, "#6b7a8a")
+        result.append("◉", style=state_color)
+        result.append(f" {self.state.upper()} ", style=state_color)
 
         # Server status
-        server_color = "green" if self.server_status == "connected" else "red"
-        result.append("│ ", style="dim white")
-        result.append("SERVER:", style="dim white")
-        result.append(f"{self.server_status.upper()} ", style=f"bold {server_color}")
+        server_color = "#6b7a8a" if self.server_status == "connected" else "#363d47"  # shade-4 or shade-2
+        result.append("│ ", style="#4d5966")  # shade-3
+        result.append("SERVER:", style="#4d5966")  # shade-3
+        result.append(f"{self.server_status.upper()} ", style=server_color)
 
         # Wake word
         if self.last_wake_word:
-            result.append("│ ", style="dim white")
-            result.append(f"WAKE:'{self.last_wake_word}' ", style="bold yellow")
+            result.append("│ ", style="#4d5966")  # shade-3
+            result.append(f"WAKE:'{self.last_wake_word}' ", style="#8899aa")  # shade-5
 
         return result
