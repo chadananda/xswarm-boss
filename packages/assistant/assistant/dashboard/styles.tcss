@@ -71,10 +71,10 @@ Footer {
 
 /* ▓▒░ VOICE VISUALIZER - SMALL LEFT CORNER BOX ░▒▓ */
 #visualizer {
-    width: 30;
+    width: 24;
     min-width: 20;
     height: 100%;
-    max-height: 20;
+    max-height: 14;
     background: $darker-bg;
     border: solid $neon-cyan;
     border-title-align: left;
