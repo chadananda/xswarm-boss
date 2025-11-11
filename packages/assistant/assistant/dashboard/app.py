@@ -5,7 +5,7 @@ Replaces Rust Ratatui dashboard.
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Header, Footer, Static
+from textual.widgets import Header, Footer, Static, TabbedContent, TabPane, Label, Button, RadioButton, RadioSet
 from textual.reactive import reactive
 from textual import events
 from rich.text import Text
@@ -52,6 +52,7 @@ class VoiceAssistantApp(App):
         self.moshi_bridge: Optional[object] = None
         self.audio_io: Optional[object] = None
         self.audio_buffer = []  # Buffer for capturing audio during listening
+        self.chat_history = []  # Store chat messages (user + assistant)
 
         # Load personas
         self.persona_manager = PersonaManager(personas_dir)
@@ -78,23 +79,41 @@ class VoiceAssistantApp(App):
         return generate_palette(theme_input)
 
     def compose(self) -> ComposeResult:
-        """Compose the dashboard layout - activity is main focus"""
-        with Container(id="main-container"):
-            # Top row: Voice visualizer (left corner) + Activity (main)
-            with Horizontal(id="top-row"):
-                # Voice visualizer - small square in LEFT corner
-                viz_panel = VoiceVisualizerPanel(
-                    visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
-                )
-                viz_panel.id = "visualizer"
-                viz_panel.simulation_mode = True
-                yield viz_panel
+        """Compose the dashboard layout with tabbed interface"""
+        with TabbedContent(initial="status-tab"):
+            # Status Tab - Current dashboard content
+            with TabPane("Status", id="status-tab"):
+                with Container(id="status-container"):
+                    # Top row: Voice visualizer (left corner) + Activity (main)
+                    with Horizontal(id="top-row"):
+                        # Voice visualizer - small square in LEFT corner
+                        viz_panel = VoiceVisualizerPanel(
+                            visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
+                        )
+                        viz_panel.id = "visualizer"
+                        viz_panel.simulation_mode = True
+                        yield viz_panel
 
-                # Main activity feed / chat - takes most space
-                yield ActivityFeed(id="activity")
+                        # Main activity feed
+                        yield ActivityFeed(id="activity")
 
-            # Bottom row: Status (compact)
-            yield StatusWidget(id="status")
+                    # Bottom row: Status (compact)
+                    yield StatusWidget(id="status")
+
+            # Settings Tab - Theme selector
+            with TabPane("Settings", id="settings-tab"):
+                with Container(id="settings-container"):
+                    yield Label("Theme Selection", id="settings-title")
+                    yield Label("Select a theme color:", id="theme-label")
+                    with RadioSet(id="theme-selector"):
+                        # Will be populated dynamically with available themes
+                        pass
+
+            # Chat Tab - Conversation history
+            with TabPane("Chat", id="chat-tab"):
+                with Container(id="chat-container"):
+                    yield Label("Conversation History", id="chat-title")
+                    yield Static("", id="chat-history")
 
         yield CyberpunkFooter(id="footer")
 
@@ -109,8 +128,73 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
+        # Populate theme selector with available themes
+        self.populate_theme_selector()
+
         # Load MOSHI and start immediately
         asyncio.create_task(self.initialize_moshi())
+
+    def populate_theme_selector(self):
+        """Populate theme selector with available persona themes"""
+        try:
+            radio_set = self.query_one("#theme-selector", RadioSet)
+
+            # Get personas with theme colors
+            themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
+
+            # Add radio button for each themed persona
+            for persona in themed_personas:
+                radio_btn = RadioButton(
+                    f"{persona.name} ({persona.theme.theme_color})",
+                    value=persona.name
+                )
+                radio_set.mount(radio_btn)
+
+            # Select current persona
+            if self.current_persona_name:
+                try:
+                    radio_set.action_toggle()  # Will select first by default
+                except:
+                    pass
+
+        except Exception as e:
+            self.update_activity(f"Error populating themes: {e}")
+
+    def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
+        """Handle theme selection change"""
+        if event.radio_set.id != "theme-selector":
+            return
+
+        # Get selected persona name
+        selected_persona_name = event.pressed.value if event.pressed else None
+        if not selected_persona_name:
+            return
+
+        # Switch to selected persona theme
+        persona = self.persona_manager.get_persona(selected_persona_name)
+        if persona and persona.theme and persona.theme.theme_color:
+            self.update_activity(f"🎨 Switching to {persona.name} theme ({persona.theme.theme_color})")
+
+            # Regenerate theme palette
+            self._theme_palette = self._load_theme(persona.theme.theme_color)
+
+            # Update reactive colors - triggers watchers that update ALL UI elements
+            self.theme_shade_2 = self._theme_palette.shade_2
+            self.theme_shade_3 = self._theme_palette.shade_3
+            self.theme_shade_4 = self._theme_palette.shade_4
+
+            # Update current persona name
+            self.current_persona_name = persona.name
+
+            # Update title
+            self.title = f"xSwarm Voice Assistant - {persona.name}"
+
+            # Update visualizer border title
+            try:
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                visualizer.border_title = f"xSwarm - {persona.name}"
+            except Exception:
+                pass
 
     def on_unmount(self) -> None:
         """Cleanup on exit"""
@@ -212,6 +296,7 @@ class VoiceAssistantApp(App):
             # Log the greeting text
             if response_text:
                 self.update_activity(f"💬 {response_text}")
+                self.add_chat_message("assistant", response_text)
 
             # Play greeting with amplitude updates
             await self.play_audio_with_visualization(response_audio)
@@ -423,6 +508,43 @@ class VoiceAssistantApp(App):
         activity = self.query_one("#activity", ActivityFeed)
         activity.add_message(message)
 
+    def add_chat_message(self, role: str, message: str):
+        """Add message to chat history and update display"""
+        import datetime
+
+        # Add to history
+        self.chat_history.append({
+            "role": role,  # "user" or "assistant"
+            "message": message,
+            "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
+        })
+
+        # Update chat display
+        self.update_chat_display()
+
+    def update_chat_display(self):
+        """Update chat history display"""
+        try:
+            chat_display = self.query_one("#chat-history", Static)
+
+            # Build chat text
+            lines = []
+            for msg in self.chat_history[-20:]:  # Show last 20 messages
+                timestamp = msg["timestamp"]
+                role = msg["role"].upper()
+                message = msg["message"]
+
+                if role == "USER":
+                    lines.append(f"[bold cyan][{timestamp}] YOU:[/bold cyan]")
+                else:
+                    lines.append(f"[bold yellow][{timestamp}] {self.current_persona_name}:[/bold yellow]")
+
+                lines.append(f"  {message}\n")
+
+            chat_display.update("\n".join(lines))
+        except Exception as e:
+            pass  # Widget might not be ready
+
     def on_key(self, event: events.Key) -> None:
         """Handle keyboard input"""
         if event.key == "q":
@@ -511,6 +633,7 @@ class VoiceAssistantApp(App):
             # Concatenate all audio frames
             user_audio = np.concatenate(self.audio_buffer)
             self.update_activity(f"Captured {len(user_audio)/24000:.1f}s of audio")
+            self.add_chat_message("user", f"[Audio: {len(user_audio)/24000:.1f}s]")
 
             # Get current persona for prompt
             persona_name = self.current_persona_name
@@ -532,6 +655,7 @@ class VoiceAssistantApp(App):
             # Log response text
             if response_text:
                 self.update_activity(f"💬 {response_text[:100]}")
+                self.add_chat_message("assistant", response_text)
 
             # Play response audio with visualization
             await self.play_audio_with_visualization(response_audio)
