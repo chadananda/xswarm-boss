@@ -5,7 +5,7 @@ Replaces Rust Ratatui dashboard.
 
 from textual.app import App, ComposeResult
 from textual.containers import Container, Vertical, Horizontal, Grid
-from textual.widgets import Header, Footer, Static, TabbedContent, TabPane, Label, Button, RadioButton, RadioSet
+from textual.widgets import Header, Footer, Static, Label, Button, RadioButton, RadioSet
 from textual.reactive import reactive
 from textual import events
 from rich.text import Text
@@ -37,6 +37,7 @@ class VoiceAssistantApp(App):
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
     current_persona_name = reactive("Default")  # Current persona name
+    active_tab = reactive("status")  # status, settings, chat
 
     # Reactive theme colors - automatically update UI when changed
     theme_shade_2 = reactive("#363d47")
@@ -79,11 +80,18 @@ class VoiceAssistantApp(App):
         return generate_palette(theme_input)
 
     def compose(self) -> ComposeResult:
-        """Compose the dashboard layout with tabbed interface"""
-        with TabbedContent(initial="status-tab"):
-            # Status Tab - Current dashboard content
-            with TabPane("Status", id="status-tab"):
-                with Container(id="status-container"):
+        """Compose the dashboard layout with left sidebar and content area"""
+        with Horizontal(id="main-layout"):
+            # Left sidebar - vertical tab buttons
+            with Vertical(id="sidebar"):
+                yield Button("Status", id="tab-status", classes="tab-button active-tab")
+                yield Button("Settings", id="tab-settings", classes="tab-button")
+                yield Button("Chat", id="tab-chat", classes="tab-button")
+
+            # Right content area - containers for each tab
+            with Container(id="content-area"):
+                # Status content
+                with Container(id="content-status", classes="content-pane active-pane"):
                     # Top row: Voice visualizer (left corner) + Activity (main)
                     with Horizontal(id="top-row"):
                         # Voice visualizer - small square in LEFT corner
@@ -100,18 +108,16 @@ class VoiceAssistantApp(App):
                     # Bottom row: Status (compact)
                     yield StatusWidget(id="status")
 
-            # Settings Tab - Theme selector
-            with TabPane("Settings", id="settings-tab"):
-                with Container(id="settings-container"):
+                # Settings content
+                with Container(id="content-settings", classes="content-pane"):
                     yield Label("Theme Selection", id="settings-title")
                     yield Label("Select a theme color:", id="theme-label")
                     with RadioSet(id="theme-selector"):
                         # Will be populated dynamically with available themes
                         pass
 
-            # Chat Tab - Conversation history
-            with TabPane("Chat", id="chat-tab"):
-                with Container(id="chat-container"):
+                # Chat content
+                with Container(id="content-chat", classes="content-pane"):
                     yield Label("Conversation History", id="chat-title")
                     yield Static("", id="chat-history")
 
@@ -159,6 +165,39 @@ class VoiceAssistantApp(App):
 
         except Exception as e:
             self.update_activity(f"Error populating themes: {e}")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle tab button clicks"""
+        button_id = event.button.id
+
+        # Determine which tab was clicked
+        if button_id == "tab-status":
+            self.active_tab = "status"
+        elif button_id == "tab-settings":
+            self.active_tab = "settings"
+        elif button_id == "tab-chat":
+            self.active_tab = "chat"
+
+    def watch_active_tab(self, new_tab: str) -> None:
+        """Reactive watcher - called when active_tab changes"""
+        try:
+            # Update button styles
+            for button_id in ["tab-status", "tab-settings", "tab-chat"]:
+                button = self.query_one(f"#{button_id}", Button)
+                if button_id == f"tab-{new_tab}":
+                    button.add_class("active-tab")
+                else:
+                    button.remove_class("active-tab")
+
+            # Update content pane visibility
+            for content_id in ["content-status", "content-settings", "content-chat"]:
+                pane = self.query_one(f"#{content_id}", Container)
+                if content_id == f"content-{new_tab}":
+                    pane.add_class("active-pane")
+                else:
+                    pane.remove_class("active-pane")
+        except Exception:
+            pass  # Widgets not ready yet
 
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
         """Handle theme selection change"""
