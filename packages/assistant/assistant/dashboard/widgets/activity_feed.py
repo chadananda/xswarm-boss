@@ -60,38 +60,38 @@ class ActivityFeed(Static):
             return "info"
 
     def _format_message(self, msg: dict) -> Text:
-        """Format a single message with unified cyan/grayscale styling"""
+        """Format a single message with subtle grayscale shades"""
         result = Text()
 
-        # Message type indicator - unified to cyan/white/gray
+        # Message type indicator - subtle shade variations
         type_indicators = {
-            "info": ("▓", "cyan"),
-            "success": ("✓", "bold cyan"),
-            "warning": ("⚠", "white"),
-            "error": ("✖", "bold white"),
-            "system": ("◉", "dim cyan")
+            "info": ("▓", "#6b7a8a"),           # shade-4 (light)
+            "success": ("✓", "#8899aa"),        # shade-5 (lightest)
+            "warning": ("⚠", "#6b7a8a"),        # shade-4 (light)
+            "error": ("✖", "#8899aa"),          # shade-5 (lightest)
+            "system": ("◉", "#4d5966")          # shade-3 (medium)
         }
 
-        indicator, color = type_indicators.get(msg["type"], ("▓", "cyan"))
+        indicator, color = type_indicators.get(msg["type"], ("▓", "#6b7a8a"))
 
         # Line number (4 digits, zero-padded)
-        result.append(f"{msg['id']:04d} ", style="dim white")
+        result.append(f"{msg['id']:04d} ", style="#363d47")  # shade-2 (dark)
 
         # Timestamp
-        result.append(f"[{msg['timestamp']}] ", style="dim cyan")
+        result.append(f"[{msg['timestamp']}] ", style="#4d5966")  # shade-3 (medium)
 
         # Type indicator
         result.append(f"{indicator} ", style=color)
 
-        # Message text - unified colors
+        # Message text - subtle shade variations
         if msg["type"] == "error":
-            text_style = "bold white"
+            text_style = "#8899aa"  # shade-5 (lightest)
         elif msg["type"] == "success":
-            text_style = "cyan"
+            text_style = "#6b7a8a"  # shade-4 (light)
         elif msg["type"] == "system":
-            text_style = "dim cyan"
+            text_style = "#4d5966"  # shade-3 (medium)
         else:
-            text_style = "white"
+            text_style = "#6b7a8a"  # shade-4 (light)
 
         result.append(msg["message"], style=text_style)
 
