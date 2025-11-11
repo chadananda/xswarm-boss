@@ -227,12 +227,14 @@ Footer {
 
 .tab-button {
     width: 100%;
-    height: 3;
+    height: auto;
+    min-height: 3;
     border: none;
     background: transparent;
     color: $shade-3;
-    text-align: center;
-    margin: 0;
+    text-align: left;
+    margin: 1 0;
+    padding: 1 2;
 }
 
 .tab-button:hover {
@@ -261,6 +263,8 @@ Footer {
     height: 100%;
     row-span: 1;
     column-span: 1;
+    border: solid $shade-3;
+    padding: 1 2;
 }
 
 .content-pane.active-pane {
@@ -308,13 +312,24 @@ Footer {
     overflow-y: auto;
 }
 
-/* Pane header styling */
+/* Pane header styling - external (deprecated, use pane-inner-header) */
 .pane-header {
     color: $shade-5;
     text-style: bold;
     text-align: center;
     margin: 1 0;
     height: 1;
+}
+/* Pane inner header - inside content boxes with bottom border */
+.pane-inner-header {
+    width: 100%;
+    height: 1;
+    color: $shade-5;
+    text-style: bold;
+    text-align: left;
+    padding: 0 1;
+    margin: 0 0 1 0;
+    border-bottom: solid $shade-3;
 }
 
 /* Placeholder text for coming soon content */
@@ -335,6 +350,42 @@ Footer {
 
 #content-workers {
     padding: 2 4;
+}
+
+/* Tools content styling */
+#content-tools {
+    padding: 2 4;
+}
+
+#tools-tree {
+    width: 100%;
+    height: 1fr;
+    border: solid $shade-3;
+    padding: 1 2;
+    overflow-y: auto;
+    scrollbar-size: 1 1;
+}
+
+/* Chat scroll container and input */
+#chat-scroll-container {
+    width: 100%;
+    height: 1fr;
+    border: solid $shade-3;
+    padding: 1 2;
+    overflow-y: auto;
+    scrollbar-size: 1 1;
+}
+#chat-input {
+    width: 100%;
+    height: 3;
+    margin-top: 1;
+    border: solid $shade-3;
+    background: $dark-bg;
+    color: $shade-4;
+    padding: 0 2;
+}
+#chat-input:focus {
+    border: solid $shade-4;
 }
 
 /* ▓▒░ END TRANSMISSION ░▒▓ */

@@ -63,3 +63,8 @@ response_patterns:
   success: "Mission accomplished / Task completed successfully"
   failure: "I'm afraid that didn't work / We've encountered a complication"
   sarcasm: "Really, how... fascinating / Oh, wonderful"
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#FF0000"  # KITT's red scanner light

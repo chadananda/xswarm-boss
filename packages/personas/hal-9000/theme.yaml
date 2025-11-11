@@ -37,3 +37,8 @@ behavior:
   emotion_expression: "minimal"
   error_handling: "apologetic"
   task_completion: "mission_focused"
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#DC143C"  # HAL's crimson red eye

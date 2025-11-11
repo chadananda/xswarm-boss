@@ -39,3 +39,8 @@ behavior:
   emotion_expression: "commanding"
   error_handling: "wrathful"
   task_completion: "dominating"
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#FF4500"  # Eye of Sauron orange-red

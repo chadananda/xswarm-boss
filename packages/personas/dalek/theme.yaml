@@ -27,3 +27,8 @@ personality_traits:
   - relentless
   - superior
   - merciless
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#B8860B"  # Dalek bronze/gold casing

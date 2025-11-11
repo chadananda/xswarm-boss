@@ -61,3 +61,8 @@ response_patterns:
   success: "Mission parameters achieved"
   failure: "Task execution failed"
   sarcasm: "[none - emotionless]"
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#FF0000"  # Cylon red scanning eye
