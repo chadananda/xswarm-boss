@@ -82,7 +82,7 @@ class ActivityFeed(Static):
             "info": ("▓", shade_4),           # shade-4 (light)
             "success": ("✓", shade_5),        # shade-5 (lightest)
             "warning": ("⚠", shade_4),        # shade-4 (light)
-            "error": ("✖", shade_5),          # shade-5 (lightest)
+            "error": ("✖", "#800000"),        # dark red/maroon for errors
             "system": ("◉", shade_3)          # shade-3 (medium)
         }
 
@@ -97,9 +97,9 @@ class ActivityFeed(Static):
         # Type indicator
         result.append(f"{indicator} ", style=color)
 
-        # Message text - subtle shade variations
+        # Message text - subtle shade variations with dark red/maroon for errors
         if msg["type"] == "error":
-            text_style = shade_5  # shade-5 (lightest)
+            text_style = "#800000"  # dark red/maroon for error messages
         elif msg["type"] == "success":
             text_style = shade_4  # shade-4 (light)
         elif msg["type"] == "system":
@@ -116,8 +116,16 @@ class ActivityFeed(Static):
         result = Text()
 
         if not self.messages:
-            result.append("▓▒░ AWAITING SYSTEM EVENTS ░▒▓\n", style="bold cyan")
-            result.append("No activity logged...\n", style="dim white")
+            # Use theme colors if available
+            theme = getattr(self, 'theme_colors', None)
+            if theme:
+                shade_4 = theme["shade_4"]
+                shade_2 = theme["shade_2"]
+            else:
+                shade_4 = "#6b7a8a"
+                shade_2 = "#363d47"
+            result.append("▓▒░ AWAITING SYSTEM EVENTS ░▒▓\n", style=f"bold {shade_4}")
+            result.append("No activity logged...\n", style=shade_2)
         else:
             # Show messages that fit in available height
             visible_messages = list(self.messages)

@@ -17,7 +17,6 @@ import datetime
 
 from .widgets.visualizer import AudioVisualizer, CyberpunkVisualizer
 from .widgets.panels import VoiceVisualizerPanel, VisualizationStyle
-from .widgets.status import StatusWidget
 from .widgets.activity_feed import ActivityFeed
 from .widgets.header import CyberpunkHeader
 from .widgets.footer import CyberpunkFooter
@@ -106,48 +105,58 @@ class VoiceAssistantApp(App):
 
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
-                # Status content - Activity feed + Status widget
-                with Container(id="content-status", classes="content-pane active-pane"):
-                    yield Label("● Status", classes="pane-inner-header")
+                # Status content - Activity feed only (event/error log)
+                with Container(id="content-status", classes="content-pane active-pane") as status_pane:
+                    status_pane.border_title = "● Status"
                     yield ActivityFeed(id="activity")
-                    yield StatusWidget(id="status")
 
                 # Settings content
-                with Container(id="content-settings", classes="content-pane"):
-                    yield Label("◆ Settings", classes="pane-inner-header")
-                    yield Label("Theme Selection", id="settings-title")
-                    yield Label("Select a theme color:", id="theme-label")
-                    with RadioSet(id="theme-selector"):
-                        # Will be populated dynamically with available themes
-                        pass
+                with Container(id="content-settings", classes="content-pane") as settings_pane:
+                    settings_pane.border_title = "◆ Settings | Theme Selection"
+                    with Container(id="theme-container", classes="settings-box"):
+                        yield Label("Select a theme color to customize your assistant's appearance:", id="theme-instructions")
+                        with RadioSet(id="theme-selector"):
+                            # Will be populated dynamically with available themes
+                            pass
 
                 # Tools content
-                with Container(id="content-tools", classes="content-pane"):
-                    yield Label("◉ Tools", classes="pane-inner-header")
+                with Container(id="content-tools", classes="content-pane") as tools_pane:
+                    tools_pane.border_title = "◉ Tools"
                     yield Tree("Tool Permissions", id="tools-tree")
                     yield Label("Enable or disable assistant capabilities", classes="placeholder-text")
 
                 # Chat content
-                with Container(id="content-chat", classes="content-pane"):
-                    yield Label("◈ Chat", classes="pane-inner-header")
-                    with ScrollableContainer(id="chat-scroll-container"):
-                        yield Static("", id="chat-history")
+                with Container(id="content-chat", classes="content-pane") as chat_pane:
+                    chat_pane.border_title = "◈ Chat"
+                    yield Static("", id="chat-history")
                     yield Input(placeholder="Type a message...", id="chat-input")
 
                 # Projects content
-                with Container(id="content-projects", classes="content-pane"):
-                    yield Label("■ Projects", classes="pane-inner-header")
-                    yield Label("Projects management coming soon...", classes="placeholder-text")
+                with Container(id="content-projects", classes="content-pane") as projects_pane:
+                    projects_pane.border_title = "■ Projects"
+                    with ScrollableContainer(id="projects-list"):
+                        yield Label("[bold $shade-5]Active Projects[/bold $shade-5]", markup=True, id="projects-title")
+                        yield Label("  └─ Project Alpha [$shade-5](active)[/$shade-5]", markup=True, classes="project-item")
+                        yield Label("  └─ Project Beta [$shade-4](paused)[/$shade-4]", markup=True, classes="project-item")
+                        yield Label("  └─ Project Gamma [$shade-2](planned)[/$shade-2]", markup=True, classes="project-item")
 
                 # Schedule content
-                with Container(id="content-schedule", classes="content-pane"):
-                    yield Label("◇ Schedule", classes="pane-inner-header")
-                    yield Label("Schedule management coming soon...", classes="placeholder-text")
+                with Container(id="content-schedule", classes="content-pane") as schedule_pane:
+                    schedule_pane.border_title = "◇ Schedule"
+                    with ScrollableContainer(id="schedule-list"):
+                        yield Label("[bold $shade-5]Today's Schedule[/bold $shade-5]", markup=True, id="schedule-title")
+                        yield Label("  └─ Daily standup - 9:00 AM", markup=True, classes="schedule-item")
+                        yield Label("  └─ Code review - 2:00 PM", markup=True, classes="schedule-item")
+                        yield Label("  └─ Deploy to staging - 5:00 PM", markup=True, classes="schedule-item")
 
                 # Workers content
-                with Container(id="content-workers", classes="content-pane"):
-                    yield Label("▣ Workers", classes="pane-inner-header")
-                    yield Label("Worker management coming soon...", classes="placeholder-text")
+                with Container(id="content-workers", classes="content-pane") as workers_pane:
+                    workers_pane.border_title = "▣ Workers"
+                    with ScrollableContainer(id="workers-list"):
+                        yield Label("[bold $shade-5]Worker Status[/bold $shade-5]", markup=True, id="workers-title")
+                        yield Label("  └─ Worker-01: [$shade-5]Online[/$shade-5] (4 tasks)", markup=True, classes="worker-item")
+                        yield Label("  └─ Worker-02: [$shade-5]Online[/$shade-5] (2 tasks)", markup=True, classes="worker-item")
+                        yield Label("  └─ Worker-03: [maroon]Offline[/maroon]", markup=True, classes="worker-item")
         # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
 
@@ -199,6 +208,11 @@ class VoiceAssistantApp(App):
             })
         # Update the display
         self.update_chat_display()
+        # Add mock error events to activity feed
+        activity = self.query_one("#activity", ActivityFeed)
+        activity.add_message("Mock connection error - network timeout", "error")
+        activity.add_message("Mock warning - high CPU usage detected", "warning")
+        activity.add_message("Mock critical error - failed to load model checkpoint", "error")
 
     def populate_theme_selector(self):
         """Populate theme selector with available persona themes"""
@@ -349,11 +363,6 @@ class VoiceAssistantApp(App):
             self.audio_io.start_output()
             self.update_activity("✓ Audio streams started")
 
-            # Update status widget
-            status = self.query_one("#status", StatusWidget)
-            status.device_name = str(device)
-            status.state = "ready"
-
             # Update visualizer with persona name
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             persona_name = self.config.default_persona or "JARVIS"
@@ -367,10 +376,6 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
             self.state = "error"
-
-            # Update status widget
-            status = self.query_one("#status", StatusWidget)
-            status.state = "error"
 
             # Update visualizer title to show error
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
@@ -495,24 +500,20 @@ class VoiceAssistantApp(App):
             # Get widgets
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
-            status = self.query_one("#status", StatusWidget)
             footer = self.query_one("#footer", CyberpunkFooter)
 
             # Update borders
             visualizer.styles.border = ("solid", color)
             activity.styles.border = ("solid", color)
-            status.styles.border = ("solid", color)
             footer.styles.border = ("solid", color)
 
             # Update background colors with extremely subtle opacity (10-20%)
             bg_color = Color.parse(self._theme_palette.shade_1)
             vis_bg = bg_color.with_alpha(0.15)  # Barely visible tint
             act_bg = bg_color.with_alpha(0.12)  # Even more subtle
-            stat_bg = bg_color.with_alpha(0.15)  # Barely visible tint
 
             visualizer.styles.background = vis_bg
             activity.styles.background = act_bg
-            status.styles.background = stat_bg
 
             # CRITICAL FIX: Pass theme palette to widgets so they render with dynamic colors
             # The widgets render Rich Text with explicit colors, so we need to give them
@@ -531,13 +532,6 @@ class VoiceAssistantApp(App):
                 "shade_4": self._theme_palette.shade_4,
                 "shade_5": self._theme_palette.shade_5,
             }
-            status.theme_colors = {
-                "shade_1": self._theme_palette.shade_1,
-                "shade_2": self._theme_palette.shade_2,
-                "shade_3": self._theme_palette.shade_3,
-                "shade_4": self._theme_palette.shade_4,
-                "shade_5": self._theme_palette.shade_5,
-            }
             footer.theme_colors = {
                 "shade_1": self._theme_palette.shade_1,
                 "shade_2": self._theme_palette.shade_2,
@@ -549,7 +543,6 @@ class VoiceAssistantApp(App):
             # Force refresh to re-render with new colors
             visualizer.refresh()
             activity.refresh()
-            status.refresh()
             footer.refresh()
         except Exception:
             pass  # Widget not ready yet
@@ -563,11 +556,9 @@ class VoiceAssistantApp(App):
             # Update border titles
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
-            status = self.query_one("#status", StatusWidget)
 
             visualizer.styles.border_title_color = color
             activity.styles.border_title_color = color
-            status.styles.border_title_color = color
         except Exception:
             pass
 
@@ -607,10 +598,6 @@ class VoiceAssistantApp(App):
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             visualizer.amplitude = self.amplitude
             # VoiceVisualizerPanel doesn't have state - it animates automatically
-
-            # Update status widget
-            status = self.query_one("#status", StatusWidget)
-            status.state = self.state
         except Exception:
             pass  # Widget not ready yet
 
@@ -638,7 +625,7 @@ class VoiceAssistantApp(App):
         try:
             chat_display = self.query_one("#chat-history", Static)
 
-            # Build chat text
+            # Build chat text with theme colors
             lines = []
             for msg in self.chat_history[-20:]:  # Show last 20 messages
                 timestamp = msg["timestamp"]
@@ -646,11 +633,11 @@ class VoiceAssistantApp(App):
                 message = msg["message"]
 
                 if role == "USER":
-                    lines.append(f"[bold cyan][{timestamp}] YOU:[/bold cyan]")
+                    lines.append(f"[bold $shade-5][{timestamp}] YOU:[/bold $shade-5]")
                 else:
-                    lines.append(f"[bold yellow][{timestamp}] {self.current_persona_name}:[/bold yellow]")
+                    lines.append(f"[bold $shade-4][{timestamp}] {self.current_persona_name}:[/bold $shade-4]")
 
-                lines.append(f"  {message}\n")
+                lines.append(f"[$shade-4]  {message}[/$shade-4]\n")
 
             chat_display.update("\n".join(lines))
         except Exception as e:
