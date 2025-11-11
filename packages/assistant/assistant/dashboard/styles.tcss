@@ -41,19 +41,19 @@ Footer {
     height: 1;
 }
 
-/* ▓▒░ MAIN CONTAINER - OPTIMIZED NO-SCROLL LAYOUT ░▒▓ */
+/* ▓▒░ MAIN CONTAINER - ACTIVITY-FOCUSED LAYOUT ░▒▓ */
 #main-container {
     layout: vertical;
     height: 100%;
     background: $darker-bg;
+    overflow: hidden;
 }
 
-/* ▓▒░ BOTTOM ROW (STATUS + ACTIVITY) ░▒▓ */
-#bottom-row {
+/* ▓▒░ TOP ROW (VISUALIZER + ACTIVITY) ░▒▓ */
+#top-row {
     layout: horizontal;
-    height: auto;
-    max-height: 8;
-    min-height: 6;
+    height: 1fr;
+    overflow: hidden;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -62,33 +62,24 @@ Footer {
    Responsive behavior is handled through Python code and container layouts.
    ═══════════════════════════════════════════════════════════════════════════ */
 
-/* ▓▒░ AUDIO VISUALIZER - THE STAR ░▒▓ */
+/* ▓▒░ VOICE VISUALIZER - SMALL LEFT CORNER BOX ░▒▓ */
 #visualizer {
-    height: 1fr;
-    min-height: 15;
+    width: 30;
+    min-width: 20;
+    height: 100%;
+    max-height: 20;
     background: $darker-bg;
     border: solid $neon-cyan;
     border-title-align: left;
     border-title-style: bold;
     border-title-color: $neon-cyan;
     padding: 0 1;
+    overflow: hidden;
 }
 
-/* ▓▒░ STATUS WIDGET - COMPACT ░▒▓ */
-#status {
-    width: 1fr;
-    height: 100%;
-    background: $darker-bg;
-    border: solid $neon-yellow;
-    border-title-align: left;
-    border-title-style: bold;
-    border-title-color: $neon-yellow;
-    padding: 0 1;
-}
-
-/* ▓▒░ ACTIVITY FEED - COMPACT ░▒▓ */
+/* ▓▒░ ACTIVITY FEED - MAIN FOCUS ░▒▓ */
 #activity {
-    width: 2fr;
+    width: 1fr;
     height: 100%;
     background: $darker-bg;
     border: solid $neon-magenta;
@@ -96,7 +87,21 @@ Footer {
     border-title-style: bold;
     border-title-color: $neon-magenta;
     padding: 0 1;
-    overflow-y: hidden;
+    overflow: hidden;
+    scrollbar-size: 0 0;
+}
+
+/* ▓▒░ STATUS WIDGET - COMPACT BOTTOM ░▒▓ */
+#status {
+    width: 100%;
+    height: 3;
+    background: $darker-bg;
+    border: solid $neon-yellow;
+    border-title-align: left;
+    border-title-style: bold;
+    border-title-color: $neon-yellow;
+    padding: 0 1;
+    overflow: hidden;
 }
 
 /* ▓▒░ STATE-SPECIFIC STYLES ░▒▓ */
