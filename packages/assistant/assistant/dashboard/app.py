@@ -212,7 +212,7 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         # Update visualizer border title
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            visualizer.border_title = persona.name
+            visualizer.border_title = f"xSwarm - {persona.name}"
         except Exception:
             pass
 
