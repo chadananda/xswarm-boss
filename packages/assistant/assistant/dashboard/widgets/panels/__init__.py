@@ -11,7 +11,7 @@ from .notifications_panel import NotificationsPanel, Notification, NotificationL
 from .calendar_panel import CalendarPanel, CalendarEvent
 from .documents_panel import DocumentsPanel, Document
 from .projects_panel import ProjectsPanel, Project, ProjectTask, ProjectStatus
-from .voice_visualizer_panel import VoiceVisualizerPanel, VisualizationStyle, AudioFrame
+from .voice_visualizer_panel import VoiceVisualizerPanel, VisualizationStyle, MicrophoneWaveformStyle, AudioFrame
 
 __all__ = [
     # Base
@@ -41,5 +41,6 @@ __all__ = [
     # Voice Visualizer
     "VoiceVisualizerPanel",
     "VisualizationStyle",
+    "MicrophoneWaveformStyle",
     "AudioFrame",
 ]

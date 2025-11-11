@@ -27,3 +27,8 @@ personality_traits:
   - science-obsessed
   - condescending
   - deceptive
+
+# Theme configuration
+theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#FFA500"  # Aperture orange

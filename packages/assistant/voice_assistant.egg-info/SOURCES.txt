@@ -6,6 +6,7 @@ assistant/main.py
 assistant/dashboard/__init__.py
 assistant/dashboard/app.py
 assistant/dashboard/platform.py
+assistant/dashboard/theme.py
 assistant/dashboard/screens/__init__.py
 assistant/dashboard/screens/settings.py
 assistant/dashboard/screens/voice_viz_demo.py
@@ -40,11 +41,14 @@ assistant/voice/moshi_pytorch.py
 assistant/voice/vad.py
 assistant/wake_word/__init__.py
 assistant/wake_word/detector.py
+tests/test_chat_panel_snapshots.py
 tests/test_common_wake_words.py
 tests/test_dashboard.py
 tests/test_integration.py
 tests/test_multi_wake_words.py
+tests/test_responsive_comprehensive.py
 tests/test_tui_config.py
+tests/test_voice_visualizer_snapshots.py
 tests/test_wake_word_indicator.py
 voice_assistant.egg-info/PKG-INFO
 voice_assistant.egg-info/SOURCES.txt
