@@ -65,6 +65,8 @@ assistant --config /path/to/config.yaml
 
 ## Interactive TUI Interface
 
+![Voice Assistant TUI Dashboard](docs/tui-screenshot.svg)
+
 The assistant is a **fully interactive TUI application** - all configuration happens inside the interface, not via command-line flags.
 
 ### First-Run Setup Wizard
