@@ -90,6 +90,7 @@ class ThemeStyle(BaseModel):
 
 class ThemeConfig(BaseModel):
     """Complete theme configuration for persona"""
+    theme_color: Optional[str] = Field(None, description="Base color for TUI theme (hex or preset name)")
     colors: ThemeColors = Field(default_factory=ThemeColors, description="Color scheme")
     ascii_art: Optional[AsciiArtConfig] = Field(None, description="ASCII art config")
     style: ThemeStyle = Field(default_factory=ThemeStyle, description="Visual style")

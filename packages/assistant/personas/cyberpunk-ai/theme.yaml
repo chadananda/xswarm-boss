@@ -29,6 +29,9 @@ voice:
 
 # Theme Configuration
 theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#FF00FF"  # Neon magenta/purple
+
   # Color Scheme - Classic Matrix green with neon accents
   colors:
     primary: "#00FF00"    # Matrix green

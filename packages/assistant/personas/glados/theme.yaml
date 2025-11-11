@@ -29,6 +29,9 @@ voice:
 
 # Theme Configuration
 theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#FFA500"  # Aperture orange
+
   # Color Scheme - Aperture Science orange and blue
   colors:
     primary: "#FFA500"    # Aperture orange

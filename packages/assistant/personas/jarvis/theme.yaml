@@ -29,6 +29,9 @@ voice:
 
 # Theme Configuration
 theme:
+  # TUI Base Color - generates 5-shade palette automatically
+  theme_color: "#00D4FF"  # Signature JARVIS cyan/blue
+
   # Color Scheme - Iconic JARVIS blue with gold accents
   colors:
     primary: "#00D4FF"    # Signature JARVIS cyan/blue
