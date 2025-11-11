@@ -51,6 +51,7 @@ class VoiceAssistantApp(App):
         self.personas_dir = personas_dir
         self.moshi_bridge: Optional[object] = None
         self.audio_io: Optional[object] = None
+        self.audio_buffer = []  # Buffer for capturing audio during listening
 
         # Load personas
         self.persona_manager = PersonaManager(personas_dir)
@@ -117,16 +118,50 @@ class VoiceAssistantApp(App):
         # Load MOSHI in background
         asyncio.create_task(self.initialize_moshi())
 
+    def on_unmount(self) -> None:
+        """Cleanup on exit"""
+        # Stop audio streams
+        if self.audio_io:
+            self.audio_io.stop()
+            self.update_activity("Audio streams stopped")
+
     async def initialize_moshi(self):
-        """Load voice models"""
+        """Load voice models and initialize audio"""
         try:
             self.update_activity("Initializing voice models...")
             device = self.config.detect_device()
 
-            # Note: MoshiBridge and AudioIO will be implemented in Phase 2
-            # For now, we'll simulate the initialization
-            self.update_activity(f"Voice models loaded on {device}")
+            # Initialize MOSHI bridge
+            from ..voice.moshi_pytorch import MoshiBridge
+            from ..voice.audio_io import AudioIO
+
+            self.update_activity(f"Loading MOSHI models on {device}...")
+            self.moshi_bridge = MoshiBridge(
+                device=device,
+                model_dir=self.config.model_dir
+            )
+            self.update_activity("✓ MOSHI models loaded")
+
+            # Initialize audio I/O
+            self.update_activity("Starting audio streams...")
+            self.audio_io = AudioIO(
+                sample_rate=24000,
+                frame_size=1920,
+                channels=1
+            )
+
+            # Start audio input with callback for visualization
+            def audio_callback(audio):
+                # Update amplitude for visualizer
+                amplitude = self.moshi_bridge.get_amplitude(audio)
+                self.amplitude = amplitude
+
+            self.audio_io.start_input(callback=audio_callback)
+            self.audio_io.start_output()
+            self.update_activity("✓ Audio streams started")
+
             self.state = "ready"
+            self.update_activity(f"✓ Voice assistant ready on {device}")
 
             # Update status widget
             status = self.query_one("#status", StatusWidget)
@@ -366,14 +401,88 @@ class VoiceAssistantApp(App):
         self.update_activity("Opened voice visualizer demo")
 
     def start_listening(self):
-        """Start voice input"""
+        """Start voice input - begin capturing audio"""
+        if not self.audio_io or not self.moshi_bridge:
+            self.update_activity("Voice models not loaded yet")
+            return
+
         self.state = "listening"
-        self.update_activity("Listening...")
+        self.audio_buffer = []
+        self.update_activity("🎤 Listening... (press SPACE again to stop)")
+
+        # Start interval to capture audio frames
+        self.set_interval(0.08, self.capture_audio_frame, name="audio_capture")
+
+    def capture_audio_frame(self):
+        """Capture audio frame into buffer (called every 80ms)"""
+        if self.state != "listening":
+            return
+
+        frame = self.audio_io.read_frame(timeout=0.01)
+        if frame is not None:
+            self.audio_buffer.append(frame)
 
     def stop_listening(self):
-        """Stop voice input"""
-        self.state = "idle"
-        self.update_activity("Stopped listening")
+        """Stop voice input and process audio through MOSHI"""
+        if self.state != "listening":
+            return
+
+        # Stop capturing audio
+        try:
+            self.remove_interval("audio_capture")
+        except:
+            pass
+
+        self.state = "thinking"
+        self.update_activity("🤔 Processing...")
+
+        # Process audio in background
+        asyncio.create_task(self.process_voice_input())
+
+    async def process_voice_input(self):
+        """Process captured audio through MOSHI and play response"""
+        import numpy as np
+
+        try:
+            if not self.audio_buffer:
+                self.update_activity("No audio captured")
+                self.state = "ready"
+                return
+
+            # Concatenate all audio frames
+            user_audio = np.concatenate(self.audio_buffer)
+            self.update_activity(f"Captured {len(user_audio)/24000:.1f}s of audio")
+
+            # Get current persona for prompt
+            persona_name = self.current_persona_name
+            persona = self.persona_manager.get_persona(persona_name)
+            text_prompt = None
+            if persona and persona.system_prompt:
+                text_prompt = persona.system_prompt[:200]  # First 200 chars
+
+            # Generate response through MOSHI
+            self.state = "speaking"
+            self.update_activity(f"🗣️ {persona_name} responding...")
+
+            response_audio, response_text = self.moshi_bridge.generate_response(
+                user_audio,
+                text_prompt=text_prompt,
+                max_tokens=500
+            )
+
+            # Log response text
+            if response_text:
+                self.update_activity(f"💬 {response_text[:100]}")
+
+            # Play response audio
+            self.audio_io.play_audio(response_audio)
+            self.update_activity("✓ Response complete")
+
+            self.state = "ready"
+
+        except Exception as e:
+            self.update_activity(f"Error processing audio: {e}")
+            self.state = "error"
 
     def action_copy_activity(self):
         """Copy recent activity messages to clipboard"""
