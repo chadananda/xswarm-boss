@@ -44,18 +44,18 @@ class VoiceAssistantApp(App):
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout - activity is main focus"""
         with Container(id="main-container"):
-            # Top row: Activity (main) + Voice visualizer (small corner)
+            # Top row: Voice visualizer (left corner) + Activity (main)
             with Horizontal(id="top-row"):
-                # Main activity feed / chat - takes most space
-                yield ActivityFeed(id="activity")
-
-                # Voice visualizer - small square in corner
+                # Voice visualizer - small square in LEFT corner
                 viz_panel = VoiceVisualizerPanel(
                     visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
                 )
                 viz_panel.id = "visualizer"
                 viz_panel.simulation_mode = True
                 yield viz_panel
+
+                # Main activity feed / chat - takes most space
+                yield ActivityFeed(id="activity")
 
             # Bottom row: Status (compact)
             yield StatusWidget(id="status")

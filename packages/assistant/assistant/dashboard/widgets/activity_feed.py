@@ -89,65 +89,21 @@ class ActivityFeed(Static):
         return result
 
     def render(self) -> Text:
-        """Render HACKER TERMINAL activity feed"""
+        """Render activity feed - simple list without inner border"""
         result = Text()
 
-        # Get actual widget width (fallback to 40 if too small)
-        widget_width = max(self.size.width, 20)
-        border_width = widget_width - 2  # Account for borders
-        inner_width = border_width - 2  # Account for "║ " padding
-
-        # Header with dramatic styling
-        result.append("╔" + "═" * border_width + "╗\n", style="bold magenta")
-
-        # Title centered
-        title = "SYSTEM ACTIVITY LOG - LIVE FEED"
-        title_padding = (border_width - len(title)) // 2
-        result.append("║ " + " " * (title_padding - 1), style="bold magenta")
-        result.append(title, style="bold magenta")
-        remaining = border_width - title_padding - len(title) - 1
-        result.append(" " * remaining + " ║\n", style="bold magenta")
-
-        result.append("╠" + "═" * border_width + "╣\n", style="bold magenta")
-
         if not self.messages:
-            # Empty message centered
-            empty_msg = "▓▒░ AWAITING SYSTEM EVENTS ░▒▓"
-            empty_padding = (inner_width - len(empty_msg)) // 2
-            result.append("║ " + " " * empty_padding, style="bold magenta")
-            result.append(empty_msg, style="dim cyan")
-            remaining = inner_width - empty_padding - len(empty_msg)
-            result.append(" " * remaining + " ║\n", style="bold magenta")
-
-            no_activity = "No activity logged..."
-            no_padding = (inner_width - len(no_activity)) // 2
-            result.append("║ " + " " * no_padding, style="bold magenta")
-            result.append(no_activity, style="dim white")
-            remaining = inner_width - no_padding - len(no_activity)
-            result.append(" " * remaining + " ║\n", style="bold magenta")
+            result.append("▓▒░ AWAITING SYSTEM EVENTS ░▒▓\n", style="bold cyan")
+            result.append("No activity logged...\n", style="dim white")
         else:
-            # Calculate how many messages we can show
-            visible_height = self.size.height - 4  # Subtract header/footer
-            visible_messages = list(self.messages)[-visible_height:] if visible_height > 0 else []
+            # Show messages that fit in available height
+            visible_messages = list(self.messages)
 
             for msg in visible_messages:
                 # Format message
                 msg_text = self._format_message(msg)
-                msg_str = msg_text.plain
-
-                # If message is too long, truncate
-                if len(msg_str) > inner_width:
-                    result.append("║ ", style="bold magenta")
-                    result.append(msg_text.plain[:inner_width - 4], style=msg_text.style)
-                    result.append("... ║\n", style="dim white")
-                else:
-                    result.append("║ ", style="bold magenta")
-                    result.append(msg_text)
-                    # Pad to inner width
-                    padding = inner_width - len(msg_str)
-                    result.append(" " * padding + " ║\n")
-
-        result.append("╚" + "═" * border_width + "╝", style="bold magenta")
+                result.append(msg_text)
+                result.append("\n")
 
         return result
 
