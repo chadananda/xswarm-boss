@@ -20,6 +20,8 @@ from .widgets.panels import VoiceVisualizerPanel, VisualizationStyle
 from .widgets.activity_feed import ActivityFeed
 from .widgets.header import CyberpunkHeader
 from .widgets.footer import CyberpunkFooter
+from .widgets.project_dashboard import ProjectDashboard
+from .widgets.worker_dashboard import WorkerDashboard
 from .screens import SettingsScreen, WizardScreen, VoiceVizDemoScreen
 from ..config import Config
 from .theme import generate_palette, get_theme_preset, THEME_PRESETS
@@ -40,9 +42,11 @@ class VoiceAssistantApp(App):
     active_tab = reactive("status")  # status, settings, tools, chat, projects, schedule, workers
 
     # Reactive theme colors - automatically update UI when changed
+    theme_shade_1 = reactive("#252a33")
     theme_shade_2 = reactive("#363d47")
     theme_shade_3 = reactive("#4d5966")
     theme_shade_4 = reactive("#6b7a8a")
+    theme_shade_5 = reactive("#8899aa")
 
     CSS_PATH = "styles.tcss"
 
@@ -106,43 +110,70 @@ class VoiceAssistantApp(App):
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
                 # Status content - Activity feed only (event/error log)
-                with Container(id="content-status", classes="content-pane active-pane") as status_pane:
-                    status_pane.border_title = "● Status"
+                with Container(id="content-status", classes="content-pane active-pane"):
+                    yield Static("[dim]●[/dim] Status", classes="pane-header")
                     yield ActivityFeed(id="activity")
 
                 # Settings content
-                with Container(id="content-settings", classes="content-pane") as settings_pane:
-                    settings_pane.border_title = "◆ Settings | Theme Selection"
-                    with Container(id="theme-container", classes="settings-box"):
-                        yield Label("Select a theme color to customize your assistant's appearance:", id="theme-instructions")
+                with Container(id="content-settings", classes="content-pane"):
+                    yield Static("[dim]◆[/dim] Settings", classes="pane-header")
+
+                    # Theme group box
+                    with Container(classes="settings-group") as theme_group:
+                        theme_group.border_title = "Theme"
                         with RadioSet(id="theme-selector"):
                             # Will be populated dynamically with available themes
                             pass
 
+                    # Device group box (placeholder for future)
+                    with Container(classes="settings-group") as device_group:
+                        device_group.border_title = "Device"
+                        yield Static("Device selection coming soon", classes="placeholder-text")
+
                 # Tools content
-                with Container(id="content-tools", classes="content-pane") as tools_pane:
-                    tools_pane.border_title = "◉ Tools"
-                    yield Tree("Tool Permissions", id="tools-tree")
-                    yield Label("Enable or disable assistant capabilities", classes="placeholder-text")
+                with Container(id="content-tools", classes="content-pane"):
+                    yield Static("[dim]◉[/dim] Tools", classes="pane-header")
+
+                    # Create tools tree with feature groups
+                    tree = Tree("Tools", id="tools-tree")
+                    tree.root.expand()
+
+                    # Email group
+                    email_node = tree.root.add("📧 Email", expand=True)
+                    email_node.add_leaf("☐ Read Email")
+                    email_node.add_leaf("☐ Prune Email")
+                    email_node.add_leaf("☐ Draft Email")
+                    email_node.add_leaf("☐ Send Email")
+
+                    # xSwarm group
+                    xswarm_node = tree.root.add("🎨 xSwarm", expand=True)
+                    xswarm_node.add_leaf("☑ Change xSwarm Theme")
+                    xswarm_node.add_leaf("☐ Manage Projects")
+
+                    # OS / System group
+                    os_node = tree.root.add("⚙️  OS / System", expand=True)
+                    os_node.add_leaf("☐ Modify OS Settings")
+
+                    # File Search group
+                    search_node = tree.root.add("🔍 File Search", expand=True)
+                    search_node.add_leaf("☐ Index Local Files")
+
+                    yield tree
 
                 # Chat content
-                with Container(id="content-chat", classes="content-pane") as chat_pane:
-                    chat_pane.border_title = "◈ Chat"
+                with Container(id="content-chat", classes="content-pane"):
+                    yield Static("[dim]◈[/dim] Chat", classes="pane-header")
                     yield Static("", id="chat-history")
                     yield Input(placeholder="Type a message...", id="chat-input")
 
                 # Projects content
-                with Container(id="content-projects", classes="content-pane") as projects_pane:
-                    projects_pane.border_title = "■ Projects"
-                    with ScrollableContainer(id="projects-list"):
-                        yield Label("[bold $shade-5]Active Projects[/bold $shade-5]", markup=True, id="projects-title")
-                        yield Label("  └─ Project Alpha [$shade-5](active)[/$shade-5]", markup=True, classes="project-item")
-                        yield Label("  └─ Project Beta [$shade-4](paused)[/$shade-4]", markup=True, classes="project-item")
-                        yield Label("  └─ Project Gamma [$shade-2](planned)[/$shade-2]", markup=True, classes="project-item")
+                with Container(id="content-projects", classes="content-pane"):
+                    yield Static("[dim]■[/dim] Projects", classes="pane-header")
+                    yield ProjectDashboard(id="projects-dashboard")
 
                 # Schedule content
-                with Container(id="content-schedule", classes="content-pane") as schedule_pane:
-                    schedule_pane.border_title = "◇ Schedule"
+                with Container(id="content-schedule", classes="content-pane"):
+                    yield Static("[dim]◇[/dim] Schedule", classes="pane-header")
                     with ScrollableContainer(id="schedule-list"):
                         yield Label("[bold $shade-5]Today's Schedule[/bold $shade-5]", markup=True, id="schedule-title")
                         yield Label("  └─ Daily standup - 9:00 AM", markup=True, classes="schedule-item")
@@ -150,13 +181,9 @@ class VoiceAssistantApp(App):
                         yield Label("  └─ Deploy to staging - 5:00 PM", markup=True, classes="schedule-item")
 
                 # Workers content
-                with Container(id="content-workers", classes="content-pane") as workers_pane:
-                    workers_pane.border_title = "▣ Workers"
-                    with ScrollableContainer(id="workers-list"):
-                        yield Label("[bold $shade-5]Worker Status[/bold $shade-5]", markup=True, id="workers-title")
-                        yield Label("  └─ Worker-01: [$shade-5]Online[/$shade-5] (4 tasks)", markup=True, classes="worker-item")
-                        yield Label("  └─ Worker-02: [$shade-5]Online[/$shade-5] (2 tasks)", markup=True, classes="worker-item")
-                        yield Label("  └─ Worker-03: [maroon]Offline[/maroon]", markup=True, classes="worker-item")
+                with Container(id="content-workers", classes="content-pane"):
+                    yield Static("[dim]▣[/dim] Workers", classes="pane-header")
+                    yield WorkerDashboard(id="workers-dashboard")
         # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
 
@@ -173,9 +200,6 @@ class VoiceAssistantApp(App):
 
         # Populate theme selector with available themes
         self.populate_theme_selector()
-
-        # Populate tools tree with permissions
-        self.populate_tools_tree()
 
         # Add dummy chat messages
         self.add_dummy_chat_messages()
@@ -222,9 +246,7 @@ class VoiceAssistantApp(App):
             themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
             # Add radio button for each themed persona using call_after_refresh
             for persona in themed_personas:
-                radio_btn = RadioButton(
-                    f"{persona.name} ({persona.theme.theme_color})"
-                )
+                radio_btn = RadioButton(persona.name)
                 radio_btn.value = persona.name
                 radio_set.mount(radio_btn)
             # Log how many themes we loaded
@@ -232,17 +254,6 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error populating themes: {e}")
 
-    def populate_tools_tree(self):
-        """Populate tools tree with permission checkboxes"""
-        try:
-            tools_tree = self.query_one("#tools-tree", Tree)
-            # Add checkbox item for theme change permission
-            # Using ☐ for unchecked and ☑ for checked
-            tools_tree.root.add_leaf("☑ Change Application Theme")
-            # Expand the root node
-            tools_tree.root.expand()
-        except Exception as e:
-            self.update_activity(f"Error populating tools tree: {e}")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle tab button clicks"""
@@ -304,9 +315,11 @@ class VoiceAssistantApp(App):
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
             # Update reactive colors - triggers watchers that update ALL UI elements
+            self.theme_shade_1 = self._theme_palette.shade_1
             self.theme_shade_2 = self._theme_palette.shade_2
             self.theme_shade_3 = self._theme_palette.shade_3
             self.theme_shade_4 = self._theme_palette.shade_4
+            self.theme_shade_5 = self._theme_palette.shade_5
 
             # Update current persona name
             self.current_persona_name = persona.name
@@ -469,9 +482,11 @@ class VoiceAssistantApp(App):
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
             # Update reactive colors - triggers watchers that update ALL UI elements
+            self.theme_shade_1 = self._theme_palette.shade_1
             self.theme_shade_2 = self._theme_palette.shade_2
             self.theme_shade_3 = self._theme_palette.shade_3
             self.theme_shade_4 = self._theme_palette.shade_4
+            self.theme_shade_5 = self._theme_palette.shade_5
 
             self.update_activity(f"   Colors: {self._theme_palette.shade_1} → {self._theme_palette.shade_5}")
 
@@ -496,50 +511,54 @@ class VoiceAssistantApp(App):
         try:
             from textual.color import Color
             color = Color.parse(new_color)
-
             # Get widgets
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
             footer = self.query_one("#footer", CyberpunkFooter)
-
-            # Update borders
+            # Update borders directly
             visualizer.styles.border = ("solid", color)
             activity.styles.border = ("solid", color)
             footer.styles.border = ("solid", color)
-
+            # Update pane borders
+            for pane_id in ["content-status", "content-settings", "content-tools", "content-chat", "content-projects", "content-schedule", "content-workers"]:
+                try:
+                    pane = self.query_one(f"#{pane_id}", Container)
+                    pane.styles.border = ("solid", color)
+                except Exception:
+                    pass
             # Update background colors with extremely subtle opacity (10-20%)
             bg_color = Color.parse(self._theme_palette.shade_1)
             vis_bg = bg_color.with_alpha(0.15)  # Barely visible tint
             act_bg = bg_color.with_alpha(0.12)  # Even more subtle
-
             visualizer.styles.background = vis_bg
             activity.styles.background = act_bg
-
             # CRITICAL FIX: Pass theme palette to widgets so they render with dynamic colors
             # The widgets render Rich Text with explicit colors, so we need to give them
             # the palette to use instead of their hardcoded colors
-            visualizer.theme_colors = {
+            theme_colors_dict = {
                 "shade_1": self._theme_palette.shade_1,
                 "shade_2": self._theme_palette.shade_2,
                 "shade_3": self._theme_palette.shade_3,
                 "shade_4": self._theme_palette.shade_4,
                 "shade_5": self._theme_palette.shade_5,
             }
-            activity.theme_colors = {
-                "shade_1": self._theme_palette.shade_1,
-                "shade_2": self._theme_palette.shade_2,
-                "shade_3": self._theme_palette.shade_3,
-                "shade_4": self._theme_palette.shade_4,
-                "shade_5": self._theme_palette.shade_5,
-            }
-            footer.theme_colors = {
-                "shade_1": self._theme_palette.shade_1,
-                "shade_2": self._theme_palette.shade_2,
-                "shade_3": self._theme_palette.shade_3,
-                "shade_4": self._theme_palette.shade_4,
-                "shade_5": self._theme_palette.shade_5,
-            }
-
+            visualizer.theme_colors = theme_colors_dict
+            activity.theme_colors = theme_colors_dict
+            footer.theme_colors = theme_colors_dict
+            # Update project dashboard if available
+            try:
+                project_dashboard = self.query_one("#projects-dashboard", ProjectDashboard)
+                project_dashboard.theme_colors = theme_colors_dict
+                project_dashboard.refresh()
+            except Exception:
+                pass
+            # Update worker dashboard if available
+            try:
+                worker_dashboard = self.query_one("#workers-dashboard", WorkerDashboard)
+                worker_dashboard.theme_colors = theme_colors_dict
+                worker_dashboard.refresh()
+            except Exception:
+                pass
             # Force refresh to re-render with new colors
             visualizer.refresh()
             activity.refresh()
@@ -552,13 +571,22 @@ class VoiceAssistantApp(App):
         try:
             from textual.color import Color
             color = Color.parse(new_color)
-
             # Update border titles
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
-
             visualizer.styles.border_title_color = color
             activity.styles.border_title_color = color
+            # Update pane headers text color
+            for header in self.query(".pane-header"):
+                header.styles.color = color
+                header.refresh()
+            # Update tab button colors
+            for button in self.query(".tab-button"):
+                if button.has_class("active-tab"):
+                    button.styles.color = Color.parse(self._theme_palette.shade_5)
+                else:
+                    button.styles.color = color
+                button.refresh()
         except Exception:
             pass
 
@@ -567,14 +595,15 @@ class VoiceAssistantApp(App):
         try:
             from textual.color import Color
             color = Color.parse(new_color)
-
             # Update header/footer borders
             header = self.query_one(CyberpunkHeader)
             footer = self.query_one("#footer", CyberpunkFooter)
-
             header.styles.border = ("solid", color)
             footer.styles.border = ("solid", color)
-
+            # Update active tab background
+            for button in self.query(".tab-button.active-tab"):
+                button.styles.background = color
+                button.refresh()
             # Pass theme colors to header and footer for text rendering
             theme_colors_dict = {
                 "shade_1": self._theme_palette.shade_1,
@@ -585,10 +614,41 @@ class VoiceAssistantApp(App):
             }
             header.theme_colors = theme_colors_dict
             footer.theme_colors = theme_colors_dict
-
             # Force refresh to re-render with new colors
             header.refresh()
             footer.refresh()
+        except Exception:
+            pass
+
+    def watch_theme_shade_1(self, new_color: str) -> None:
+        """Reactive watcher - called when theme_shade_1 changes"""
+        try:
+            from textual.color import Color
+            # Update background colors with subtle opacity
+            bg_color = Color.parse(new_color)
+            try:
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                activity = self.query_one("#activity", ActivityFeed)
+                vis_bg = bg_color.with_alpha(0.15)
+                act_bg = bg_color.with_alpha(0.12)
+                visualizer.styles.background = vis_bg
+                activity.styles.background = act_bg
+                visualizer.refresh()
+                activity.refresh()
+            except Exception:
+                pass
+        except Exception:
+            pass
+
+    def watch_theme_shade_5(self, new_color: str) -> None:
+        """Reactive watcher - called when theme_shade_5 changes"""
+        try:
+            from textual.color import Color
+            color = Color.parse(new_color)
+            # Update active tab text color
+            for button in self.query(".tab-button.active-tab"):
+                button.styles.color = color
+                button.refresh()
         except Exception:
             pass
 
@@ -633,11 +693,13 @@ class VoiceAssistantApp(App):
                 message = msg["message"]
 
                 if role == "USER":
-                    lines.append(f"[bold $shade-5][{timestamp}] YOU:[/bold $shade-5]")
+                    # User messages: bright, with dim timestamp
+                    lines.append(f"[dim][{timestamp}][/dim] [bold $shade-5]YOU:[/bold $shade-5]")
+                    lines.append(f"[$shade-5]  {message}[/$shade-5]\n")
                 else:
-                    lines.append(f"[bold $shade-4][{timestamp}] {self.current_persona_name}:[/bold $shade-4]")
-
-                lines.append(f"[$shade-4]  {message}[/$shade-4]\n")
+                    # AI messages: medium color, with dim timestamp
+                    lines.append(f"[dim][{timestamp}][/dim] [bold $shade-4]{self.current_persona_name}:[/bold $shade-4]")
+                    lines.append(f"[$shade-4]  {message}[/$shade-4]\n")
 
             chat_display.update("\n".join(lines))
         except Exception as e:
