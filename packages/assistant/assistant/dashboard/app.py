@@ -121,9 +121,9 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         """Initialize on mount"""
         self.set_interval(1/30, self.update_visualizer)  # 30 FPS
 
-        # Start persona rotation every 30 seconds
+        # Start persona rotation every 5 seconds (for testing)
         if self.available_personas:
-            self.set_interval(30.0, self.rotate_persona)  # Rotate every 30 seconds
+            self.set_interval(5.0, self.rotate_persona)  # Rotate every 5 seconds for demo
             # Do first rotation immediately
             self.rotate_persona()
 
@@ -183,6 +183,9 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             # Regenerate theme palette
             self._theme_palette = self._load_theme(persona.theme.theme_color)
 
+            # Log the theme colors being applied
+            self.update_activity(f"🎨 Theme: shade-3={self._theme_palette.shade_3}, shade-5={self._theme_palette.shade_5}")
+
             # Apply theme colors directly to widgets using Python styles
             self._apply_theme_to_widgets()
 
@@ -193,7 +196,7 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
         self.title = f"xSwarm Voice Assistant - {persona.name}"
 
         # Log the switch to activity feed
-        self.update_activity(f"🎨 Switched to persona: {persona.name}")
+        self.update_activity(f"👤 Switched to persona: {persona.name}")
 
         # Update visualizer border title
         try:
@@ -212,14 +215,18 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             footer = self.query_one("#footer", CyberpunkFooter)
             header = self.query_one(CyberpunkHeader)
 
-            # Update borders with theme colors
-            visualizer.styles.border = ("solid", self._theme_palette.shade_3)
-            activity.styles.border = ("solid", self._theme_palette.shade_3)
-            status.styles.border = ("solid", self._theme_palette.shade_3)
-
-            # Update header/footer borders
+            # Update border colors (use the shade_3 color)
+            border_color = self._theme_palette.shade_3
+            visualizer.styles.border = ("solid", border_color)
+            activity.styles.border = ("solid", border_color)
+            status.styles.border = ("solid", border_color)
             header.styles.border = ("solid", self._theme_palette.shade_2)
             footer.styles.border = ("solid", self._theme_palette.shade_2)
+
+            # Also try updating border_title_color to make it more visible
+            visualizer.styles.border_title_color = self._theme_palette.shade_4
+            activity.styles.border_title_color = self._theme_palette.shade_4
+            status.styles.border_title_color = self._theme_palette.shade_4
 
             # Force refresh to show new colors
             visualizer.refresh()
@@ -229,7 +236,11 @@ $shade-1: {self._theme_palette.shade_1};  /* Darkest */"""
             footer.refresh()
 
         except Exception as e:
-            pass  # Widgets might not be ready yet
+            # Log any errors
+            try:
+                self.update_activity(f"❌ Theme application error: {str(e)}")
+            except:
+                pass
 
     def update_visualizer(self):
         """Update visualizer at 30 FPS"""
