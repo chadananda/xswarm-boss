@@ -206,25 +206,63 @@ class VoiceAssistantApp(App):
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             activity = self.query_one("#activity", ActivityFeed)
             status = self.query_one("#status", StatusWidget)
+            footer = self.query_one("#footer", CyberpunkFooter)
 
             # Update borders
             visualizer.styles.border = ("solid", color)
             activity.styles.border = ("solid", color)
             status.styles.border = ("solid", color)
+            footer.styles.border = ("solid", color)
 
-            # Update text colors
-            text_color = Color.parse(self._theme_palette.shade_5)
-            visualizer.styles.color = text_color
-            activity.styles.color = text_color
-            status.styles.color = Color.parse(self._theme_palette.shade_4)
-
-            # Update background colors with transparency
+            # Update background colors with extremely subtle opacity (10-20%)
             bg_color = Color.parse(self._theme_palette.shade_1)
-            visualizer.styles.background = bg_color.with_alpha(0.3)
-            activity.styles.background = bg_color.with_alpha(0.2)
-            status.styles.background = bg_color.with_alpha(0.3)
+            vis_bg = bg_color.with_alpha(0.15)  # Barely visible tint
+            act_bg = bg_color.with_alpha(0.12)  # Even more subtle
+            stat_bg = bg_color.with_alpha(0.15)  # Barely visible tint
+
+            visualizer.styles.background = vis_bg
+            activity.styles.background = act_bg
+            status.styles.background = stat_bg
+
+            # CRITICAL FIX: Pass theme palette to widgets so they render with dynamic colors
+            # The widgets render Rich Text with explicit colors, so we need to give them
+            # the palette to use instead of their hardcoded colors
+            visualizer.theme_colors = {
+                "shade_1": self._theme_palette.shade_1,
+                "shade_2": self._theme_palette.shade_2,
+                "shade_3": self._theme_palette.shade_3,
+                "shade_4": self._theme_palette.shade_4,
+                "shade_5": self._theme_palette.shade_5,
+            }
+            activity.theme_colors = {
+                "shade_1": self._theme_palette.shade_1,
+                "shade_2": self._theme_palette.shade_2,
+                "shade_3": self._theme_palette.shade_3,
+                "shade_4": self._theme_palette.shade_4,
+                "shade_5": self._theme_palette.shade_5,
+            }
+            status.theme_colors = {
+                "shade_1": self._theme_palette.shade_1,
+                "shade_2": self._theme_palette.shade_2,
+                "shade_3": self._theme_palette.shade_3,
+                "shade_4": self._theme_palette.shade_4,
+                "shade_5": self._theme_palette.shade_5,
+            }
+            footer.theme_colors = {
+                "shade_1": self._theme_palette.shade_1,
+                "shade_2": self._theme_palette.shade_2,
+                "shade_3": self._theme_palette.shade_3,
+                "shade_4": self._theme_palette.shade_4,
+                "shade_5": self._theme_palette.shade_5,
+            }
+
+            # Force refresh to re-render with new colors
+            visualizer.refresh()
+            activity.refresh()
+            status.refresh()
+            footer.refresh()
         except Exception:
-            pass
+            pass  # Widget not ready yet
 
     def watch_theme_shade_4(self, new_color: str) -> None:
         """Reactive watcher - called when theme_shade_4 changes"""
@@ -255,6 +293,21 @@ class VoiceAssistantApp(App):
 
             header.styles.border = ("solid", color)
             footer.styles.border = ("solid", color)
+
+            # Pass theme colors to header and footer for text rendering
+            theme_colors_dict = {
+                "shade_1": self._theme_palette.shade_1,
+                "shade_2": self._theme_palette.shade_2,
+                "shade_3": self._theme_palette.shade_3,
+                "shade_4": self._theme_palette.shade_4,
+                "shade_5": self._theme_palette.shade_5,
+            }
+            header.theme_colors = theme_colors_dict
+            footer.theme_colors = theme_colors_dict
+
+            # Force refresh to re-render with new colors
+            header.refresh()
+            footer.refresh()
         except Exception:
             pass
 

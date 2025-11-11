@@ -22,6 +22,9 @@ class CyberpunkFooter(Static):
     mem_percent = reactive(0.0)
     network_status = reactive("online")
 
+    # Theme colors dictionary (set dynamically by app)
+    theme_colors = None
+
     def on_mount(self) -> None:
         """Initialize and start monitoring"""
         self.set_interval(2.0, self.update_stats)  # Update every 2 seconds
@@ -37,18 +40,24 @@ class CyberpunkFooter(Static):
             self.cpu_percent = 0.0
             self.mem_percent = 0.0
 
+    def _get_theme_color(self, shade: str, fallback: str) -> str:
+        """Get theme color from palette or fallback to default."""
+        if self.theme_colors and shade in self.theme_colors:
+            return self.theme_colors[shade]
+        return fallback
+
     def _get_bar(self, percent: float, width: int = 10) -> tuple[str, str]:
         """Create a progress bar with subtle shade variations"""
         filled = int((percent / 100) * width)
         bar = "█" * filled + "░" * (width - filled)
 
-        # Color based on percentage - subtle shades
+        # Color based on percentage - use theme colors with fallbacks
         if percent < 50:
-            color = "#4d5966"  # shade-3 (medium)
+            color = self._get_theme_color("shade_3", "#4d5966")  # shade-3 (medium)
         elif percent < 75:
-            color = "#6b7a8a"  # shade-4 (light)
+            color = self._get_theme_color("shade_4", "#6b7a8a")  # shade-4 (light)
         else:
-            color = "#8899aa"  # shade-5 (lightest)
+            color = self._get_theme_color("shade_5", "#8899aa")  # shade-5 (lightest)
 
         return bar, color
 
@@ -61,13 +70,15 @@ class CyberpunkFooter(Static):
         # RESPONSIVE: Adapt to terminal size
         # Tiny (< 40 cols): Minimal - just separator
         if widget_width < 40:
-            result.append("═" * widget_width, style="#4d5966")  # shade-3
+            shade_3 = self._get_theme_color("shade_3", "#4d5966")
+            result.append("═" * widget_width, style=shade_3)
             return result
 
         # Small (40-60 cols): Show only CPU/MEM percentages
         elif widget_width < 60:
-            result.append("═" * widget_width + "\n", style="#6b7a8a")  # shade-4
-            result.append("▓▒░ ", style="#6b7a8a")  # shade-4
+            shade_4 = self._get_theme_color("shade_4", "#6b7a8a")
+            result.append("═" * widget_width + "\n", style=shade_4)
+            result.append("▓▒░ ", style=shade_4)
 
             # CPU (no bar, just percentage)
             _, cpu_color = self._get_bar(self.cpu_percent, 8)
@@ -78,17 +89,19 @@ class CyberpunkFooter(Static):
             _, mem_color = self._get_bar(self.mem_percent, 8)
             result.append(f"MEM:{self.mem_percent:.0f}%", style=mem_color)
 
-            result.append(" ░▒▓", style="#6b7a8a")  # shade-4
+            result.append(" ░▒▓", style=shade_4)
             return result
 
         # Medium (60-80 cols): Show bars but compact
         elif widget_width < 80:
-            result.append("═" * widget_width + "\n", style="#6b7a8a")  # shade-4
-            result.append("▓▒░ ", style="#6b7a8a")  # shade-4
+            shade_3 = self._get_theme_color("shade_3", "#4d5966")
+            shade_4 = self._get_theme_color("shade_4", "#6b7a8a")
+            result.append("═" * widget_width + "\n", style=shade_4)
+            result.append("▓▒░ ", style=shade_4)
 
             # CPU with smaller bar
             cpu_bar, cpu_color = self._get_bar(self.cpu_percent, 5)
-            result.append("CPU:", style="#4d5966")  # shade-3
+            result.append("CPU:", style=shade_3)
             result.append(f"[{cpu_bar}]", style=cpu_color)
             result.append(f"{self.cpu_percent:4.0f}%", style=cpu_color)
 
@@ -96,57 +109,60 @@ class CyberpunkFooter(Static):
 
             # Memory with smaller bar
             mem_bar, mem_color = self._get_bar(self.mem_percent, 5)
-            result.append("MEM:", style="#4d5966")  # shade-3
+            result.append("MEM:", style=shade_3)
             result.append(f"[{mem_bar}]", style=mem_color)
             result.append(f"{self.mem_percent:4.0f}%", style=mem_color)
 
-            result.append(" ░▒▓", style="#6b7a8a")  # shade-4
+            result.append(" ░▒▓", style=shade_4)
             return result
 
         # Large (80+ cols): Full stats with bars and network
         else:
-            result.append("═" * widget_width + "\n", style="#6b7a8a")  # shade-4
+            shade_2 = self._get_theme_color("shade_2", "#363d47")
+            shade_3 = self._get_theme_color("shade_3", "#4d5966")
+            shade_4 = self._get_theme_color("shade_4", "#6b7a8a")
+            result.append("═" * widget_width + "\n", style=shade_4)
 
             # First line: System stats
-            result.append("▓▒░ ", style="#6b7a8a")  # shade-4
+            result.append("▓▒░ ", style=shade_4)
 
             # CPU
             cpu_bar, cpu_color = self._get_bar(self.cpu_percent, 8)
-            result.append("CPU:", style="#4d5966")  # shade-3
+            result.append("CPU:", style=shade_3)
             result.append(f"[{cpu_bar}]", style=cpu_color)
             result.append(f"{self.cpu_percent:5.1f}%", style=cpu_color)
 
-            result.append(" │ ", style="#4d5966")  # shade-3
+            result.append(" │ ", style=shade_3)
 
             # Memory
             mem_bar, mem_color = self._get_bar(self.mem_percent, 8)
-            result.append("MEM:", style="#4d5966")  # shade-3
+            result.append("MEM:", style=shade_3)
             result.append(f"[{mem_bar}]", style=mem_color)
             result.append(f"{self.mem_percent:5.1f}%", style=mem_color)
 
-            result.append(" │ ", style="#4d5966")  # shade-3
+            result.append(" │ ", style=shade_3)
 
             # Network status
-            result.append("NET:", style="#4d5966")  # shade-3
-            net_color = "#6b7a8a" if self.network_status == "online" else "#363d47"  # shade-4 or shade-2
+            result.append("NET:", style=shade_3)
+            net_color = shade_4 if self.network_status == "online" else shade_2
             result.append(f"{self.network_status.upper()}", style=net_color)
 
             # Keyboard shortcuts (right side)
             result.append(" " * 5)
-            result.append("│ ", style="#4d5966")  # shade-3
-            result.append("SPACE:", style="#4d5966")  # shade-3
-            result.append("Listen", style="#6b7a8a")  # shade-4
+            result.append("│ ", style=shade_3)
+            result.append("SPACE:", style=shade_3)
+            result.append("Listen", style=shade_4)
             result.append(" ", style="")
-            result.append("Ctrl+C:", style="#4d5966")  # shade-3
-            result.append("Copy", style="#6b7a8a")  # shade-4
+            result.append("Ctrl+C:", style=shade_3)
+            result.append("Copy", style=shade_4)
             result.append(" ", style="")
-            result.append("Ctrl+V:", style="#4d5966")  # shade-3
-            result.append("Paste", style="#6b7a8a")  # shade-4
+            result.append("Ctrl+V:", style=shade_3)
+            result.append("Paste", style=shade_4)
             result.append(" ", style="")
-            result.append("Q:", style="#4d5966")  # shade-3
-            result.append("Quit", style="#6b7a8a")  # shade-4
+            result.append("Q:", style=shade_3)
+            result.append("Quit", style=shade_4)
 
-            result.append(" ░▒▓", style="#6b7a8a")  # shade-4
+            result.append(" ░▒▓", style=shade_4)
 
             return result
 
@@ -159,25 +175,38 @@ class CompactCyberpunkFooter(Static):
 
     state = reactive("ready")
 
+    # Theme colors dictionary (set dynamically by app)
+    theme_colors = None
+
+    def _get_theme_color(self, shade: str, fallback: str) -> str:
+        """Get theme color from palette or fallback to default."""
+        if self.theme_colors and shade in self.theme_colors:
+            return self.theme_colors[shade]
+        return fallback
+
     def render(self) -> Text:
         """Render minimal footer"""
         result = Text()
 
-        result.append("▓▒░ ", style="#6b7a8a")  # shade-4
-        result.append("XSWARM v2.0", style="#8899aa")  # shade-5
-        result.append(" ░▒▓ ", style="#6b7a8a")  # shade-4
+        shade_3 = self._get_theme_color("shade_3", "#4d5966")
+        shade_4 = self._get_theme_color("shade_4", "#6b7a8a")
+        shade_5 = self._get_theme_color("shade_5", "#8899aa")
 
-        # State indicator - subtle shade variations
+        result.append("▓▒░ ", style=shade_4)
+        result.append("XSWARM v2.0", style=shade_5)
+        result.append(" ░▒▓ ", style=shade_4)
+
+        # State indicator - use theme colors with subtle shade variations
         state_colors = {
-            "ready": "#6b7a8a",    # shade-4
-            "idle": "#4d5966",     # shade-3
-            "listening": "#8899aa", # shade-5
-            "speaking": "#8899aa",  # shade-5
-            "error": "#8899aa"      # shade-5
+            "ready": shade_4,
+            "idle": shade_3,
+            "listening": shade_5,
+            "speaking": shade_5,
+            "error": shade_5
         }
-        color = state_colors.get(self.state, "#6b7a8a")
+        color = state_colors.get(self.state, shade_4)
         result.append(f"[{self.state.upper()}]", style=color)
 
-        result.append(" ░▒▓", style="#6b7a8a")  # shade-4
+        result.append(" ░▒▓", style=shade_4)
 
         return result

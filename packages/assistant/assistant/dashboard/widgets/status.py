@@ -88,27 +88,52 @@ class StatusWidget(Static):
         """Render compact status - single line"""
         result = Text()
 
+        # Use dynamic theme colors if available
+        theme = getattr(self, 'theme_colors', None)
+        if theme:
+            shade_2 = theme["shade_2"]
+            shade_3 = theme["shade_3"]
+            shade_4 = theme["shade_4"]
+            shade_5 = theme["shade_5"]
+        else:
+            # Fallback to default grayscale
+            shade_2 = "#363d47"
+            shade_3 = "#4d5966"
+            shade_4 = "#6b7a8a"
+            shade_5 = "#8899aa"
+
+        # Dynamic state colors based on theme
+        state_colors = {
+            "initializing": shade_3,
+            "idle": shade_2,
+            "ready": shade_4,
+            "listening": shade_5,
+            "speaking": shade_5,
+            "thinking": shade_4,
+            "error": shade_5
+        }
+
         # State indicator
         state_msg = self.STATE_MESSAGES.get(self.state, "UNKNOWN")
-        state_color = self.STATE_COLORS.get(self.state, "#6b7a8a")
+        state_color = state_colors.get(self.state, shade_4)
         result.append(f"{state_msg}", style=state_color)
 
         # Device
-        result.append("  │  ", style="#4d5966")  # shade-3
-        result.append("Device: ", style="#4d5966")  # shade-3
-        result.append(f"{self.device_name}", style="#6b7a8a")  # shade-4
+        result.append("  │  ", style=shade_3)
+        result.append("Device: ", style=shade_3)
+        result.append(f"{self.device_name}", style=shade_4)
 
         # Server status
-        result.append("  │  ", style="#4d5966")  # shade-3
-        result.append("Server: ", style="#4d5966")  # shade-3
-        server_color = "#6b7a8a" if self.server_status == "connected" else "#363d47"  # shade-4 or shade-2
+        result.append("  │  ", style=shade_3)
+        result.append("Server: ", style=shade_3)
+        server_color = shade_4 if self.server_status == "connected" else shade_2
         result.append(f"{self.server_status.upper()}", style=server_color)
 
         # Uptime
         uptime = self._get_uptime()
-        result.append("  │  ", style="#4d5966")  # shade-3
-        result.append("Uptime: ", style="#4d5966")  # shade-3
-        result.append(f"{uptime}", style="#6b7a8a")  # shade-4
+        result.append("  │  ", style=shade_3)
+        result.append("Uptime: ", style=shade_3)
+        result.append(f"{uptime}", style=shade_4)
 
         return result
 
