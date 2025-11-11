@@ -139,3 +139,11 @@ test-*.js
 # Claude Code artifacts
 .claude/agents/
 .claude/settings.local.json
+.claude/context/
+
+# Python TUI testing - temporary dev tests (NOT committed)
+tmp/dev_tests/
+tmp/dev_tests/__snapshots__/
+
+# Keep permanent test snapshots (COMMITTED)
+!packages/assistant/tests/__snapshots__/

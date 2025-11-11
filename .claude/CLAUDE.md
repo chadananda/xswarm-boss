@@ -168,6 +168,145 @@ When you receive a project:
 3. Wait for results, test, iterate
 4. Report to user ONLY when ALL todos complete
 
+## 🎨 PYTHON TUI TESTING STRATEGY
+
+**This is a Python TUI project using Textual framework.**
+
+### Testing Infrastructure
+- **Framework**: pytest + pytest-textual-snapshot
+- **Snapshots**: SVG format (viewable in browser, AI-readable)
+- **Permanent tests**: `tests/` directory (committed to git)
+- **Temp dev tests**: `./tmp/dev_tests/` (gitignored, throwaway)
+- **Test docs**: `docs/testing-guide.md` (comprehensive guide)
+
+### Terminal Sizes to Test
+Standard sizes for comprehensive coverage:
+- `(40, 15)` - Small terminal (edge case)
+- `(80, 24)` - Default Linux terminal
+- `(80, 30)` - Standard testing size
+- `(120, 40)` - Large terminal
+- `(200, 60)` - 4K/ultra-wide (edge case)
+
+### Theme Colors to Test
+Based on personas in `assistant/personas/*.yaml`:
+- **JARVIS**: cyan `#00D4FF`
+- **GLaDOS**: orange `#FFA500`
+- *(Check YAML files for other personas)*
+
+### What to Test
+1. **Visual Regression**: Default state matches baseline
+2. **Responsive**: All sizes render correctly (no cut-off, overlaps)
+3. **Theming**: All theme colors apply correctly to borders, text, backgrounds
+4. **Interactions**: Button clicks, keyboard input, navigation
+5. **Edge Cases**: Empty states, max content, error states
+
+### SVG Analysis Expectations
+
+When tester agent analyzes snapshots, verify:
+- **Theme color** (hex value) appears in SVG `fill="..."` and `stroke="..."` attributes
+- **Expected text content** present in `<text>...</text>` elements
+- **Layout containers** (borders, panels) are present
+- **No visual artifacts**: overlapping text, cut-off content, misaligned elements
+
+### Test File Structure
+
+```python
+# tests/test_[feature]_snapshots.py
+import pytest
+from assistant.dashboard.app import VoiceAssistantApp
+
+def test_feature_default(snap_compare):
+    """Test default state."""
+    assert snap_compare(VoiceAssistantApp(), terminal_size=(80, 30))
+
+@pytest.mark.parametrize("size", [(40,15), (80,30), (120,40)])
+def test_feature_responsive(snap_compare, size):
+    """Test responsive behavior."""
+    assert snap_compare(VoiceAssistantApp(), terminal_size=size)
+
+@pytest.mark.parametrize("theme_color", ["#00D4FF", "#FFA500"])
+def test_feature_themes(snap_compare, theme_color):
+    """Test theme colors."""
+    app = VoiceAssistantApp()
+    app.current_persona.theme_color = theme_color
+    assert snap_compare(app, terminal_size=(80, 30))
+
+def test_feature_interaction(snap_compare):
+    """Test user interactions."""
+    async def interact(pilot):
+        await pilot.press("space")  # Example interaction
+        await pilot.pause(0.2)
+
+    assert snap_compare(VoiceAssistantApp(), run_before=interact)
+```
+
+### Coder Workflow (Temporary Tests)
+
+**When implementing a new feature:**
+
+1. Write implementation in `packages/assistant/assistant/dashboard/`
+2. Create **temporary test** in `./tmp/dev_tests/test_quick_[feature].py`
+3. Run: `pytest ./tmp/dev_tests/test_quick_[feature].py -v`
+4. Read SVG: `./tmp/dev_tests/__snapshots__/[test].svg`
+5. Analyze: Does it look correct?
+6. If NO: Fix code, re-run test
+7. If YES: Update baseline with `--snapshot-update`
+8. Iterate until feature works
+9. Signal completion (temp tests stay in ./tmp/, not committed)
+
+### Tester Workflow (Permanent Tests)
+
+**After coder completes feature:**
+
+1. Write **permanent tests** in `tests/test_[feature]_snapshots.py`
+2. Include: default, responsive (3-5 sizes), themes, interactions, edge cases
+3. Run: `pytest tests/test_[feature]*.py -v`
+4. For each test:
+   - Read SVG from `tests/__snapshots__/[test].svg`
+   - Extract colors: look for `fill="#00D4FF"` (cyan) or `fill="#FFA500"` (orange)
+   - Extract text: look for expected labels/content
+   - Verify layout: borders, panels, no overlaps
+5. Smart update decision:
+   - If matches expectations → auto-update with `--snapshot-update`
+   - If unexpected differences → invoke @stuck with details
+6. Commit tests + snapshots to git
+
+### Conftest Helpers
+
+Use helpers from `tests/conftest.py` (will be created):
+
+```python
+from tests.conftest import (
+    analyze_svg_snapshot,
+    verify_theme_colors,
+    verify_text_present,
+)
+
+# Programmatically verify SVG
+svg_path = Path("tests/__snapshots__/test_feature.svg")
+assert verify_theme_colors(svg_path, "#00D4FF")  # JARVIS cyan
+assert verify_text_present(svg_path, ["Status", "Active"])
+```
+
+### Running Tests
+
+```bash
+# Run all TUI tests
+pytest tests/ -v
+
+# Run specific feature tests
+pytest tests/test_theme_switching*.py -v
+
+# Update all baselines (after verification)
+pytest tests/ -v --snapshot-update
+
+# Generate HTML diff report
+pytest tests/ -v --snapshot-report
+
+# Fast mode (skip animations)
+TEXTUAL_ANIMATIONS=none pytest tests/ -v
+```
+
 ## ⚠️ Common Mistakes to Avoid
 
 ❌ Implementing code yourself instead of delegating to coder
