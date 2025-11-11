@@ -73,31 +73,14 @@ Footer {
    ═══════════════════════════════════════════════════════════════════════════ */
 
 
-/* ▓▒░ ACTIVITY FEED ░▒▓ */
+/* ▓▒░ ACTIVITY FEED - Event/Error Log (full height) ░▒▓ */
 #activity {
     width: 100%;
-    height: 1fr;
+    height: 100%;
     /* background set dynamically from Python */
-    border: solid $shade-3;
-    border-title-align: left;
-    border-title-style: bold;
-    border-title-color: $shade-4;
     padding: 0 1;
-    overflow: hidden;
-    scrollbar-size: 0 0;
-}
-
-/* ▓▒░ STATUS WIDGET ░▒▓ */
-#status {
-    width: 100%;
-    height: 3;
-    /* background set dynamically from Python */
-    border: solid $shade-3;
-    border-title-align: left;
-    border-title-style: bold;
-    border-title-color: $shade-4;
-    padding: 0 1;
-    overflow: hidden;
+    overflow-y: auto;
+    scrollbar-size: 1 1;
 }
 
 /* ▓▒░ STATE-SPECIFIC STYLES ░▒▓ */
@@ -264,6 +247,9 @@ Footer {
     row-span: 1;
     column-span: 1;
     border: solid $shade-3;
+    border-title-align: left;
+    border-title-style: bold;
+    border-title-color: $shade-4;
     padding: 1 2;
 }
 
@@ -276,19 +262,20 @@ Footer {
 }
 
 #content-chat {
-    padding: 2 4;
+    padding: 1 2;
 }
 
 /* Settings content styling */
-#settings-title {
-    color: $shade-5;
-    text-style: bold;
-    margin-bottom: 1;
+.settings-box {
+    width: 100%;
+    height: auto;
+    layout: vertical;
 }
 
-#theme-label {
+#theme-instructions {
     color: $shade-4;
     margin-bottom: 1;
+    text-style: none;
 }
 
 #theme-selector {
@@ -297,39 +284,18 @@ Footer {
     padding: 1 2;
 }
 
-/* Chat content styling */
-#chat-title {
-    color: $shade-5;
-    text-style: bold;
-    margin-bottom: 1;
+#theme-container {
+    width: 100%;
+    height: auto;
 }
 
+/* Chat content styling - make chat-history scrollable */
 #chat-history {
     width: 100%;
     height: 1fr;
-    border: solid $shade-3;
     padding: 1 2;
     overflow-y: auto;
-}
-
-/* Pane header styling - external (deprecated, use pane-inner-header) */
-.pane-header {
-    color: $shade-5;
-    text-style: bold;
-    text-align: center;
-    margin: 1 0;
-    height: 1;
-}
-/* Pane inner header - inside content boxes with bottom border */
-.pane-inner-header {
-    width: 100%;
-    height: 1;
-    color: $shade-5;
-    text-style: bold;
-    text-align: left;
-    padding: 0 1;
-    margin: 0 0 1 0;
-    border-bottom: solid $shade-3;
+    scrollbar-size: 1 1;
 }
 
 /* Placeholder text for coming soon content */
@@ -366,15 +332,7 @@ Footer {
     scrollbar-size: 1 1;
 }
 
-/* Chat scroll container and input */
-#chat-scroll-container {
-    width: 100%;
-    height: 1fr;
-    border: solid $shade-3;
-    padding: 1 2;
-    overflow-y: auto;
-    scrollbar-size: 1 1;
-}
+/* Chat input styling */
 #chat-input {
     width: 100%;
     height: 3;
@@ -386,6 +344,36 @@ Footer {
 }
 #chat-input:focus {
     border: solid $shade-4;
+}
+
+/* Projects, Schedule, Workers content styling */
+#projects-list, #schedule-list, #workers-list {
+    width: 100%;
+    height: 1fr;
+    padding: 1 2;
+    overflow-y: auto;
+    scrollbar-size: 1 1;
+}
+
+/* Project items use theme colors */
+.project-item {
+    color: $shade-4;
+    margin: 0 0 1 0;
+}
+
+.schedule-item {
+    color: $shade-4;
+    margin: 0 0 1 0;
+}
+
+.worker-item {
+    color: $shade-4;
+    margin: 0 0 1 0;
+}
+
+#projects-title, #schedule-title, #workers-title {
+    color: $shade-5;
+    margin-bottom: 1;
 }
 
 /* ▓▒░ END TRANSMISSION ░▒▓ */

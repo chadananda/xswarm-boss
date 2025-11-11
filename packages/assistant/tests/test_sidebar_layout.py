@@ -10,7 +10,7 @@ from assistant.dashboard.app import VoiceAssistantApp
 async def test_sidebar_layout():
     print("Testing left sidebar + content area layout...")
     config = Config()
-    personas_dir = Path(__file__).parent.parent / "packages" / "personas"
+    personas_dir = Path(__file__).parent.parent.parent.parent / "packages" / "personas"
     app = VoiceAssistantApp(config, personas_dir)
 
     async with app.run_test(size=(120, 40)) as pilot:
@@ -120,8 +120,7 @@ async def test_sidebar_layout():
         print("\n--- Testing Status Tab Content ---")
         visualizer = app.query_one("#visualizer")
         activity = app.query_one("#activity")
-        status = app.query_one("#status")
-        print(f"✓ Status tab contains: visualizer, activity, status")
+        print(f"✓ Status tab contains: visualizer, activity")
 
         # Test settings tab content
         print("\n--- Testing Settings Tab Content ---")
