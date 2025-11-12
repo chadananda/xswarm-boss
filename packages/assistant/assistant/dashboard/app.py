@@ -292,7 +292,8 @@ class VoiceAssistantApp(App):
             for persona in themed_personas:
                 radio_btn = RadioButton(persona.name)
                 radio_btn.id = f"theme-{persona.name.lower().replace(' ', '-')}"
-                radio_btn.value = persona.name
+                # Note: RadioButton.value is a boolean (pressed state), not for custom data
+                # We use label (persona.name) to identify which persona was selected
                 radio_set.mount(radio_btn)
             # Log how many themes we loaded
             self.update_activity(f"Loaded {len(themed_personas)} themed personas")
@@ -345,33 +346,28 @@ class VoiceAssistantApp(App):
         """Handle theme selection change"""
         if event.radio_set.id != "theme-selector":
             return
-
-        # Get selected persona name
-        selected_persona_name = event.pressed.value if event.pressed else None
+        # Get selected persona name from RadioButton label
+        # Note: RadioButton.value is a boolean (pressed state), not custom data
+        # We use label which contains the persona.name
+        selected_persona_name = event.pressed.label.plain if event.pressed else None
         if not selected_persona_name:
             return
-
         # Switch to selected persona theme
         persona = self.persona_manager.get_persona(selected_persona_name)
         if persona and persona.theme and persona.theme.theme_color:
             self.update_activity(f"🎨 Switching to {persona.name} theme ({persona.theme.theme_color})")
-
             # Regenerate theme palette
             self._theme_palette = self._load_theme(persona.theme.theme_color)
-
             # Update reactive colors - triggers watchers that update ALL UI elements
             self.theme_shade_1 = self._theme_palette.shade_1
             self.theme_shade_2 = self._theme_palette.shade_2
             self.theme_shade_3 = self._theme_palette.shade_3
             self.theme_shade_4 = self._theme_palette.shade_4
             self.theme_shade_5 = self._theme_palette.shade_5
-
             # Update current persona name
             self.current_persona_name = persona.name
-
             # Update title
             self.title = f"xSwarm Voice Assistant - {persona.name}"
-
             # Update visualizer border title
             try:
                 visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
