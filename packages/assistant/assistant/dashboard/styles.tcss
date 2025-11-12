@@ -219,8 +219,9 @@ Footer {
     background: transparent;
     color: $shade-4;
     text-align: left;
+    content-align: left middle;
     margin: 1 0 0 0;
-    padding: 0 0;
+    padding: 0 1;
 }
 
 .tab-button:hover {
