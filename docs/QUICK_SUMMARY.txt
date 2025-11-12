@@ -1,0 +1,30 @@
+DYNAMIC THEME SWITCHING - QUICK SUMMARY
+========================================
+
+STATUS: ✅ COMPLETE - READY TO TEST
+
+WHAT WAS FIXED:
+- Only borders were changing color (text/backgrounds stayed gray)
+- Root cause: widgets had hardcoded colors in Rich Text rendering
+- Solution: Pass theme palette to widgets, they render with dynamic colors
+
+FILES MODIFIED (in packages/assistant/):
+1. assistant/dashboard/app.py - passes theme_colors dict to widgets
+2. assistant/dashboard/widgets/activity_feed.py - uses dynamic colors
+3. assistant/dashboard/widgets/panels/voice_visualizer_panel.py - uses dynamic colors
+4. assistant/dashboard/widgets/status.py - uses dynamic colors
+
+TEST IT:
+  xswarm
+
+WHAT TO EXPECT:
+- Personas rotate every 5 seconds
+- JARVIS: cyan (#00D4FF)
+- GLaDOS: orange (#FFA500)
+- Borders, text, AND backgrounds change together
+- Complete unified theme experience
+
+FULL DETAILS:
+  See THEME_STATUS.md in this directory
+
+========================================
