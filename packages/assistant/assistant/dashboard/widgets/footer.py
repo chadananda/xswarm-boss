@@ -94,7 +94,7 @@ class CyberpunkFooter(Static):
         result.append("RAM:", style=shade_4)
         ram_percent = (self.ram_used / self.ram_total) * 100
         ram_color = "red" if ram_percent > 80 else "yellow" if ram_percent > 60 else "green"
-        result.append(f"{self.ram_used}/{self.ram_total}GB", style=f"bold {ram_color}")
+        result.append(f"{self.ram_used:.1f}/{self.ram_total}GB", style=f"bold {ram_color}")
         result.append(" │ ", style=shade_3)
         # GPU
         result.append("GPU:", style=shade_4)
