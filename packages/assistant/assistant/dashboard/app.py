@@ -545,23 +545,23 @@ class VoiceAssistantApp(App):
 
             # Start audio input with callback for visualization
             self._audio_callback_counter = 0  # For debug logging
+            self._mic_amplitude_queue = []  # Queue for thread-safe amplitude updates
 
             def audio_callback(audio):
                 # Update mic amplitude for bottom waveform visualizer
                 self.moshi_bridge.update_mic_amplitude(audio)
                 amplitude = self.moshi_bridge.mic_amplitude
 
+                # Queue amplitude for main thread to process
+                self._mic_amplitude_queue.append(amplitude)
+                # Keep queue small to avoid memory buildup
+                if len(self._mic_amplitude_queue) > 100:
+                    self._mic_amplitude_queue.pop(0)
+
                 # Debug: Print amplitude occasionally
                 self._audio_callback_counter += 1
                 if self._audio_callback_counter % 30 == 0:  # Every 30 callbacks
-                    print(f"[DEBUG] Mic amplitude: {amplitude:.3f}, buffer: {audio.shape}")
-
-                # Update visualizer with mic amplitude
-                try:
-                    visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                    visualizer.add_mic_sample(amplitude)
-                except Exception as e:
-                    print(f"[ERROR] Failed to update visualizer: {e}")
+                    print(f"[DEBUG] Mic amplitude: {amplitude:.3f}, buffer: {audio.shape}, queue: {len(self._mic_amplitude_queue)}")
 
             self.audio_io.start_input(callback=audio_callback)
             self.audio_io.start_output()
@@ -920,9 +920,17 @@ class VoiceAssistantApp(App):
         """Update visualizer at 30 FPS"""
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+
+            # Process queued mic amplitudes from audio thread
+            if hasattr(self, '_mic_amplitude_queue') and self._mic_amplitude_queue:
+                # Process all queued amplitudes
+                while self._mic_amplitude_queue:
+                    amplitude = self._mic_amplitude_queue.pop(0)
+                    visualizer.add_mic_sample(amplitude)
+
+            # Legacy amplitude property (kept for compatibility)
             visualizer.amplitude = self.amplitude
-            # VoiceVisualizerPanel doesn't have state - it animates automatically
-        except Exception:
+        except Exception as e:
             pass  # Widget not ready yet
 
     def update_activity(self, message: str):
