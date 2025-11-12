@@ -24,6 +24,7 @@ dependencies = [
     "pyyaml>=6.0.1",
     "psutil>=5.9.0",
     "pyperclip>=1.8.2",
+    "huggingface-hub>=0.20.0",
 ]
 
 [project.optional-dependencies]
@@ -40,6 +41,7 @@ dev = [
 xswarm = "assistant.main:main"
 assistant = "assistant.main:main"
 voice-assistant = "assistant.main:main"
+xswarm-download-models = "assistant.voice.download_models:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]
