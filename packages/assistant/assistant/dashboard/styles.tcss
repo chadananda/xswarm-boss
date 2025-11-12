@@ -420,4 +420,96 @@ Footer {
     scrollbar-size: 1 1;
 }
 
+/* ▓▒░ OAUTH CONNECTORS ░▒▓ */
+#oauth-connectors-group {
+    height: auto;
+    max-height: 30;
+}
+
+#oauth-connectors-list {
+    width: 100%;
+    height: auto;
+    max-height: 25;
+    overflow-y: auto;
+    scrollbar-size: 1 1;
+}
+
+.oauth-connector {
+    layout: horizontal;
+    width: 100%;
+    height: auto;
+    min-height: 3;
+    padding: 0 0;
+    margin: 0 0 1 0;
+}
+
+.oauth-icon {
+    width: 3;
+    height: 3;
+    text-align: center;
+    content-align: center middle;
+    margin-right: 1;
+}
+
+.oauth-info {
+    layout: vertical;
+    width: 1fr;
+    height: auto;
+    padding: 0 0;
+}
+
+.oauth-name {
+    color: $shade-5;
+    text-style: bold;
+}
+
+.oauth-status {
+    color: $shade-4;
+    margin-top: 0;
+}
+
+.oauth-status.connected {
+    color: #00ff00;
+}
+
+.oauth-status.disconnected {
+    color: $shade-3;
+}
+
+.oauth-sync-time {
+    color: $shade-3;
+    text-style: dim;
+    margin-top: 0;
+}
+
+.oauth-button {
+    width: 12;
+    height: 1;
+    min-width: 12;
+    max-width: 12;
+    margin-left: 1;
+    border: solid $shade-3;
+    text-align: center;
+}
+
+.oauth-button.oauth-connect {
+    background: $shade-2;
+    color: $shade-5;
+}
+
+.oauth-button.oauth-connect:hover {
+    background: $shade-3;
+    color: $shade-5;
+}
+
+.oauth-button.oauth-disconnect {
+    background: $shade-1;
+    color: $shade-4;
+}
+
+.oauth-button.oauth-disconnect:hover {
+    background: $shade-2;
+    color: $shade-5;
+}
+
 /* ▓▒░ END TRANSMISSION ░▒▓ */
