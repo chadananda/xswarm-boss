@@ -219,7 +219,7 @@ Footer {
     background: transparent;
     color: $shade-4;
     text-align: left;
-    margin: 0 0;
+    margin: 1 0 0 0;
     padding: 0 0;
 }
 
