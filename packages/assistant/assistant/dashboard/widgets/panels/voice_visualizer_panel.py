@@ -70,7 +70,7 @@ class VoiceVisualizerPanel(Static):
         self.fps = 20
 
         # Audio data buffers
-        self.mic_waveform: List[float] = []  # Scrolling waveform data
+        self.mic_waveform: List[tuple[str, str]] = []  # Scrolling waveform data (char, color)
         self.assistant_amplitude: float = 0.0  # Current assistant speaking amplitude
 
         # Smoothed amplitudes for stable animation
@@ -79,7 +79,7 @@ class VoiceVisualizerPanel(Static):
 
         # Buffer sizes
         self.waveform_buffer_size = 100
-        self.mic_waveform = [0.0] * self.waveform_buffer_size
+        self.mic_waveform = [(" ", "#252a33")] * self.waveform_buffer_size  # Initialize with silent dots
 
         # Animation state
         self.is_animating = False
@@ -129,9 +129,26 @@ class VoiceVisualizerPanel(Static):
         amplitude += random.uniform(-0.1, 0.1)  # Add noise
         amplitude = max(0.0, min(1.0, amplitude))  # Clamp
 
-        # Scroll waveform buffer
+        # Calculate dot character and color for this amplitude
+        dot_chars = [" ", "·", "•", "●", "⬤"]
+        char_idx = int(amplitude * (len(dot_chars) - 1))
+        char = dot_chars[char_idx]
+
+        # Select color based on amplitude
+        if amplitude > 0.8:
+            color = "#8899aa"  # shade_5
+        elif amplitude > 0.6:
+            color = "#6b7a8a"  # shade_4
+        elif amplitude > 0.4:
+            color = "#4d5966"  # shade_3
+        elif amplitude > 0.2:
+            color = "#363d47"  # shade_2
+        else:
+            color = "#252a33"  # shade_1
+
+        # Scroll waveform buffer (store frozen dot+color)
         self.mic_waveform.pop(0)
-        self.mic_waveform.append(amplitude)
+        self.mic_waveform.append((char, color))
 
         # Simulate assistant speaking (pulsing amplitude)
         # Use different frequency for variety
@@ -141,12 +158,49 @@ class VoiceVisualizerPanel(Static):
     def add_mic_sample(self, amplitude: float):
         """
         Add a microphone amplitude sample to the waveform.
+        Calculates dot character and color ONCE and stores as frozen tuple.
 
         Args:
             amplitude: Audio amplitude (0.0 to 1.0)
         """
+        # Clamp amplitude
+        amplitude = max(0.0, min(1.0, amplitude))
+
+        # Get theme colors if available
+        theme = getattr(self, 'theme_colors', None)
+        if theme:
+            shade_1 = theme["shade_1"]
+            shade_2 = theme["shade_2"]
+            shade_3 = theme["shade_3"]
+            shade_4 = theme["shade_4"]
+            shade_5 = theme["shade_5"]
+        else:
+            shade_1 = "#252a33"
+            shade_2 = "#363d47"
+            shade_3 = "#4d5966"
+            shade_4 = "#6b7a8a"
+            shade_5 = "#8899aa"
+
+        # Calculate dot character for this amplitude
+        dot_chars = [" ", "·", "•", "●", "⬤"]
+        char_idx = int(amplitude * (len(dot_chars) - 1))
+        char = dot_chars[char_idx]
+
+        # Select color based on amplitude
+        if amplitude > 0.8:
+            color = shade_5  # Loudest
+        elif amplitude > 0.6:
+            color = shade_4
+        elif amplitude > 0.4:
+            color = shade_3
+        elif amplitude > 0.2:
+            color = shade_2
+        else:
+            color = shade_1  # Quietest
+
+        # Scroll waveform buffer (store frozen dot+color tuple)
         self.mic_waveform.pop(0)
-        self.mic_waveform.append(max(0.0, min(1.0, amplitude)))
+        self.mic_waveform.append((char, color))
 
     def set_assistant_amplitude(self, amplitude: float):
         """
@@ -407,7 +461,7 @@ class VoiceVisualizerPanel(Static):
     def _render_waveform_dots(self, width: int) -> Text:
         """
         Render scrolling waveform using dots of varying sizes.
-        Minimalist dot pattern visualization with grayscale intensity.
+        Reads frozen (char, color) tuples from buffer - no recalculation.
         Scrolls right (new data appears on left).
 
         Args:
@@ -418,57 +472,18 @@ class VoiceVisualizerPanel(Static):
         """
         result = Text()
 
-        # Use dynamic theme colors if available
-        theme = getattr(self, 'theme_colors', None)
-        if theme:
-            shade_1 = theme["shade_1"]
-            shade_2 = theme["shade_2"]
-            shade_3 = theme["shade_3"]
-            shade_4 = theme["shade_4"]
-            shade_5 = theme["shade_5"]
-        else:
-            # Fallback to default grayscale
-            shade_1 = "#252a33"
-            shade_2 = "#363d47"
-            shade_3 = "#4d5966"
-            shade_4 = "#6b7a8a"
-            shade_5 = "#8899aa"
-
-        # Dot characters for different amplitudes
-        dot_chars = [" ", "·", "•", "●", "⬤"]
-
-        # Sample waveform data to fit width
-        samples_per_char = len(self.mic_waveform) // width
-        if samples_per_char == 0:
-            samples_per_char = 1
-
         # For right-scrolling: start from END of buffer (newest) and work backwards
         buffer_len = len(self.mic_waveform)
-        num_chars = min(width, buffer_len // samples_per_char)
+        num_chars = min(width, buffer_len)
 
         for i in range(num_chars):
-            # Sample from end of buffer backwards (newest first)
-            end_idx = buffer_len - (i * samples_per_char)
-            start_idx = max(0, end_idx - samples_per_char)
+            # Read from end of buffer backwards (newest on left)
+            idx = buffer_len - 1 - i
 
-            if start_idx < buffer_len and end_idx > 0:
-                avg_amplitude = sum(self.mic_waveform[start_idx:end_idx]) / max(1, end_idx - start_idx)
-
-                # Map amplitude to dot size
-                char_idx = int(avg_amplitude * (len(dot_chars) - 1))
-                char = dot_chars[char_idx]
-
-                # Grayscale intensity based on amplitude - subtle shades
-                if avg_amplitude > 0.8:
-                    result.append(char, style=shade_5)  # shade-5 (lightest)
-                elif avg_amplitude > 0.6:
-                    result.append(char, style=shade_4)  # shade-4 (light)
-                elif avg_amplitude > 0.4:
-                    result.append(char, style=shade_3)  # shade-3 (medium)
-                elif avg_amplitude > 0.2:
-                    result.append(char, style=shade_2)  # shade-2 (dark)
-                else:
-                    result.append(char, style=shade_1)  # shade-1 (darkest)
+            if 0 <= idx < buffer_len:
+                # Just read the frozen (char, color) tuple - no recalculation!
+                char, color = self.mic_waveform[idx]
+                result.append(char, style=color)
 
         return result
 

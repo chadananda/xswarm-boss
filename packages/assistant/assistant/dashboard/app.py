@@ -591,11 +591,6 @@ class VoiceAssistantApp(App):
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue.pop(0)
 
-                # Debug: Print amplitude occasionally
-                self._audio_callback_counter += 1
-                if self._audio_callback_counter % 30 == 0:  # Every 30 callbacks
-                    print(f"[DEBUG] Mic amplitude: {amplitude:.3f}, buffer: {audio.shape}, queue: {len(self._mic_amplitude_queue)}")
-
             self.audio_io.start_input(callback=audio_callback)
             self.audio_io.start_output()
             self.update_activity("✓ Audio streams started")

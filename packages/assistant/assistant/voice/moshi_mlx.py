@@ -60,10 +60,7 @@ class MoshiBridge:
         self.sample_rate = sample_rate
         self.frame_size = 1920  # 80ms at 24kHz
 
-        print(f"Loading Moshi MLX from {hf_repo} (q{quantized})...")
-
         # Download model files
-        print("Downloading models from HuggingFace (cached locally)...")
         if quantized == 8:
             model_file = hf_hub_download(hf_repo, "model.q8.safetensors")
         elif quantized == 4:
@@ -75,15 +72,12 @@ class MoshiBridge:
         tokenizer_file = hf_hub_download(hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
-        print("Loading text tokenizer...")
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
 
         # Load Mimi audio codec (Rust implementation)
-        print("Loading Mimi audio codec...")
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
 
         # Load Moshi language model
-        print(f"Loading Moshi LM from {model_file}...")
         mx.random.seed(299792458)
         lm_config = models.config_v0_1()
         self.model = models.Lm(lm_config)
@@ -94,10 +88,7 @@ class MoshiBridge:
             nn.quantize(self.model, bits=quantized, group_size=group_size)
 
         self.model.load_weights(model_file, strict=True)
-        print("Warming up model...")
         self.model.warmup()
-
-        print("✓ Moshi MLX loaded successfully")
 
         # Amplitude tracking
         self.mic_amplitude = 0.0
