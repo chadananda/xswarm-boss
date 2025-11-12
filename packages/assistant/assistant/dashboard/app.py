@@ -556,16 +556,17 @@ class VoiceAssistantApp(App):
             self.update_activity("Initializing voice models...")
             device = self.config.detect_device()
 
-            # Initialize MOSHI bridge
-            from ..voice.moshi_pytorch import MoshiBridge
+            # Initialize MOSHI bridge (MLX for Apple Silicon)
+            from ..voice.moshi_mlx import MoshiBridge
             from ..voice.audio_io import AudioIO
 
-            self.update_activity(f"Loading MOSHI models on {device}...")
+            self.update_activity(f"Loading MOSHI MLX models (quantized for {device})...")
             self.moshi_bridge = MoshiBridge(
-                device=device,
-                model_dir=self.config.model_dir
+                hf_repo="kyutai/moshiko-mlx-q8",
+                quantized=8,
+                max_steps=500
             )
-            self.update_activity("✓ MOSHI models loaded")
+            self.update_activity("✓ MOSHI MLX models loaded")
 
             # Initialize audio I/O
             self.update_activity("Starting audio streams...")
