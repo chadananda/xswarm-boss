@@ -18,7 +18,7 @@ from pathlib import Path
 
 # Note: Requires MOSHI installed from source
 try:
-    from moshi.models import loaders
+    from moshi.models import loaders, LMGen
 except ImportError:
     raise ImportError(
         "MOSHI not installed. Install from: cd /tmp/moshi-official/moshi && pip install -e ."
@@ -68,7 +68,18 @@ class MoshiBridge:
 
         # Load models
         self.mimi = loaders.get_mimi(mimi_path, device=str(device))
-        self.lm = loaders.get_moshi_lm(moshi_path, device=str(device))
+        self.mimi.set_num_codebooks(8)  # Moshi uses 8 codebooks
+
+        lm_model = loaders.get_moshi_lm(moshi_path, device=str(device))
+
+        # Wrap LM in generator with sampling params
+        self.lm_gen = LMGen(
+            lm_model,
+            temp=0.8,           # Temperature for audio tokens
+            temp_text=0.7,      # Temperature for text tokens
+            top_k=250,          # Top-k for audio
+            top_k_text=25       # Top-k for text
+        )
 
         # Load text tokenizer
         import sentencepiece
@@ -157,43 +168,75 @@ class MoshiBridge:
         self,
         user_audio: np.ndarray,
         text_prompt: Optional[str] = None,
-        max_tokens: int = 500
+        max_frames: int = 125  # ~10 seconds at 12.5 Hz
     ) -> tuple[np.ndarray, str]:
         """
-        Generate MOSHI response from user audio.
+        Generate MOSHI response from user audio using streaming API.
 
         Args:
             user_audio: User audio at 24kHz
             text_prompt: Optional text context (e.g., from persona)
-            max_tokens: Max generation length
+            max_frames: Max generation length in frames (12.5 Hz, so 125 = ~10s)
 
         Returns:
             (response_audio, response_text) tuple
         """
-        # Encode user audio
-        user_codes = self.encode_audio(user_audio)
+        # Ensure audio is multiple of frame size (1920 samples = 80ms)
+        frame_size = self.frame_size
+        audio_len = len(user_audio)
+        if audio_len % frame_size != 0:
+            pad_len = frame_size - (audio_len % frame_size)
+            user_audio = np.pad(user_audio, (0, pad_len), mode='constant')
 
-        # Prepare text prompt if provided
-        text_tokens = None
-        if text_prompt:
-            text_tokens = self.tokenizer.encode(text_prompt)
-            text_tokens = torch.tensor([text_tokens], device=self.device)
+        # Encode user audio in frames
+        all_input_codes = []
+        for offset in range(0, len(user_audio), frame_size):
+            frame = user_audio[offset:offset + frame_size]
+            # Encode needs (B, C, T) shape
+            frame_tensor = torch.from_numpy(frame).float().unsqueeze(0).unsqueeze(0).to(self.device)
+            with torch.no_grad(), self.mimi.streaming(batch_size=1):
+                codes = self.mimi.encode(frame_tensor)  # [1, 8, 1]
+                all_input_codes.append(codes)
 
-        # Generate response
-        with torch.no_grad():
-            response_codes = self.lm.generate(
-                user_codes,
-                text_tokens=text_tokens,
-                max_new_tokens=max_tokens,
-                temperature=0.8,
-                top_k=25
-            )
+        # Generate response using streaming LM
+        output_audio_chunks = []
+        text_tokens_list = []
 
-        # Decode response audio
-        response_audio = self.decode_audio(response_codes)
+        with torch.no_grad(), self.lm_gen.streaming(batch_size=1), self.mimi.streaming(batch_size=1):
+            # Feed input codes
+            for input_codes in all_input_codes:
+                tokens_out = self.lm_gen.step(input_codes)
+                if tokens_out is not None:
+                    # tokens_out is [B, 1 + 8, 1] where [:, 0] is text, [:, 1:] is audio
+                    text_tokens_list.append(tokens_out[:, 0, :].cpu())
+                    audio_codes = tokens_out[:, 1:, :]  # [B, 8, 1]
+                    # Decode audio frame
+                    audio_chunk = self.mimi.decode(audio_codes)
+                    output_audio_chunks.append(audio_chunk.squeeze().cpu().numpy())
 
-        # Decode text (if available)
-        response_text = self._extract_text(response_codes)
+            # Continue generation for remaining frames (response continuation)
+            for _ in range(max_frames):
+                # Feed silence/padding to continue generation
+                silence_codes = torch.zeros((1, 8, 1), dtype=torch.long, device=self.device)
+                tokens_out = self.lm_gen.step(silence_codes)
+                if tokens_out is not None:
+                    text_tokens_list.append(tokens_out[:, 0, :].cpu())
+                    audio_codes = tokens_out[:, 1:, :]
+                    audio_chunk = self.mimi.decode(audio_codes)
+                    output_audio_chunks.append(audio_chunk.squeeze().cpu().numpy())
+
+        # Concatenate output audio
+        if output_audio_chunks:
+            response_audio = np.concatenate(output_audio_chunks)
+        else:
+            response_audio = np.array([], dtype=np.float32)
+
+        # Decode text tokens
+        if text_tokens_list:
+            all_text_tokens = torch.cat(text_tokens_list, dim=-1).squeeze().tolist()
+            response_text = self.tokenizer.decode(all_text_tokens)
+        else:
+            response_text = ""
 
         return response_audio, response_text
 
