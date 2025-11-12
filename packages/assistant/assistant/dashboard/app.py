@@ -439,21 +439,29 @@ class VoiceAssistantApp(App):
     def watch_active_tab(self, new_tab: str) -> None:
         """Reactive watcher - called when active_tab changes"""
         try:
-            # Update button styles
-            for button_id in ["tab-status", "tab-settings", "tab-tools", "tab-chat", "tab-projects", "tab-schedule", "tab-workers"]:
-                button = self.query_one(f"#{button_id}", Button)
-                if button_id == f"tab-{new_tab}":
-                    button.add_class("active-tab")
-                else:
-                    button.remove_class("active-tab")
+            # Update button styles - remove active-tab from ALL buttons first
+            all_tab_buttons = self.query(".tab-button")
+            for button in all_tab_buttons:
+                button.remove_class("active-tab")
 
-            # Update content pane visibility
-            for content_id in ["content-status", "content-settings", "content-tools", "content-chat", "content-projects", "content-schedule", "content-workers"]:
-                pane = self.query_one(f"#{content_id}", Container)
-                if content_id == f"content-{new_tab}":
-                    pane.add_class("active-pane")
-                else:
-                    pane.remove_class("active-pane")
+            # Then add active-tab to the selected button
+            try:
+                active_button = self.query_one(f"#tab-{new_tab}", Button)
+                active_button.add_class("active-tab")
+            except Exception:
+                pass  # Button not found
+
+            # Update content pane visibility - hide all first
+            all_panes = self.query(".content-pane")
+            for pane in all_panes:
+                pane.remove_class("active-pane")
+
+            # Then show the active pane
+            try:
+                active_pane = self.query_one(f"#content-{new_tab}", Container)
+                active_pane.add_class("active-pane")
+            except Exception:
+                pass  # Pane not found
         except Exception:
             pass  # Widgets not ready yet
 
