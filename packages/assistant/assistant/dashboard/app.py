@@ -125,6 +125,75 @@ class VoiceAssistantApp(App):
                             # Will be populated dynamically with available themes
                             pass
 
+                    # OAuth Connectors group box
+                    with Container(classes="settings-group", id="oauth-connectors-group") as oauth_group:
+                        oauth_group.border_title = "Connected Services"
+                        with ScrollableContainer(id="oauth-connectors-list"):
+                            # Gmail - Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("📧", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Gmail", classes="oauth-name")
+                                    yield Static("✅ Connected • user@example.com", classes="oauth-status connected")
+                                    yield Static("Synced 5 minutes ago", classes="oauth-sync-time")
+                                yield Button("Disconnect", id="oauth-gmail-btn", classes="oauth-button oauth-disconnect")
+                            # Google Calendar - Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("📅", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Google Calendar", classes="oauth-name")
+                                    yield Static("✅ Connected • user@example.com", classes="oauth-status connected")
+                                    yield Static("Synced 2 minutes ago", classes="oauth-sync-time")
+                                yield Button("Disconnect", id="oauth-gcal-btn", classes="oauth-button oauth-disconnect")
+                            # Slack - Not Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("💬", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Slack", classes="oauth-name")
+                                    yield Static("⭕ Not Connected", classes="oauth-status disconnected")
+                                    yield Static("", classes="oauth-sync-time")
+                                yield Button("Connect", id="oauth-slack-btn", classes="oauth-button oauth-connect")
+                            # GitHub - Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("🐙", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("GitHub", classes="oauth-name")
+                                    yield Static("✅ Connected • github_username", classes="oauth-status connected")
+                                    yield Static("Synced 1 hour ago", classes="oauth-sync-time")
+                                yield Button("Disconnect", id="oauth-github-btn", classes="oauth-button oauth-disconnect")
+                            # Microsoft 365 - Not Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("📨", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Microsoft 365", classes="oauth-name")
+                                    yield Static("⭕ Not Connected", classes="oauth-status disconnected")
+                                    yield Static("", classes="oauth-sync-time")
+                                yield Button("Connect", id="oauth-ms365-btn", classes="oauth-button oauth-connect")
+                            # Notion - Not Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("📝", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Notion", classes="oauth-name")
+                                    yield Static("⭕ Not Connected", classes="oauth-status disconnected")
+                                    yield Static("", classes="oauth-sync-time")
+                                yield Button("Connect", id="oauth-notion-btn", classes="oauth-button oauth-connect")
+                            # Trello - Not Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("📋", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Trello", classes="oauth-name")
+                                    yield Static("⭕ Not Connected", classes="oauth-status disconnected")
+                                    yield Static("", classes="oauth-sync-time")
+                                yield Button("Connect", id="oauth-trello-btn", classes="oauth-button oauth-connect")
+                            # Zoom - Connected
+                            with Horizontal(classes="oauth-connector"):
+                                yield Static("🎥", classes="oauth-icon")
+                                with Vertical(classes="oauth-info"):
+                                    yield Static("Zoom", classes="oauth-name")
+                                    yield Static("✅ Connected • user@example.com", classes="oauth-status connected")
+                                    yield Static("Synced 30 minutes ago", classes="oauth-sync-time")
+                                yield Button("Disconnect", id="oauth-zoom-btn", classes="oauth-button oauth-disconnect")
+
                     # Device group box (placeholder for future)
                     with Container(classes="settings-group") as device_group:
                         device_group.border_title = "Device"
@@ -299,7 +368,7 @@ class VoiceAssistantApp(App):
 
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
-        """Handle tab button clicks"""
+        """Handle tab button clicks and OAuth connector buttons"""
         button_id = event.button.id
 
         # Determine which tab was clicked
@@ -317,6 +386,55 @@ class VoiceAssistantApp(App):
             self.active_tab = "schedule"
         elif button_id == "tab-workers":
             self.active_tab = "workers"
+        # Handle OAuth connector buttons
+        elif button_id and button_id.startswith("oauth-"):
+            self.handle_oauth_button(button_id, event.button)
+
+    def handle_oauth_button(self, button_id: str, button: Button) -> None:
+        """Handle OAuth connector button clicks (mock functionality)"""
+        # Extract service name from button ID (e.g., "oauth-gmail-btn" -> "gmail")
+        service = button_id.replace("oauth-", "").replace("-btn", "")
+        # Service display names mapping
+        service_names = {
+            "gmail": "Gmail",
+            "gcal": "Google Calendar",
+            "slack": "Slack",
+            "github": "GitHub",
+            "ms365": "Microsoft 365",
+            "notion": "Notion",
+            "trello": "Trello",
+            "zoom": "Zoom"
+        }
+        service_name = service_names.get(service, service)
+        # Get the connector container
+        try:
+            connector = button.parent
+            status_widget = connector.query_one(".oauth-status", Static)
+            sync_time_widget = connector.query_one(".oauth-sync-time", Static)
+            # Check current state
+            is_connected = "connected" in status_widget.classes
+            if is_connected:
+                # Disconnect
+                status_widget.update("⭕ Not Connected")
+                status_widget.remove_class("connected")
+                status_widget.add_class("disconnected")
+                sync_time_widget.update("")
+                button.label = "Connect"
+                button.remove_class("oauth-disconnect")
+                button.add_class("oauth-connect")
+                self.update_activity(f"🔌 Disconnected from {service_name}")
+            else:
+                # Connect
+                status_widget.update(f"✅ Connected • mock_user@example.com")
+                status_widget.remove_class("disconnected")
+                status_widget.add_class("connected")
+                sync_time_widget.update("Synced just now")
+                button.label = "Disconnect"
+                button.remove_class("oauth-connect")
+                button.add_class("oauth-disconnect")
+                self.update_activity(f"✅ Connected to {service_name}")
+        except Exception as e:
+            self.update_activity(f"Error toggling {service_name}: {e}")
 
     def watch_active_tab(self, new_tab: str) -> None:
         """Reactive watcher - called when active_tab changes"""
