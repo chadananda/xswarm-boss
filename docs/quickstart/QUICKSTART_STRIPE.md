@@ -11,8 +11,8 @@ Get your Stripe subscription products set up in 5 minutes.
 
 ```bash
 # Add to .env file
-STRIPE_SECRET_KEY_TEST=***REMOVED***
-STRIPE_SECRET_KEY_LIVE=***REMOVED***
+STRIPE_SECRET_KEY_TEST=<YOUR_STRIPE_TEST_KEY>
+STRIPE_SECRET_KEY_LIVE=<YOUR_STRIPE_LIVE_KEY>
 ```
 
 ## Step 2: Run Setup Script
