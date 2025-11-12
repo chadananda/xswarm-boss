@@ -59,6 +59,7 @@ tests/test_responsive_comprehensive.py
 tests/test_sidebar_layout.py
 tests/test_theme_switching.py
 tests/test_theme_switching_snapshots.py
+tests/test_tool_calling.py
 tests/test_tui_config.py
 tests/test_voice_visualizer_snapshots.py
 tests/test_wake_word_indicator.py

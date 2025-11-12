@@ -127,28 +127,10 @@ class VoiceVisualizerPanel(Static):
         self._simulation_phase += 0.1
         amplitude = (math.sin(self._simulation_phase) + 1) / 2  # 0.0 to 1.0
         amplitude += random.uniform(-0.1, 0.1)  # Add noise
-        amplitude = max(0.0, min(1.0, amplitude))  # Clamp
+        amplitude = max(0.0, amplitude)  # Allow > 1.0 for clipping simulation
 
-        # Calculate dot character and color for this amplitude
-        dot_chars = [" ", "·", "•", "●", "⬤"]
-        char_idx = int(amplitude * (len(dot_chars) - 1))
-        char = dot_chars[char_idx]
-
-        # Select color based on amplitude
-        if amplitude > 0.8:
-            color = "#8899aa"  # shade_5
-        elif amplitude > 0.6:
-            color = "#6b7a8a"  # shade_4
-        elif amplitude > 0.4:
-            color = "#4d5966"  # shade_3
-        elif amplitude > 0.2:
-            color = "#363d47"  # shade_2
-        else:
-            color = "#252a33"  # shade_1
-
-        # Scroll waveform buffer (store frozen dot+color)
-        self.mic_waveform.pop(0)
-        self.mic_waveform.append((char, color))
+        # Use add_mic_sample() which has the granular size+color logic
+        self.add_mic_sample(amplitude)
 
         # Simulate assistant speaking (pulsing amplitude)
         # Use different frequency for variety
@@ -159,21 +141,22 @@ class VoiceVisualizerPanel(Static):
         """
         Add a microphone amplitude sample to the waveform.
         Calculates dot character and color ONCE and stores as frozen tuple.
+        Uses combined size+color for granular amplitude representation.
 
         Args:
-            amplitude: Audio amplitude (0.0 to 1.0)
+            amplitude: Audio amplitude (0.0 to 1.0+, can exceed 1.0 for clipping warning)
         """
-        # Clamp amplitude
-        amplitude = max(0.0, min(1.0, amplitude))
+        # Don't clamp - allow > 1.0 for clipping detection
+        amplitude = max(0.0, amplitude)
 
         # Get theme colors if available
         theme = getattr(self, 'theme_colors', None)
         if theme:
-            shade_1 = theme["shade_1"]
-            shade_2 = theme["shade_2"]
-            shade_3 = theme["shade_3"]
-            shade_4 = theme["shade_4"]
-            shade_5 = theme["shade_5"]
+            shade_1 = theme["shade_1"]  # Darkest gray
+            shade_2 = theme["shade_2"]  # Dark gray
+            shade_3 = theme["shade_3"]  # Medium gray
+            shade_4 = theme["shade_4"]  # Light gray
+            shade_5 = theme["shade_5"]  # Lightest gray/white
         else:
             shade_1 = "#252a33"
             shade_2 = "#363d47"
@@ -181,22 +164,71 @@ class VoiceVisualizerPanel(Static):
             shade_4 = "#6b7a8a"
             shade_5 = "#8899aa"
 
-        # Calculate dot character for this amplitude
+        # Dot characters: silence, tiny, small, medium, large
         dot_chars = [" ", "·", "•", "●", "⬤"]
-        char_idx = int(amplitude * (len(dot_chars) - 1))
-        char = dot_chars[char_idx]
 
-        # Select color based on amplitude
-        if amplitude > 0.8:
-            color = shade_5  # Loudest
-        elif amplitude > 0.6:
-            color = shade_4
-        elif amplitude > 0.4:
-            color = shade_3
-        elif amplitude > 0.2:
-            color = shade_2
+        # Granular amplitude mapping: combine size + color
+        # Range: 0.0 to 1.0+ (>1.0 = clipping)
+
+        # Clipping warning (red/maroon for > 0.95)
+        if amplitude >= 1.0:
+            char = "⬤"  # Largest
+            color = "#FF0000"  # Bright red - clipping!
+        elif amplitude >= 0.95:
+            char = "⬤"  # Largest
+            color = "#CC0000"  # Maroon - approaching clip
+
+        # Large dot with brightness gradient (0.7 - 0.95)
+        elif amplitude >= 0.88:
+            char = "⬤"
+            color = shade_5  # Large-bright
+        elif amplitude >= 0.80:
+            char = "⬤"
+            color = shade_4  # Large-light
+        elif amplitude >= 0.72:
+            char = "⬤"
+            color = shade_3  # Large-gray
+        elif amplitude >= 0.64:
+            char = "⬤"
+            color = shade_2  # Large-darkgray
+
+        # Medium dot with brightness gradient (0.4 - 0.64)
+        elif amplitude >= 0.56:
+            char = "●"
+            color = shade_5  # Med-bright
+        elif amplitude >= 0.48:
+            char = "●"
+            color = shade_4  # Med-light
+        elif amplitude >= 0.40:
+            char = "●"
+            color = shade_3  # Med-gray
+        elif amplitude >= 0.32:
+            char = "●"
+            color = shade_2  # Med-darkgray
+
+        # Small dot with brightness gradient (0.15 - 0.32)
+        elif amplitude >= 0.24:
+            char = "•"
+            color = shade_4  # Small-light
+        elif amplitude >= 0.16:
+            char = "•"
+            color = shade_3  # Small-gray
+        elif amplitude >= 0.08:
+            char = "•"
+            color = shade_2  # Small-darkgray
+
+        # Tiny dot (0.02 - 0.08)
+        elif amplitude >= 0.04:
+            char = "·"
+            color = shade_3  # Tiny-gray
+        elif amplitude >= 0.02:
+            char = "·"
+            color = shade_2  # Tiny-darkgray
+
+        # Silence (< 0.02)
         else:
-            color = shade_1  # Quietest
+            char = " "
+            color = shade_1  # Silent
 
         # Scroll waveform buffer (store frozen dot+color tuple)
         self.mic_waveform.pop(0)
