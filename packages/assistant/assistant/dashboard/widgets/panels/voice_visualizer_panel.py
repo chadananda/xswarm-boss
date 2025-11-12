@@ -104,17 +104,32 @@ class VoiceVisualizerPanel(Static):
 
     def _update_animation(self):
         """Animation update callback (called at 20 FPS)."""
-        self.animation_frame += 1
-
         # In simulation mode, generate fake audio data
         if self.simulation_mode:
             self._update_simulated_audio()
+            self.animation_frame += 1  # Always animate in simulation mode
+        else:
+            # Real audio mode: only animate when there's audio amplitude
+            # Apply exponential smoothing to assistant amplitude for stable visuals
+            self._smooth_assistant_amplitude = (
+                self.smoothing_factor * self.assistant_amplitude +
+                (1 - self.smoothing_factor) * self._smooth_assistant_amplitude
+            )
 
-        # Apply exponential smoothing to assistant amplitude for stable visuals
-        self._smooth_assistant_amplitude = (
-            self.smoothing_factor * self.assistant_amplitude +
-            (1 - self.smoothing_factor) * self._smooth_assistant_amplitude
-        )
+            # Get current mic amplitude (most recent sample from waveform buffer)
+            current_mic_amplitude = self.mic_waveform[-1] if self.mic_waveform else 0.0
+
+            # Use the maximum of mic or Moshi amplitude to drive animation
+            # This way animation moves when either user speaks OR assistant responds
+            max_amplitude = max(self._smooth_assistant_amplitude, current_mic_amplitude)
+
+            # Only increment animation frame when there's actual audio
+            # This makes animations freeze when silent
+            amplitude_threshold = 0.05  # 5% threshold
+            if max_amplitude > amplitude_threshold:
+                # Increment proportional to amplitude (faster movement with louder audio)
+                self.animation_frame += max_amplitude * 2
+            # else: animation_frame stays the same (frozen animation)
 
         # Refresh the display
         self.refresh()
