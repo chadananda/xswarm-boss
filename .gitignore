@@ -1,7 +1,10 @@
-# Environment variables (secrets)
+# Environment variables (secrets) - matches ALL directories
 .env
 .env.local
 .env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
 
 # Rust
 target/
@@ -147,3 +150,7 @@ tmp/dev_tests/__snapshots__/
 
 # Keep permanent test snapshots (COMMITTED)
 !packages/assistant/tests/__snapshots__/
+
+# HTML test/snapshot reports (may contain env var data)
+snapshot_report.html
+**/*snapshot_report*.html
