@@ -317,6 +317,7 @@ class VoiceAssistantApp(App):
         # Start visualizer animation and set initial title
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            visualizer.simulation_mode = False  # Ensure we use real audio, not simulation
             visualizer.start_animation()
 
             # Set initial title based on default persona (before moshi init)
@@ -579,14 +580,20 @@ class VoiceAssistantApp(App):
             # Start audio input with callback for visualization
             self._audio_callback_counter = 0  # For debug logging
             self._mic_amplitude_queue = []  # Queue for thread-safe amplitude updates
+            self._smoothed_amplitude = 0.0  # Smoothed amplitude to prevent jitter
 
             def audio_callback(audio):
                 # Update mic amplitude for bottom waveform visualizer
                 self.moshi_bridge.update_mic_amplitude(audio)
-                amplitude = self.moshi_bridge.mic_amplitude
+                raw_amplitude = self.moshi_bridge.mic_amplitude
 
-                # Queue amplitude for main thread to process
-                self._mic_amplitude_queue.append(amplitude)
+                # Apply exponential smoothing to prevent jitter
+                # Higher alpha = more responsive but jittery, lower alpha = smoother but laggy
+                alpha = 0.3  # Balance between responsiveness and smoothness
+                self._smoothed_amplitude = alpha * raw_amplitude + (1 - alpha) * self._smoothed_amplitude
+
+                # Queue smoothed amplitude for main thread to process
+                self._mic_amplitude_queue.append(self._smoothed_amplitude)
                 # Keep queue small to avoid memory buildup
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue.pop(0)

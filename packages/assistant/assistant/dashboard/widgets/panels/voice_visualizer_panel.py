@@ -158,14 +158,13 @@ class VoiceVisualizerPanel(Static):
 
         # Amplitude thresholds mapped to (char, color)
         # Checked in descending order - first match wins
+        # Red dots removed per user request. Thresholds adjusted for 2x scaling factor.
         amplitude_map = [
-            (1.0,  "⬤", "#FF0000"),  # Clipping!
-            (0.95, "⬤", "#CC0000"),  # Approaching clip
-            (0.88, "⬤", s5),  (0.80, "⬤", s4),  (0.72, "⬤", s3),  (0.64, "⬤", s2),  # Large
-            (0.56, "●", s5),  (0.48, "●", s4),  (0.40, "●", s3),  (0.32, "●", s2),  # Medium
-            (0.24, "•", s4),  (0.16, "•", s3),  (0.08, "•", s2),                     # Small
-            (0.04, "·", s3),  (0.02, "·", s2),                                       # Tiny
-            (0.0,  " ", s1),                                                         # Silence
+            (0.70, "⬤", s5),  (0.60, "⬤", s4),  (0.50, "⬤", s3),  (0.40, "⬤", s2),  # Large (loud speech)
+            (0.35, "●", s5),  (0.28, "●", s4),  (0.21, "●", s3),  (0.14, "●", s2),  # Medium (normal speech)
+            (0.10, "•", s4),  (0.07, "•", s3),  (0.04, "•", s2),                     # Small (quiet speech)
+            (0.02, "·", s3),  (0.01, "·", s2),                                       # Tiny (breathing/ambient)
+            (0.0,  "·", s2),                                                         # Silence (use smallest dot, not empty)
         ]
 
         # Find first matching threshold

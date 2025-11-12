@@ -44,6 +44,7 @@ assistant/tools/theme_tool.py
 assistant/utils/__init__.py
 assistant/voice/__init__.py
 assistant/voice/audio_io.py
+assistant/voice/download_models.py
 assistant/voice/moshi_mlx.py
 assistant/voice/moshi_pytorch.py
 assistant/voice/vad.py
