@@ -18,13 +18,14 @@ binding = "R2_BUCKET"
 bucket_name = "xswarm-boss"
 
 # Environment variables (development configuration)
-# Note: In production, sensitive keys should be managed as secrets via wrangler secret put
+# Note: ALL sensitive keys must be managed as secrets via wrangler secret put
+# NEVER commit real API keys to this file!
 [vars]
 ENVIRONMENT = "production"
-TWILIO_ACCOUNT_SID = "***REMOVED***"
-TWILIO_PHONE_NUMBER = "+18447472899"
-SENDGRID_API_KEY = "***REMOVED***"
-ANTHROPIC_API_KEY = "***REMOVED***"
+# Set via: wrangler secret put TWILIO_ACCOUNT_SID
+# Set via: wrangler secret put TWILIO_PHONE_NUMBER
+# Set via: wrangler secret put SENDGRID_API_KEY
+# Set via: wrangler secret put ANTHROPIC_API_KEY
 
 # Secrets are managed via:
 #   wrangler secret put <KEY>
