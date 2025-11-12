@@ -544,14 +544,24 @@ class VoiceAssistantApp(App):
             )
 
             # Start audio input with callback for visualization
+            self._audio_callback_counter = 0  # For debug logging
+
             def audio_callback(audio):
                 # Update mic amplitude for bottom waveform visualizer
                 self.moshi_bridge.update_mic_amplitude(audio)
                 amplitude = self.moshi_bridge.mic_amplitude
 
+                # Debug: Print amplitude occasionally
+                self._audio_callback_counter += 1
+                if self._audio_callback_counter % 30 == 0:  # Every 30 callbacks
+                    print(f"[DEBUG] Mic amplitude: {amplitude:.3f}, buffer: {audio.shape}")
+
                 # Update visualizer with mic amplitude
-                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                visualizer.add_mic_sample(amplitude)
+                try:
+                    visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                    visualizer.add_mic_sample(amplitude)
+                except Exception as e:
+                    print(f"[ERROR] Failed to update visualizer: {e}")
 
             self.audio_io.start_input(callback=audio_callback)
             self.audio_io.start_output()
