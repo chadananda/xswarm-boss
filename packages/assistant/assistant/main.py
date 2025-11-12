@@ -218,9 +218,33 @@ Configuration:
     # Get personas directory
     personas_dir = Path(__file__).parent.parent.parent / "personas"
 
+    # GPU detection and service selection
+    print("Detecting GPU capability...")
+    from .hardware.gpu_detector import detect_gpu_capability
+    from .hardware.service_selector import select_services, print_service_config
+
+    gpu = detect_gpu_capability()
+    service_config = select_services(gpu)
+
+    # Print service configuration
+    print_service_config(service_config)
+
     # Load or create config
     config_path = args.config if args.config else None
     config = Config.load_from_file(config_path)
+
+    # Set debug mode flag
+    config.is_debug_mode = args.debug
+
+    # Load API keys from .env if in debug mode
+    if args.debug:
+        config = Config.load_env_keys(config)
+
+    # Apply service selection to config
+    config.moshi_quality = service_config.moshi_quality
+    config.thinking_mode = service_config.thinking_mode
+    config.thinking_model = service_config.thinking_model
+    config.embedding_mode = service_config.embedding_mode
 
     # Check if first run (no config file exists)
     if not (args.config or Config.get_config_path().exists()):

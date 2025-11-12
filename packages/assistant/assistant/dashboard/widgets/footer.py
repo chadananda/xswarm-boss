@@ -113,8 +113,10 @@ class CyberpunkFooter(Static):
                 elif gpu.temp_c > 75:
                     grade_color = "orange"
 
-            # Format: 🤖AI: A++ [80GB/96GB] 45%
+            # Format: 🤖AI: C- (19/100) [13GB/24GB] 62% [Hybrid]
             result.append(f"{gpu.grade}", style=f"bold {grade_color}")
+            # Show numeric score
+            result.append(f" ({gpu.compute_score:.0f}/100)", style=shade_4)
             vram_display = f" [{gpu.vram_used_gb:.0f}GB/{gpu.vram_total_gb:.0f}GB]"
             result.append(vram_display, style=shade_4)
             result.append(f" {gpu.util_percent:.0f}%", style=f"{grade_color}")
