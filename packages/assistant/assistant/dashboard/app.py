@@ -18,7 +18,6 @@ import datetime
 from .widgets.visualizer import AudioVisualizer, CyberpunkVisualizer
 from .widgets.panels import VoiceVisualizerPanel, VisualizationStyle
 from .widgets.activity_feed import ActivityFeed
-from .widgets.header import CyberpunkHeader
 from .widgets.footer import CyberpunkFooter
 from .widgets.project_dashboard import ProjectDashboard
 from .widgets.worker_dashboard import WorkerDashboard
@@ -85,10 +84,6 @@ class VoiceAssistantApp(App):
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout: left column (visualizer + tabs) + right column (content) + footer at bottom"""
-        # Add main status bar at top
-        header = CyberpunkHeader()
-        header.id = "header"
-        yield header
         # Main content area with two columns
         with Horizontal(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
@@ -103,24 +98,24 @@ class VoiceAssistantApp(App):
 
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
-                    yield Button("●  Status", id="tab-status", classes="tab-button active-tab")
-                    yield Button("◆  Settings", id="tab-settings", classes="tab-button")
-                    yield Button("◉  Tools", id="tab-tools", classes="tab-button")
-                    yield Button("◈  Chat", id="tab-chat", classes="tab-button")
-                    yield Button("■  Projects", id="tab-projects", classes="tab-button")
-                    yield Button("◇  Schedule", id="tab-schedule", classes="tab-button")
-                    yield Button("▣  Workers", id="tab-workers", classes="tab-button")
+                    yield Button("📊  Status", id="tab-status", classes="tab-button active-tab")
+                    yield Button("⚙️  Settings", id="tab-settings", classes="tab-button")
+                    yield Button("🔧  Tools", id="tab-tools", classes="tab-button")
+                    yield Button("💬  Chat", id="tab-chat", classes="tab-button")
+                    yield Button("📁  Projects", id="tab-projects", classes="tab-button")
+                    yield Button("📅  Schedule", id="tab-schedule", classes="tab-button")
+                    yield Button("👥  Workers", id="tab-workers", classes="tab-button")
 
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
                 # Status content - Activity feed only (event/error log)
                 with Container(id="content-status", classes="content-pane active-pane"):
-                    yield Static("[dim]●[/dim] Status", classes="pane-header")
+                    yield Static("[dim]📊[/dim] Status", classes="pane-header")
                     yield ActivityFeed(id="activity")
 
                 # Settings content
                 with Container(id="content-settings", classes="content-pane"):
-                    yield Static("[dim]◆[/dim] Settings", classes="pane-header")
+                    yield Static("[dim]⚙️[/dim] Settings", classes="pane-header")
 
                     # Theme group box
                     with Container(classes="settings-group") as theme_group:
@@ -136,7 +131,7 @@ class VoiceAssistantApp(App):
 
                 # Tools content
                 with Container(id="content-tools", classes="content-pane"):
-                    yield Static("[dim]◉[/dim] Tools", classes="pane-header")
+                    yield Static("[dim]🔧[/dim] Tools", classes="pane-header")
 
                     # Create tools tree with feature groups
                     tree = Tree("", id="tools-tree")
@@ -211,18 +206,18 @@ class VoiceAssistantApp(App):
 
                 # Chat content
                 with Container(id="content-chat", classes="content-pane"):
-                    yield Static("[dim]◈[/dim] Chat", classes="pane-header")
+                    yield Static("[dim]💬[/dim] Chat", classes="pane-header")
                     yield Static("", id="chat-history")
                     yield Input(placeholder="Type a message...", id="chat-input")
 
                 # Projects content
                 with Container(id="content-projects", classes="content-pane"):
-                    yield Static("[dim]■[/dim] Projects", classes="pane-header")
+                    yield Static("[dim]📁[/dim] Projects", classes="pane-header")
                     yield ProjectDashboard(id="projects-dashboard")
 
                 # Schedule content
                 with Container(id="content-schedule", classes="content-pane"):
-                    yield Static("[dim]◇[/dim] Schedule", classes="pane-header")
+                    yield Static("[dim]📅[/dim] Schedule", classes="pane-header")
                     with ScrollableContainer(id="schedule-list"):
                         yield Label("[bold $shade-5]Today's Schedule[/bold $shade-5]", markup=True, id="schedule-title")
                         yield Label("  └─ Daily standup - 9:00 AM", markup=True, classes="schedule-item")
@@ -231,7 +226,7 @@ class VoiceAssistantApp(App):
 
                 # Workers content
                 with Container(id="content-workers", classes="content-pane"):
-                    yield Static("[dim]▣[/dim] Workers", classes="pane-header")
+                    yield Static("[dim]👥[/dim] Workers", classes="pane-header")
                     yield WorkerDashboard(id="workers-dashboard")
         # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
@@ -714,16 +709,14 @@ class VoiceAssistantApp(App):
         try:
             from textual.color import Color
             color = Color.parse(new_color)
-            # Update header/footer borders
-            header = self.query_one("#header", CyberpunkHeader)
+            # Update footer border
             footer = self.query_one("#footer", CyberpunkFooter)
-            header.styles.border = ("solid", color)
             footer.styles.border = ("solid", color)
             # Update active tab background
             for button in self.query(".tab-button.active-tab"):
                 button.styles.background = color
                 button.refresh()
-            # Pass theme colors to header and footer for text rendering
+            # Pass theme colors to footer for text rendering
             theme_colors_dict = {
                 "shade_1": self._theme_palette.shade_1,
                 "shade_2": self._theme_palette.shade_2,
@@ -731,12 +724,8 @@ class VoiceAssistantApp(App):
                 "shade_4": self._theme_palette.shade_4,
                 "shade_5": self._theme_palette.shade_5,
             }
-            header.theme_colors = theme_colors_dict
             footer.theme_colors = theme_colors_dict
-            # Update header persona name to match current persona
-            header.persona_name = self.current_persona_name
             # Force refresh to re-render with new colors
-            header.refresh()
             footer.refresh()
         except Exception:
             pass
