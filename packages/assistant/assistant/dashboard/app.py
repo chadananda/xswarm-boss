@@ -100,7 +100,7 @@ class VoiceAssistantApp(App):
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
                     yield Button(" 📊  Status", id="tab-status", classes="tab-button active-tab")
-                    yield Button(" ⚙️  Settings", id="tab-settings", classes="tab-button")
+                    yield Button(" ⚙️   Settings", id="tab-settings", classes="tab-button")
                     yield Button(" 🔧  Tools", id="tab-tools", classes="tab-button")
                     yield Button(" 💬  Chat", id="tab-chat", classes="tab-button")
                     yield Button(" 📁  Projects", id="tab-projects", classes="tab-button")
