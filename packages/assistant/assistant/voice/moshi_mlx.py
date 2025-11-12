@@ -250,9 +250,9 @@ class MoshiBridge:
             RMS amplitude (0.0 - 1.0)
         """
         rms = np.sqrt(np.mean(audio ** 2))
-        # Normalize to 0-1 range with gentler scaling
-        # Typical speech RMS is 0.01-0.3, so scale by ~2x for 0.02-0.6 range
-        return float(np.clip(rms * 2, 0, 1))
+        # Normalize to 0-1 range with responsive scaling
+        # Typical speech RMS is 0.01-0.3, so scale by ~4x for 0.04-1.2 range (clips at 1.0)
+        return float(np.clip(rms * 4, 0, 1))
 
     def update_mic_amplitude(self, audio: np.ndarray):
         """

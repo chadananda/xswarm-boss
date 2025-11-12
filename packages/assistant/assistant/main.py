@@ -46,13 +46,8 @@ class VoiceAssistant:
 
     async def initialize(self):
         """Initialize all components"""
-        print("=== Voice Assistant Initialization ===\n")
-
         # 1. Load personas
-        print("Loading personas...")
         if not self.personas_dir.exists():
-            print(f"⚠️  Personas directory not found: {self.personas_dir}")
-            print("   Creating default personas directory...")
             self.personas_dir.mkdir(parents=True, exist_ok=True)
 
         self.persona_manager = PersonaManager(self.personas_dir)
@@ -69,8 +64,6 @@ class VoiceAssistant:
             current_persona = self.persona_manager.get_current_persona()
 
             if current_persona:
-                print(f"✅ Active persona: {persona_name}")
-
                 # Build comprehensive wake word list:
                 # 1. All persona names (so user doesn't need to remember which is active)
                 # 2. Common wake words (computer, alexa, boss, etc.)
@@ -103,37 +96,19 @@ class VoiceAssistant:
                 # Store the complete list in config
                 self.config.wake_word = unique_wake_words
 
-                # Show summary
-                print(f"   Wake words: {len(unique_wake_words)} active")
-                print(f"   - Persona names: {', '.join(persona_names)}")
-                print(f"   - Common: {', '.join(common_wake_words)}")
-        else:
-            print("⚠️  No personas found - using default settings")
-
         # 2. Initialize memory
         if self.config.memory_enabled:
-            print("\nInitializing memory...")
             self.memory_manager = MemoryManager(
                 server_url=self.config.server_url,
                 api_token=self.config.api_token
             )
             try:
                 await self.memory_manager.initialize()
-                print("✅ Memory system initialized")
-            except Exception as e:
-                print(f"⚠️  Memory initialization warning: {e}")
-                print("   Continuing with local cache only...")
-        else:
-            print("\n⚠️  Memory system disabled (--no-memory)")
+            except Exception:
+                pass  # Continue with local cache only
 
         # 3. Initialize dashboard (TUI)
-        print("\nInitializing dashboard...")
         self.app = VoiceAssistantApp(self.config, self.personas_dir)
-
-        # 4. Voice models will be loaded by dashboard
-        print("\nVoice models will be loaded by dashboard...")
-
-        print("\n✅ Initialization complete\n")
 
     async def run(self):
         """Run the application"""

@@ -363,11 +363,6 @@ class VoiceAssistantApp(App):
             })
         # Update the display
         self.update_chat_display()
-        # Add mock error events to activity feed
-        activity = self.query_one("#activity", ActivityFeed)
-        activity.add_message("Mock connection error - network timeout", "error")
-        activity.add_message("Mock warning - high CPU usage detected", "warning")
-        activity.add_message("Mock critical error - failed to load model checkpoint", "error")
 
     def populate_theme_selector(self):
         """Populate persona selector with available personas"""
