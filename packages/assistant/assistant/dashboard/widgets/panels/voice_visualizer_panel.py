@@ -104,32 +104,18 @@ class VoiceVisualizerPanel(Static):
 
     def _update_animation(self):
         """Animation update callback (called at 20 FPS)."""
+        # Always increment animation frame for smooth scrolling
+        self.animation_frame += 1
+
         # In simulation mode, generate fake audio data
         if self.simulation_mode:
             self._update_simulated_audio()
-            self.animation_frame += 1  # Always animate in simulation mode
         else:
-            # Real audio mode: only animate when there's audio amplitude
-            # Apply exponential smoothing to assistant amplitude for stable visuals
+            # Real audio mode: smooth the assistant amplitude
             self._smooth_assistant_amplitude = (
                 self.smoothing_factor * self.assistant_amplitude +
                 (1 - self.smoothing_factor) * self._smooth_assistant_amplitude
             )
-
-            # Get current mic amplitude (most recent sample from waveform buffer)
-            current_mic_amplitude = self.mic_waveform[-1] if self.mic_waveform else 0.0
-
-            # Use the maximum of mic or Moshi amplitude to drive animation
-            # This way animation moves when either user speaks OR assistant responds
-            max_amplitude = max(self._smooth_assistant_amplitude, current_mic_amplitude)
-
-            # Only increment animation frame when there's actual audio
-            # This makes animations freeze when silent
-            amplitude_threshold = 0.05  # 5% threshold
-            if max_amplitude > amplitude_threshold:
-                # Increment proportional to amplitude (faster movement with louder audio)
-                self.animation_frame += max_amplitude * 2
-            # else: animation_frame stays the same (frozen animation)
 
         # Refresh the display
         self.refresh()
@@ -495,6 +481,12 @@ class VoiceVisualizerPanel(Static):
         # Density characters for circles
         chars = [" ", "░", "▒", "▓", "█"]
 
+        # Scale radius based on amplitude: tiny dot when silent, full size when loud
+        # Minimum radius = 1 (dot), maximum radius = width/4
+        min_radius = 1
+        max_radius = width // 4
+        scaled_radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
+
         for y in range(height):
             line = ""
             for x in range(width):
@@ -503,14 +495,18 @@ class VoiceVisualizerPanel(Static):
                 dy = (y - center_y) * 2  # Adjust for character aspect ratio
                 distance = math.sqrt(dx * dx + dy * dy)
 
-                # Map distance to amplitude rings (using smoothed amplitude)
-                ring_size = 5 * self._smooth_assistant_amplitude
-                ring_phase = (distance - self.animation_frame * 0.5) % (ring_size + 1)
+                # Show content only within the scaled radius
+                if distance <= scaled_radius:
+                    # Map distance to amplitude rings (using smoothed amplitude)
+                    ring_size = max(1, 5 * self._smooth_assistant_amplitude)
+                    ring_phase = (distance - self.animation_frame * 0.5) % (ring_size + 1)
 
-                if ring_phase < ring_size:
-                    intensity = 1.0 - (ring_phase / ring_size)
-                    char_idx = int(intensity * (len(chars) - 1))
-                    line += chars[char_idx]
+                    if ring_phase < ring_size:
+                        intensity = 1.0 - (ring_phase / ring_size)
+                        char_idx = int(intensity * (len(chars) - 1))
+                        line += chars[char_idx]
+                    else:
+                        line += " "
                 else:
                     line += " "
 
@@ -526,6 +522,11 @@ class VoiceVisualizerPanel(Static):
 
         wave_chars = ["◠", "◡", "◝", "◞"]
 
+        # Scale radius based on amplitude: tiny dot when silent, full size when loud
+        min_radius = 1
+        max_radius = min(width, height * 2) // 3
+        scaled_radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
+
         for y in range(height):
             line = ""
             for x in range(width):
@@ -533,12 +534,16 @@ class VoiceVisualizerPanel(Static):
                 dy = (y - center_y) * 2
                 distance = math.sqrt(dx * dx + dy * dy)
 
-                # Create ripple effect (using smoothed amplitude)
-                ripple = math.sin(distance * 0.5 - self.animation_frame * 0.3) * self._smooth_assistant_amplitude
+                # Only show ripples within the scaled radius
+                if distance <= scaled_radius:
+                    # Create ripple effect (using smoothed amplitude)
+                    ripple = math.sin(distance * 0.5 - self.animation_frame * 0.3) * self._smooth_assistant_amplitude
 
-                if ripple > 0.3:
-                    char_idx = int((distance + self.animation_frame) % len(wave_chars))
-                    line += wave_chars[char_idx]
+                    if ripple > 0.3:
+                        char_idx = int((distance + self.animation_frame) % len(wave_chars))
+                        line += wave_chars[char_idx]
+                    else:
+                        line += " "
                 else:
                     line += " "
 
@@ -646,8 +651,10 @@ class VoiceVisualizerPanel(Static):
 
         spinner_chars = ["◜", "◝", "◞", "◟"]
 
-        # Spinning radius based on smoothed amplitude
-        radius = 8 * self._smooth_assistant_amplitude
+        # Spinning radius based on smoothed amplitude: tiny dot when silent, full size when loud
+        min_radius = 1
+        max_radius = min(width, height * 2) // 4
+        radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
 
         for y in range(height):
             line = ""
@@ -681,7 +688,10 @@ class VoiceVisualizerPanel(Static):
 
         wave_chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
 
-        base_radius = min(width, height * 2) // 3
+        # Scale radius based on amplitude: tiny dot when silent, full size when loud
+        min_radius = 1
+        max_radius = min(width, height * 2) // 3
+        base_radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
 
         for y in range(height):
             line = ""
