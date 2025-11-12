@@ -66,6 +66,11 @@ class VoiceAssistantApp(App):
         # Generate dynamic theme colors
         self._theme_palette = self._load_theme(config.theme_base_color)
 
+        # Keyboard navigation state
+        self._nav_buttons = ["tab-status", "tab-settings", "tab-tools", "tab-chat",
+                            "tab-projects", "tab-schedule", "tab-workers"]
+        self._focused_nav_index = 0  # Track which nav button has keyboard focus
+
     def _load_theme(self, theme_input: str):
         """
         Load theme palette from config.
@@ -448,6 +453,10 @@ class VoiceAssistantApp(App):
             try:
                 active_button = self.query_one(f"#tab-{new_tab}", Button)
                 active_button.add_class("active-tab")
+                # Update focused index to match active tab for keyboard navigation
+                button_id = f"tab-{new_tab}"
+                if button_id in self._nav_buttons:
+                    self._focused_nav_index = self._nav_buttons.index(button_id)
             except Exception:
                 pass  # Button not found
 
@@ -941,9 +950,61 @@ class VoiceAssistantApp(App):
         except Exception as e:
             pass  # Widget might not be ready
 
+    def _navigate_nav_menu(self, direction: int) -> None:
+        """Navigate nav menu with keyboard (direction: -1 for up, 1 for down)"""
+        try:
+            # Update focused index with wraparound
+            self._focused_nav_index = (self._focused_nav_index + direction) % len(self._nav_buttons)
+            # Get the button to focus
+            button_id = self._nav_buttons[self._focused_nav_index]
+            button = self.query_one(f"#{button_id}", Button)
+            # Set focus to the button
+            button.focus()
+        except Exception:
+            pass  # Button not found or not ready
+
     def on_key(self, event: events.Key) -> None:
         """Handle keyboard input"""
-        if event.key == "q":
+        # Arrow key navigation for nav menu
+        if event.key in ("up", "k"):
+            self._navigate_nav_menu(-1)
+            event.prevent_default()
+        elif event.key in ("down", "j"):
+            self._navigate_nav_menu(1)
+            event.prevent_default()
+        elif event.key == "enter":
+            # Enter key: Activate the currently focused nav button
+            if self._focused_nav_index >= 0 and self._focused_nav_index < len(self._nav_buttons):
+                button_id = self._nav_buttons[self._focused_nav_index]
+                tab_name = button_id.replace("tab-", "")
+                self.active_tab = tab_name
+                event.prevent_default()
+        elif event.key == "space":
+            # Space key: Check if a nav button has focus
+            # If nav button is focused AND not the active tab, switch to it
+            # Otherwise, use space for voice toggle
+            if self._focused_nav_index >= 0 and self._focused_nav_index < len(self._nav_buttons):
+                button_id = self._nav_buttons[self._focused_nav_index]
+                tab_name = button_id.replace("tab-", "")
+                if tab_name != self.active_tab:
+                    # Nav button focused but not active - switch to it
+                    self.active_tab = tab_name
+                    event.prevent_default()
+                else:
+                    # Nav button focused AND active - use space for voice
+                    if self.state == "idle" or self.state == "ready":
+                        self.start_listening()
+                    elif self.state == "listening":
+                        self.stop_listening()
+                    event.prevent_default()
+            else:
+                # No nav button focused - use space for voice
+                if self.state == "idle" or self.state == "ready":
+                    self.start_listening()
+                elif self.state == "listening":
+                    self.stop_listening()
+                event.prevent_default()
+        elif event.key == "q":
             self.exit()
         elif event.key == "s":
             # Open settings
@@ -951,12 +1012,6 @@ class VoiceAssistantApp(App):
         elif event.key == "v":
             # Open voice visualizer demo
             self.action_open_viz_demo()
-        elif event.key == "space":
-            # Toggle listening
-            if self.state == "idle" or self.state == "ready":
-                self.start_listening()
-            elif self.state == "listening":
-                self.stop_listening()
         elif event.key == "ctrl+c":
             # Copy recent activity to clipboard
             self.action_copy_activity()

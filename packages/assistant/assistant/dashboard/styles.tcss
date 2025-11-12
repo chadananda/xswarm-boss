@@ -229,10 +229,22 @@ Footer {
     color: $shade-5;
 }
 
+.tab-button:focus {
+    background: $shade-1;
+    color: $shade-5;
+    text-style: underline;
+}
+
 .tab-button.active-tab {
     background: $shade-2;
     color: $shade-5;
     text-style: bold;
+}
+
+.tab-button.active-tab:focus {
+    background: $shade-2;
+    color: $shade-5;
+    text-style: bold underline;
 }
 
 #content-area {
