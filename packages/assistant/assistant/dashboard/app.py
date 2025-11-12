@@ -58,6 +58,8 @@ class VoiceAssistantApp(App):
         self.audio_io: Optional[object] = None
         self.audio_buffer = []  # Buffer for capturing audio during listening
         self.chat_history = []  # Store chat messages (user + assistant)
+        self.memory_manager: Optional[object] = None  # Memory manager for persistence
+        self.user_id = "local-user"  # Default user ID
 
         # Load personas
         self.persona_manager = PersonaManager(personas_dir)
@@ -320,6 +322,9 @@ class VoiceAssistantApp(App):
         # Populate theme selector with available themes
         self.populate_theme_selector()
 
+        # Initialize memory manager
+        asyncio.create_task(self.initialize_memory())
+
         # Add dummy chat messages
         self.add_dummy_chat_messages()
 
@@ -517,6 +522,27 @@ class VoiceAssistantApp(App):
         if self.audio_io:
             self.audio_io.stop()
             self.update_activity("Audio streams stopped")
+
+        # Close memory manager (create task to run async close)
+        if self.memory_manager:
+            asyncio.create_task(self.memory_manager.close())
+
+    async def initialize_memory(self):
+        """Initialize memory manager for conversation history"""
+        try:
+            from ..memory import MemoryManager
+
+            self.memory_manager = MemoryManager(
+                server_url=self.config.server_url if hasattr(self.config, 'server_url') else "http://localhost:3000",
+                max_history=100
+            )
+
+            await self.memory_manager.initialize()
+            self.update_activity("✅ Memory system initialized")
+
+        except Exception as e:
+            self.update_activity(f"⚠️  Memory init failed: {e}, using chat history only")
+            self.memory_manager = None
 
     async def initialize_moshi(self):
         """Load voice models and initialize audio"""
@@ -948,6 +974,21 @@ class VoiceAssistantApp(App):
             "message": message,
             "timestamp": datetime.datetime.now().strftime("%H:%M:%S")
         })
+
+        # Store in memory manager (if available)
+        if self.memory_manager:
+            # Get current persona name for metadata
+            persona_name = self.config.default_persona or "JARVIS"
+            metadata = {"persona": persona_name} if role == "assistant" else {}
+
+            asyncio.create_task(
+                self.memory_manager.store_message(
+                    user_id=self.user_id,
+                    message=message,
+                    role=role,
+                    metadata=metadata
+                )
+            )
 
         # Update chat display
         self.update_chat_display()
