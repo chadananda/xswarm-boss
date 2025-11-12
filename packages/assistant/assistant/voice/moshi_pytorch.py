@@ -57,10 +57,23 @@ class MoshiBridge:
 
         print(f"Loading MOSHI models on {device}...")
 
-        # Load MOSHI components
-        self.mimi = loaders.load_mimi(device=str(device))
-        self.lm = loaders.load_lm(device=str(device))
-        self.tokenizer = loaders.load_text_tokenizer()
+        # Download and load MOSHI components from HuggingFace
+        # This will auto-download models on first run (~1GB)
+        print(f"Downloading models from {loaders.DEFAULT_REPO} (first run may take a while)...")
+
+        # Download model files (cached locally after first download)
+        mimi_path = loaders.hf_hub_download(loaders.DEFAULT_REPO, loaders.MIMI_NAME)
+        moshi_path = loaders.hf_hub_download(loaders.DEFAULT_REPO, loaders.MOSHI_NAME)
+        tokenizer_path = loaders.hf_hub_download(loaders.DEFAULT_REPO, loaders.TEXT_TOKENIZER_NAME)
+
+        # Load models
+        self.mimi = loaders.get_mimi(mimi_path, device=str(device))
+        self.lm = loaders.get_moshi_lm(moshi_path, device=str(device))
+
+        # Load text tokenizer
+        import sentencepiece
+        self.tokenizer = sentencepiece.SentencePieceProcessor()
+        self.tokenizer.load(tokenizer_path)
 
         print("MOSHI models loaded successfully")
 
