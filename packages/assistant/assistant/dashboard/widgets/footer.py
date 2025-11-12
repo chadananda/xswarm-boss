@@ -92,28 +92,28 @@ class CyberpunkFooter(Static):
         # Start directly with content (no inner border/box)
         result.append("▓▒░ ", style=f"bold {primary}")
 
-        # 1. GPU Status - FIRST ITEM (most important for AI workloads)
+        # 1. AI Capability Score - FIRST ITEM (most important for AI workloads)
         if self.gpu_capability:
             gpu = self.gpu_capability
-            result.append("GPU:", style=shade_4)
+            result.append("🤖AI:", style=shade_4)
 
-            # Determine grade color with thermal warnings
+            # Determine grade color (maroon for grades below C - unlikely to run AI)
             grade_colors = {
                 "A++": primary, "A+": primary, "A": primary, "A-": primary,
                 "B++": "green", "B+": "green", "B": "green", "B-": "green",
-                "C": "yellow", "C-": "yellow",
-                "D": "orange", "F": "red"
+                "C": "yellow",
+                "C-": "#8B0000", "D": "#8B0000", "F": "#8B0000"  # Maroon for AI-insufficient
             }
             grade_color = grade_colors.get(gpu.grade, "dim")
 
-            # Override with thermal warning if GPU is hot
-            if gpu.temp_c:
+            # Override with thermal warning if GPU is hot (only for grades C and above)
+            if gpu.temp_c and gpu.grade not in ["C-", "D", "F"]:
                 if gpu.temp_c > 85:
                     grade_color = "red"
                 elif gpu.temp_c > 75:
                     grade_color = "orange"
 
-            # Format: GPU: A++ [80GB/96GB] 45%
+            # Format: 🤖AI: A++ [80GB/96GB] 45%
             result.append(f"{gpu.grade}", style=f"bold {grade_color}")
             vram_display = f" [{gpu.vram_used_gb:.0f}GB/{gpu.vram_total_gb:.0f}GB]"
             result.append(vram_display, style=shade_4)
