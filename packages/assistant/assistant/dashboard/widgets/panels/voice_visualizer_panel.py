@@ -146,89 +146,30 @@ class VoiceVisualizerPanel(Static):
         Args:
             amplitude: Audio amplitude (0.0 to 1.0+, can exceed 1.0 for clipping warning)
         """
-        # Don't clamp - allow > 1.0 for clipping detection
         amplitude = max(0.0, amplitude)
 
-        # Get theme colors if available
+        # Get theme colors
         theme = getattr(self, 'theme_colors', None)
-        if theme:
-            shade_1 = theme["shade_1"]  # Darkest gray
-            shade_2 = theme["shade_2"]  # Dark gray
-            shade_3 = theme["shade_3"]  # Medium gray
-            shade_4 = theme["shade_4"]  # Light gray
-            shade_5 = theme["shade_5"]  # Lightest gray/white
-        else:
-            shade_1 = "#252a33"
-            shade_2 = "#363d47"
-            shade_3 = "#4d5966"
-            shade_4 = "#6b7a8a"
-            shade_5 = "#8899aa"
+        s1, s2, s3, s4, s5 = (
+            (theme["shade_1"], theme["shade_2"], theme["shade_3"], theme["shade_4"], theme["shade_5"])
+            if theme else
+            ("#252a33", "#363d47", "#4d5966", "#6b7a8a", "#8899aa")
+        )
 
-        # Dot characters: silence, tiny, small, medium, large
-        dot_chars = [" ", "·", "•", "●", "⬤"]
+        # Amplitude thresholds mapped to (char, color)
+        # Checked in descending order - first match wins
+        amplitude_map = [
+            (1.0,  "⬤", "#FF0000"),  # Clipping!
+            (0.95, "⬤", "#CC0000"),  # Approaching clip
+            (0.88, "⬤", s5),  (0.80, "⬤", s4),  (0.72, "⬤", s3),  (0.64, "⬤", s2),  # Large
+            (0.56, "●", s5),  (0.48, "●", s4),  (0.40, "●", s3),  (0.32, "●", s2),  # Medium
+            (0.24, "•", s4),  (0.16, "•", s3),  (0.08, "•", s2),                     # Small
+            (0.04, "·", s3),  (0.02, "·", s2),                                       # Tiny
+            (0.0,  " ", s1),                                                         # Silence
+        ]
 
-        # Granular amplitude mapping: combine size + color
-        # Range: 0.0 to 1.0+ (>1.0 = clipping)
-
-        # Clipping warning (red/maroon for > 0.95)
-        if amplitude >= 1.0:
-            char = "⬤"  # Largest
-            color = "#FF0000"  # Bright red - clipping!
-        elif amplitude >= 0.95:
-            char = "⬤"  # Largest
-            color = "#CC0000"  # Maroon - approaching clip
-
-        # Large dot with brightness gradient (0.7 - 0.95)
-        elif amplitude >= 0.88:
-            char = "⬤"
-            color = shade_5  # Large-bright
-        elif amplitude >= 0.80:
-            char = "⬤"
-            color = shade_4  # Large-light
-        elif amplitude >= 0.72:
-            char = "⬤"
-            color = shade_3  # Large-gray
-        elif amplitude >= 0.64:
-            char = "⬤"
-            color = shade_2  # Large-darkgray
-
-        # Medium dot with brightness gradient (0.4 - 0.64)
-        elif amplitude >= 0.56:
-            char = "●"
-            color = shade_5  # Med-bright
-        elif amplitude >= 0.48:
-            char = "●"
-            color = shade_4  # Med-light
-        elif amplitude >= 0.40:
-            char = "●"
-            color = shade_3  # Med-gray
-        elif amplitude >= 0.32:
-            char = "●"
-            color = shade_2  # Med-darkgray
-
-        # Small dot with brightness gradient (0.15 - 0.32)
-        elif amplitude >= 0.24:
-            char = "•"
-            color = shade_4  # Small-light
-        elif amplitude >= 0.16:
-            char = "•"
-            color = shade_3  # Small-gray
-        elif amplitude >= 0.08:
-            char = "•"
-            color = shade_2  # Small-darkgray
-
-        # Tiny dot (0.02 - 0.08)
-        elif amplitude >= 0.04:
-            char = "·"
-            color = shade_3  # Tiny-gray
-        elif amplitude >= 0.02:
-            char = "·"
-            color = shade_2  # Tiny-darkgray
-
-        # Silence (< 0.02)
-        else:
-            char = " "
-            color = shade_1  # Silent
+        # Find first matching threshold
+        char, color = next((c, col) for thresh, c, col in amplitude_map if amplitude >= thresh)
 
         # Scroll waveform buffer (store frozen dot+color tuple)
         self.mic_waveform.pop(0)
