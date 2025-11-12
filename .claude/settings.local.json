@@ -37,7 +37,9 @@
       "WebFetch(domain:mir-s3-cdn-cf.behance.net)",
       "WebFetch(domain:devdiner.com)",
       "WebFetch(domain:textual.textualize.io)",
-      "WebFetch(domain:share.cleanshot.com)"
+      "WebFetch(domain:share.cleanshot.com)",
+      "Skill(project-cleanup)",
+      "Skill(security-scan)"
     ],
     "deny": [],
     "ask": []
