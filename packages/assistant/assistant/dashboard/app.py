@@ -99,13 +99,13 @@ class VoiceAssistantApp(App):
 
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
-                    yield Button("📊  Status", id="tab-status", classes="tab-button active-tab")
-                    yield Button("⚙️  Settings", id="tab-settings", classes="tab-button")
-                    yield Button("🔧  Tools", id="tab-tools", classes="tab-button")
-                    yield Button("💬  Chat", id="tab-chat", classes="tab-button")
-                    yield Button("📁  Projects", id="tab-projects", classes="tab-button")
-                    yield Button("📅  Schedule", id="tab-schedule", classes="tab-button")
-                    yield Button("👥  Workers", id="tab-workers", classes="tab-button")
+                    yield Button(" 📊  Status", id="tab-status", classes="tab-button active-tab")
+                    yield Button(" ⚙️  Settings", id="tab-settings", classes="tab-button")
+                    yield Button(" 🔧  Tools", id="tab-tools", classes="tab-button")
+                    yield Button(" 💬  Chat", id="tab-chat", classes="tab-button")
+                    yield Button(" 📁  Projects", id="tab-projects", classes="tab-button")
+                    yield Button(" 📅  Schedule", id="tab-schedule", classes="tab-button")
+                    yield Button(" 💻  Workers", id="tab-workers", classes="tab-button")
 
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
@@ -292,7 +292,7 @@ class VoiceAssistantApp(App):
 
                 # Workers content
                 with Container(id="content-workers", classes="content-pane"):
-                    yield Static("[dim]👥[/dim] Workers", classes="pane-header")
+                    yield Static("[dim]💻[/dim] Workers", classes="pane-header")
                     yield WorkerDashboard(id="workers-dashboard")
         # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
