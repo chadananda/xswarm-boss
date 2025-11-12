@@ -85,6 +85,10 @@ class VoiceAssistantApp(App):
 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout: left column (visualizer + tabs) + right column (content) + footer at bottom"""
+        # Add main status bar at top
+        header = CyberpunkHeader()
+        header.id = "header"
+        yield header
         # Main content area with two columns
         with Horizontal(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
@@ -135,28 +139,73 @@ class VoiceAssistantApp(App):
                     yield Static("[dim]◉[/dim] Tools", classes="pane-header")
 
                     # Create tools tree with feature groups
-                    tree = Tree("Tools", id="tools-tree")
+                    tree = Tree("", id="tools-tree")
+                    tree.show_root = False
                     tree.root.expand()
 
-                    # Email group
-                    email_node = tree.root.add("📧 Email", expand=True)
-                    email_node.add_leaf("☐ Read Email")
-                    email_node.add_leaf("☐ Prune Email")
-                    email_node.add_leaf("☐ Draft Email")
+                    # Email Management
+                    email_node = tree.root.add("📧 Email Management", expand=True)
+                    email_node.add_leaf("☑ Read Unread Email")
+                    email_node.add_leaf("☐ Search Email Archive")
+                    email_node.add_leaf("☐ Draft Email Response")
                     email_node.add_leaf("☐ Send Email")
+                    email_node.add_leaf("☐ Prune Old Email")
+                    email_node.add_leaf("☐ Email Analytics")
 
-                    # xSwarm group
-                    xswarm_node = tree.root.add("🎨 xSwarm", expand=True)
-                    xswarm_node.add_leaf("☑ Change xSwarm Theme")
-                    xswarm_node.add_leaf("☐ Manage Projects")
+                    # xSwarm Theme & Persona
+                    xswarm_node = tree.root.add("🎨 xSwarm Customization", expand=True)
+                    xswarm_node.add_leaf("☑ Change Theme")
+                    xswarm_node.add_leaf("☑ Switch Persona")
+                    xswarm_node.add_leaf("☐ Customize Voice")
+                    xswarm_node.add_leaf("☐ Adjust Wake Word")
 
-                    # OS / System group
-                    os_node = tree.root.add("⚙️  OS / System", expand=True)
-                    os_node.add_leaf("☐ Modify OS Settings")
+                    # Project Management
+                    project_node = tree.root.add("📋 Project Management", expand=True)
+                    project_node.add_leaf("☑ View Projects")
+                    project_node.add_leaf("☐ Create Project")
+                    project_node.add_leaf("☐ Update Task Status")
+                    project_node.add_leaf("☐ Assign Tasks")
+                    project_node.add_leaf("☐ Generate Reports")
+                    project_node.add_leaf("☐ Schedule Meetings")
 
-                    # File Search group
-                    search_node = tree.root.add("🔍 File Search", expand=True)
-                    search_node.add_leaf("☐ Index Local Files")
+                    # Worker Management
+                    worker_node = tree.root.add("⚙️  Worker Management", expand=True)
+                    worker_node.add_leaf("☑ View Workers")
+                    worker_node.add_leaf("☐ Start Worker Task")
+                    worker_node.add_leaf("☐ Stop Worker Task")
+                    worker_node.add_leaf("☐ Worker Health Check")
+                    worker_node.add_leaf("☐ Resource Monitoring")
+
+                    # File Search & Management
+                    file_node = tree.root.add("🔍 File Operations", expand=True)
+                    file_node.add_leaf("☐ Index Local Files")
+                    file_node.add_leaf("☐ Search Files")
+                    file_node.add_leaf("☐ Find Duplicates")
+                    file_node.add_leaf("☐ Organize Files")
+                    file_node.add_leaf("☐ Backup Files")
+
+                    # System Control
+                    system_node = tree.root.add("💻 System Control", expand=True)
+                    system_node.add_leaf("☐ Adjust Volume")
+                    system_node.add_leaf("☐ Control Music Playback")
+                    system_node.add_leaf("☐ Set System Preferences")
+                    system_node.add_leaf("☐ Manage Applications")
+                    system_node.add_leaf("☐ System Monitoring")
+
+                    # Voice Commands
+                    voice_node = tree.root.add("🎤 Voice Commands", expand=True)
+                    voice_node.add_leaf("☑ Voice Recognition")
+                    voice_node.add_leaf("☑ Voice Synthesis")
+                    voice_node.add_leaf("☐ Custom Commands")
+                    voice_node.add_leaf("☐ Command Shortcuts")
+
+                    # AI & Automation
+                    ai_node = tree.root.add("🤖 AI Capabilities", expand=True)
+                    ai_node.add_leaf("☑ Natural Language Processing")
+                    ai_node.add_leaf("☑ Context Understanding")
+                    ai_node.add_leaf("☐ Task Automation")
+                    ai_node.add_leaf("☐ Smart Suggestions")
+                    ai_node.add_leaf("☐ Learning Mode")
 
                     yield tree
 
@@ -244,9 +293,10 @@ class VoiceAssistantApp(App):
             radio_set = self.query_one("#theme-selector", RadioSet)
             # Get personas with theme colors
             themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
-            # Add radio button for each themed persona using call_after_refresh
+            # Add radio button for each themed persona
             for persona in themed_personas:
                 radio_btn = RadioButton(persona.name)
+                radio_btn.id = f"theme-{persona.name.lower().replace(' ', '-')}"
                 radio_btn.value = persona.name
                 radio_set.mount(radio_btn)
             # Log how many themes we loaded
@@ -506,6 +556,72 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
+    def update_tools_tree_colors(self):
+        """Rebuild tools tree with current theme colors"""
+        try:
+            tree = self.query_one("#tools-tree", Tree)
+            tree.clear()
+            # Get current theme shade for tree items
+            shade_4 = self.theme_shade_4
+            # Email Management
+            email_node = tree.root.add(f"[{shade_4}]📧 Email Management[/{shade_4}]", expand=True)
+            email_node.add_leaf(f"[{shade_4}]☑ Read Unread Email[/{shade_4}]")
+            email_node.add_leaf(f"[{shade_4}]☐ Search Email Archive[/{shade_4}]")
+            email_node.add_leaf(f"[{shade_4}]☐ Draft Email Response[/{shade_4}]")
+            email_node.add_leaf(f"[{shade_4}]☐ Send Email[/{shade_4}]")
+            email_node.add_leaf(f"[{shade_4}]☐ Prune Old Email[/{shade_4}]")
+            email_node.add_leaf(f"[{shade_4}]☐ Email Analytics[/{shade_4}]")
+            # xSwarm Theme & Persona
+            xswarm_node = tree.root.add(f"[{shade_4}]🎨 xSwarm Customization[/{shade_4}]", expand=True)
+            xswarm_node.add_leaf(f"[{shade_4}]☑ Change Theme[/{shade_4}]")
+            xswarm_node.add_leaf(f"[{shade_4}]☑ Switch Persona[/{shade_4}]")
+            xswarm_node.add_leaf(f"[{shade_4}]☐ Customize Voice[/{shade_4}]")
+            xswarm_node.add_leaf(f"[{shade_4}]☐ Adjust Wake Word[/{shade_4}]")
+            # Project Management
+            project_node = tree.root.add(f"[{shade_4}]📋 Project Management[/{shade_4}]", expand=True)
+            project_node.add_leaf(f"[{shade_4}]☑ View Projects[/{shade_4}]")
+            project_node.add_leaf(f"[{shade_4}]☐ Create Project[/{shade_4}]")
+            project_node.add_leaf(f"[{shade_4}]☐ Update Task Status[/{shade_4}]")
+            project_node.add_leaf(f"[{shade_4}]☐ Assign Tasks[/{shade_4}]")
+            project_node.add_leaf(f"[{shade_4}]☐ Generate Reports[/{shade_4}]")
+            project_node.add_leaf(f"[{shade_4}]☐ Schedule Meetings[/{shade_4}]")
+            # Worker Management
+            worker_node = tree.root.add(f"[{shade_4}]⚙️  Worker Management[/{shade_4}]", expand=True)
+            worker_node.add_leaf(f"[{shade_4}]☑ View Workers[/{shade_4}]")
+            worker_node.add_leaf(f"[{shade_4}]☐ Start Worker Task[/{shade_4}]")
+            worker_node.add_leaf(f"[{shade_4}]☐ Stop Worker Task[/{shade_4}]")
+            worker_node.add_leaf(f"[{shade_4}]☐ Worker Health Check[/{shade_4}]")
+            worker_node.add_leaf(f"[{shade_4}]☐ Resource Monitoring[/{shade_4}]")
+            # File Search & Management
+            file_node = tree.root.add(f"[{shade_4}]🔍 File Operations[/{shade_4}]", expand=True)
+            file_node.add_leaf(f"[{shade_4}]☐ Index Local Files[/{shade_4}]")
+            file_node.add_leaf(f"[{shade_4}]☐ Search Files[/{shade_4}]")
+            file_node.add_leaf(f"[{shade_4}]☐ Find Duplicates[/{shade_4}]")
+            file_node.add_leaf(f"[{shade_4}]☐ Organize Files[/{shade_4}]")
+            file_node.add_leaf(f"[{shade_4}]☐ Backup Files[/{shade_4}]")
+            # System Control
+            system_node = tree.root.add(f"[{shade_4}]💻 System Control[/{shade_4}]", expand=True)
+            system_node.add_leaf(f"[{shade_4}]☐ Adjust Volume[/{shade_4}]")
+            system_node.add_leaf(f"[{shade_4}]☐ Control Music Playback[/{shade_4}]")
+            system_node.add_leaf(f"[{shade_4}]☐ Set System Preferences[/{shade_4}]")
+            system_node.add_leaf(f"[{shade_4}]☐ Manage Applications[/{shade_4}]")
+            system_node.add_leaf(f"[{shade_4}]☐ System Monitoring[/{shade_4}]")
+            # Voice Commands
+            voice_node = tree.root.add(f"[{shade_4}]🎤 Voice Commands[/{shade_4}]", expand=True)
+            voice_node.add_leaf(f"[{shade_4}]☑ Voice Recognition[/{shade_4}]")
+            voice_node.add_leaf(f"[{shade_4}]☑ Voice Synthesis[/{shade_4}]")
+            voice_node.add_leaf(f"[{shade_4}]☐ Custom Commands[/{shade_4}]")
+            voice_node.add_leaf(f"[{shade_4}]☐ Command Shortcuts[/{shade_4}]")
+            # AI & Automation
+            ai_node = tree.root.add(f"[{shade_4}]🤖 AI Capabilities[/{shade_4}]", expand=True)
+            ai_node.add_leaf(f"[{shade_4}]☑ Natural Language Processing[/{shade_4}]")
+            ai_node.add_leaf(f"[{shade_4}]☑ Context Understanding[/{shade_4}]")
+            ai_node.add_leaf(f"[{shade_4}]☐ Task Automation[/{shade_4}]")
+            ai_node.add_leaf(f"[{shade_4}]☐ Smart Suggestions[/{shade_4}]")
+            ai_node.add_leaf(f"[{shade_4}]☐ Learning Mode[/{shade_4}]")
+        except Exception as e:
+            pass
+
     def watch_theme_shade_3(self, new_color: str) -> None:
         """Reactive watcher - called when theme_shade_3 changes"""
         try:
@@ -513,11 +629,10 @@ class VoiceAssistantApp(App):
             color = Color.parse(new_color)
             # Get widgets
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            activity = self.query_one("#activity", ActivityFeed)
             footer = self.query_one("#footer", CyberpunkFooter)
             # Update borders directly
             visualizer.styles.border = ("solid", color)
-            activity.styles.border = ("solid", color)
+            # DO NOT set activity border - let CSS handle it to avoid double border
             footer.styles.border = ("solid", color)
             # Update pane borders
             for pane_id in ["content-status", "content-settings", "content-tools", "content-chat", "content-projects", "content-schedule", "content-workers"]:
@@ -531,6 +646,8 @@ class VoiceAssistantApp(App):
             vis_bg = bg_color.with_alpha(0.15)  # Barely visible tint
             act_bg = bg_color.with_alpha(0.12)  # Even more subtle
             visualizer.styles.background = vis_bg
+            # Get activity feed for background and theme colors
+            activity = self.query_one("#activity", ActivityFeed)
             activity.styles.background = act_bg
             # CRITICAL FIX: Pass theme palette to widgets so they render with dynamic colors
             # The widgets render Rich Text with explicit colors, so we need to give them
@@ -587,6 +704,8 @@ class VoiceAssistantApp(App):
                 else:
                     button.styles.color = color
                 button.refresh()
+            # Update tools tree colors
+            self.update_tools_tree_colors()
         except Exception:
             pass
 
@@ -596,7 +715,7 @@ class VoiceAssistantApp(App):
             from textual.color import Color
             color = Color.parse(new_color)
             # Update header/footer borders
-            header = self.query_one(CyberpunkHeader)
+            header = self.query_one("#header", CyberpunkHeader)
             footer = self.query_one("#footer", CyberpunkFooter)
             header.styles.border = ("solid", color)
             footer.styles.border = ("solid", color)
@@ -614,6 +733,8 @@ class VoiceAssistantApp(App):
             }
             header.theme_colors = theme_colors_dict
             footer.theme_colors = theme_colors_dict
+            # Update header persona name to match current persona
+            header.persona_name = self.current_persona_name
             # Force refresh to re-render with new colors
             header.refresh()
             footer.refresh()
@@ -694,12 +815,12 @@ class VoiceAssistantApp(App):
 
                 if role == "USER":
                     # User messages: bright, with dim timestamp
-                    lines.append(f"[dim][{timestamp}][/dim] [bold $shade-5]YOU:[/bold $shade-5]")
-                    lines.append(f"[$shade-5]  {message}[/$shade-5]\n")
+                    lines.append(f"[dim][{timestamp}][/dim] [bold {self.theme_shade_5}]YOU:[/bold {self.theme_shade_5}]")
+                    lines.append(f"[{self.theme_shade_5}]  {message}[/{self.theme_shade_5}]\n")
                 else:
                     # AI messages: medium color, with dim timestamp
-                    lines.append(f"[dim][{timestamp}][/dim] [bold $shade-4]{self.current_persona_name}:[/bold $shade-4]")
-                    lines.append(f"[$shade-4]  {message}[/$shade-4]\n")
+                    lines.append(f"[dim][{timestamp}][/dim] [bold {self.theme_shade_4}]{self.current_persona_name}:[/bold {self.theme_shade_4}]")
+                    lines.append(f"[{self.theme_shade_4}]  {message}[/{self.theme_shade_4}]\n")
 
             chat_display.update("\n".join(lines))
         except Exception as e:

@@ -121,7 +121,7 @@ class WorkerDashboard(Static):
             # Worker name and status
             status_color = self._get_status_color(worker["status"])
             activity_color = self._get_activity_icon_color(worker["activity"])
-            text.append(f"{worker['icon']} ", style=shade_4)
+            text.append(f"{worker['icon']}  ", style=shade_4)
             text.append(f"{worker['name']:<35}", style=f"bold {shade_5}")
             text.append(f"[{worker['status']}] ", style=f"bold {status_color}")
             # Activity icons
