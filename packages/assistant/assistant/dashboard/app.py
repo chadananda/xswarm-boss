@@ -306,10 +306,14 @@ class VoiceAssistantApp(App):
         """Initialize on mount"""
         self.set_interval(1/30, self.update_visualizer)  # 30 FPS
 
-        # Start visualizer animation
+        # Start visualizer animation and set initial title
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             visualizer.start_animation()
+
+            # Set initial title based on default persona (before moshi init)
+            persona_name = self.config.default_persona or "JARVIS"
+            visualizer.border_title = f"xSwarm - {persona_name}"
         except Exception:
             pass
 
@@ -562,10 +566,7 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
             self.state = "error"
-
-            # Update visualizer title to show error
-            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            visualizer.border_title = "xSwarm - ERROR"
+            # Don't overwrite visualizer title - keep the default persona name that was set in on_mount()
 
     async def generate_greeting(self):
         """Generate and play automatic greeting on startup"""
