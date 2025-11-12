@@ -6,49 +6,49 @@ Welcome to the xSwarm-Boss documentation! This AI-powered voice assistant system
 
 **New to xSwarm?** Start here:
 - **[Quick Start Guide](quickstart/)** - Get running in 5 minutes
-- **[Development Setup](development/DEVELOPMENT.md)** - Set up your dev environment
+- **[Development Setup](development/guide-development.md)** - Set up your dev environment
 - **[Testing Guide](testing/README.md)** - Run tests and verify functionality
 
 ## 📚 Documentation Overview
 
 ### Getting Started
 Quick-start guides for specific features:
-- [Buzz Quickstart](quickstart/BUZZ_QUICKSTART.md) - Community buzz feed
-- [Claude Code Integration](quickstart/CLAUDE_CODE_QUICKSTART.md) - AI coding assistant
-- [Marketing System](quickstart/MARKETING_QUICKSTART.md) - Email campaigns
-- [Stripe Integration](quickstart/STRIPE_QUICKSTART.md) - Payments & subscriptions
-- [Suggestions Engine](quickstart/SUGGESTIONS_QUICKSTART.md) - Context-aware AI suggestions
-- [Supervisor System](quickstart/SUPERVISOR_QUICKSTART.md) - Multi-agent coordination
+- [Buzz Quickstart](quickstart/quickstart-buzz.md) - Community buzz feed
+- [Claude Code Integration](quickstart/quickstart-claude-code.md) - AI coding assistant
+- [Marketing System](quickstart/quickstart-marketing.md) - Email campaigns
+- [Stripe Integration](quickstart/quickstart-stripe.md) - Payments & subscriptions
+- [Suggestions Engine](quickstart/quickstart-suggestions.md) - Context-aware AI suggestions
+- [Supervisor System](quickstart/quickstart-supervisor.md) - Multi-agent coordination
 
 ### Core Features
-- **[Dashboard (TUI)](DASHBOARD_IMPLEMENTATION.md)** - Terminal user interface with Textual
-- **[Persona System](PERSONA_SYSTEM.md)** - AI personality switching (JARVIS, GLaDOS, etc.)
-- **[Theme System](THEME_SWITCHING_IMPLEMENTATION.md)** - Dynamic color themes matching personas
-- **[Authentication](AUTH_IMPLEMENTATION_COMPLETE.md)** - JWT-based auth with session management
-- **[Suggestions](SUGGESTIONS_IMPLEMENTATION_SUMMARY.md)** - Context-aware AI-powered suggestions
-- **[Marketing](MARKETING_IMPLEMENTATION_SUMMARY.md)** - Email marketing with SendGrid
-- **[Buzz](BUZZ_IMPLEMENTATION_SUMMARY.md)** - Community content and listings
-- **[Supervisor](AGENTS_IMPLEMENTATION_COMPLETE.md)** - AI agent coordination system
+- **[Dashboard (TUI)](guides/guide-dashboard-implementation.md)** - Terminal user interface with Textual
+- **[Persona System](implementations/summary-persona-system.md)** - AI personality switching (JARVIS, GLaDOS, etc.)
+- **[Theme System](status/summary-theme-quick.md)** - Dynamic color themes matching personas
+- **[Authentication](implementations/summary-authentication.md)** - JWT-based auth with session management
+- **[Suggestions](implementations/summary-suggestions.md)** - Context-aware AI-powered suggestions
+- **[Marketing](implementations/summary-marketing.md)** - Email marketing with SendGrid
+- **[Buzz](implementations/summary-buzz.md)** - Community content and listings
+- **[Supervisor](planning/system-supervisor.md)** - AI agent coordination system
 
 ### Integration & Deployment
-- **[Stripe Setup](planning/STRIPE_PRODUCTS_SETUP.md)** - Payment processing and subscription tiers
+- **[Stripe Setup](planning/setups/setup-stripe-products.md)** - Payment processing and subscription tiers
 - **[SendGrid Setup](sendgrid/)** - Email delivery configuration
-- **[Cloudflare Setup](planning/CLOUDFLARE_SETUP_GUIDE.md)** - CDN and tunnel configuration
-- **[Deployment Guide](deployment/DEPLOYMENT_GUIDE.md)** - Production deployment steps
-- **[Production Checklist](deployment/DEPLOYMENT_CHECKLIST.md)** - Pre-launch verification
+- **[Cloudflare Setup](planning/setups/setup-cloudflare.md)** - CDN and tunnel configuration
+- **[Deployment Guide](deployment/guide-deployment.md)** - Production deployment steps
+- **[Production Checklist](deployment/checklist-deployment.md)** - Pre-launch verification
 
 ### Development
-- **[Development Guide](development/DEVELOPMENT.md)** - Local development setup
+- **[Development Guide](development/guide-development.md)** - Local development setup
 - **[Testing Guide](testing/README.md)** - Test strategy and execution
-- **[E2E Tests](E2E_TESTS_README.md)** - End-to-end testing with pytest-textual
+- **[E2E Tests](guides/guide-e2e-tests.md)** - End-to-end testing with pytest-textual
 - **[Security](SECURITY.md)** - Security best practices and guidelines
 
 ### Planning & Architecture
-- **[Complete Specification](planning/COMPLETE_SPECIFICATION.md)** - Master technical specification
-- **[Architecture](planning/ARCHITECTURE.md)** - System design and components
-- **[Database Schema](planning/DATABASE_SCHEMA.md)** - Data model and relationships
+- **[Complete Specification](planning/specification-complete.md)** - Master technical specification
+- **[Architecture](planning/architecture.md)** - System design and components
+- **[Database Schema](planning/schema-database.md)** - Data model and relationships
 - **[API Documentation](planning/)** - HTTP API endpoints and WebSocket events
-- **[Features Roadmap](planning/FEATURES.md)** - Planned features and enhancements
+- **[Features Roadmap](planning/features.md)** - Planned features and enhancements
 
 ## 🏗️ System Architecture
 
@@ -156,23 +156,23 @@ The project was originally prototyped in **Rust** (Q4 2025) but migrated to Pyth
 
 We welcome contributions! Please see:
 - [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
-- [Development Setup](development/DEVELOPMENT.md) - Get your environment ready
+- [Development Setup](development/guide-development.md) - Get your environment ready
 - [Testing Guide](testing/README.md) - Run tests before submitting
 
 ## 🎯 Quick Links
 
 **For Users**:
 - [Quick Start](quickstart/) - Get started fast
-- [Features](planning/FEATURES.md) - What xSwarm can do
-- [Pricing](planning/STRIPE_PRODUCTS_SETUP.md) - Subscription tiers
+- [Features](planning/features.md) - What xSwarm can do
+- [Pricing](planning/setups/setup-stripe-products.md) - Subscription tiers
 
 **For Developers**:
-- [Architecture](planning/ARCHITECTURE.md) - System design
+- [Architecture](planning/architecture.md) - System design
 - [API Docs](planning/) - HTTP API reference
-- [Database Schema](planning/DATABASE_SCHEMA.md) - Data model
+- [Database Schema](planning/schema-database.md) - Data model
 
 **For Deployers**:
-- [Deployment Guide](deployment/DEPLOYMENT_GUIDE.md) - Production deployment
+- [Deployment Guide](deployment/guide-deployment.md) - Production deployment
 - [Configuration](planning/) - Environment variables and settings
 
 ---
