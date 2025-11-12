@@ -65,6 +65,12 @@ class VoiceAssistantApp(App):
         self.persona_manager = PersonaManager(personas_dir)
         self.available_personas = list(self.persona_manager.personas.values())
 
+        # Initialize tool registry
+        from ..tools import ToolRegistry, ThemeChangeTool
+        self.tool_registry = ToolRegistry()
+        # Register theme change tool (bound to this app instance)
+        self.tool_registry.register_tool(ThemeChangeTool.create_tool(self))
+
         # Generate dynamic theme colors
         self._theme_palette = self._load_theme(config.theme_base_color)
 
@@ -608,23 +614,38 @@ class VoiceAssistantApp(App):
             self.state = "error"
             # Don't overwrite visualizer title - keep the default persona name that was set in on_mount()
 
-    async def generate_greeting(self):
-        """Generate and play automatic greeting on startup"""
+    async def generate_greeting(self, re_introduction: bool = False):
+        """
+        Generate and play automatic greeting on startup or after theme change.
+
+        Args:
+            re_introduction: If True, introduce with new persona after theme change
+        """
         import numpy as np
 
         try:
             self.state = "speaking"
             self.update_activity("👋 Generating greeting...")
 
-            # Get current persona
-            persona_name = self.config.default_persona or "JARVIS"
+            # Get current persona (use reactive property, falls back to config)
+            persona_name = self.current_persona_name if self.current_persona_name != "Default" else (self.config.default_persona or "JARVIS")
             persona = self.persona_manager.get_persona(persona_name)
 
-            # Create greeting prompt
-            greeting_prompt = f"Hello! I'm {persona_name}. How can I help you today?"
+            # Create greeting prompt with tool context
+            if re_introduction:
+                # Re-introduction after theme change
+                greeting_prompt = f"You just changed your persona to {persona_name}. Introduce yourself in character with your new personality. Be enthusiastic about the change!"
+            else:
+                # Initial startup greeting
+                greeting_prompt = f"You are {persona_name}. Greet the user warmly and introduce yourself in character."
+
+            # Add persona system prompt for context
             if persona and persona.system_prompt:
-                # Use first 150 chars of system prompt for context
-                greeting_prompt = persona.system_prompt[:150] + "\n\nGreet the user warmly."
+                greeting_prompt = persona.system_prompt + "\n\n" + greeting_prompt
+
+            # Add tool descriptions so Moshi knows what it can do
+            tool_descriptions = self.tool_registry.get_tool_descriptions()
+            greeting_prompt += f"\n\n{tool_descriptions}"
 
             # Generate silent audio input (MOSHI needs input audio)
             silent_audio = np.zeros(1920, dtype=np.float32)
@@ -1140,7 +1161,7 @@ class VoiceAssistantApp(App):
         asyncio.create_task(self.process_voice_input())
 
     async def process_voice_input(self):
-        """Process captured audio through MOSHI and play response"""
+        """Process captured audio through MOSHI with tool calling support"""
         import numpy as np
 
         try:
@@ -1155,11 +1176,11 @@ class VoiceAssistantApp(App):
             self.add_chat_message("user", f"[Audio: {len(user_audio)/24000:.1f}s]")
 
             # Get current persona for prompt
-            persona_name = self.current_persona_name
+            persona_name = self.current_persona_name if self.current_persona_name != "Default" else (self.config.default_persona or "JARVIS")
             persona = self.persona_manager.get_persona(persona_name)
-            text_prompt = None
-            if persona and persona.system_prompt:
-                text_prompt = persona.system_prompt[:200]  # First 200 chars
+
+            # Build comprehensive prompt with persona, memory, and tools
+            text_prompt = await self._build_conversation_prompt(persona)
 
             # Generate response through MOSHI
             self.state = "speaking"
@@ -1176,6 +1197,23 @@ class VoiceAssistantApp(App):
                 self.update_activity(f"💬 {response_text[:100]}")
                 self.add_chat_message("assistant", response_text)
 
+            # Check for tool calls in response
+            tool_call = self.tool_registry.parse_tool_call(response_text) if response_text else None
+
+            if tool_call:
+                # Execute tool call
+                self.update_activity(f"🔧 Executing tool: {tool_call.get('name', 'unknown')}")
+                tool_result = await self.tool_registry.execute_tool(
+                    tool_call.get("name", ""),
+                    tool_call.get("arguments", {})
+                )
+
+                if tool_result["success"]:
+                    self.update_activity(f"✓ Tool executed: {tool_result['result']}")
+                    # Note: generate_greeting will handle re-introduction for theme changes
+                else:
+                    self.update_activity(f"❌ Tool failed: {tool_result['error']}")
+
             # Play response audio with visualization
             await self.play_audio_with_visualization(response_audio)
             self.update_activity("✓ Response complete")
@@ -1185,6 +1223,45 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error processing audio: {e}")
             self.state = "error"
+
+    async def _build_conversation_prompt(self, persona) -> str:
+        """
+        Build comprehensive prompt with persona, memory, and tools.
+
+        Args:
+            persona: Current persona object
+
+        Returns:
+            Complete prompt string for Moshi
+        """
+        prompt_parts = []
+
+        # 1. Persona identity
+        persona_name = persona.name if persona else "Assistant"
+        prompt_parts.append(f"You are {persona_name}.")
+
+        # 2. Persona system prompt (character/personality)
+        if persona and persona.system_prompt:
+            prompt_parts.append(persona.system_prompt)
+
+        # 3. Conversation history from memory (if available)
+        if self.memory_manager:
+            try:
+                history = await self.memory_manager.get_conversation_history(self.user_id, limit=10)
+                if history:
+                    prompt_parts.append("\nRecent conversation history:")
+                    prompt_parts.append(history)
+            except Exception as e:
+                # Memory retrieval failed, continue without history
+                self.update_activity(f"⚠️ Could not retrieve history: {e}")
+
+        # 4. Tool descriptions
+        tool_descriptions = self.tool_registry.get_tool_descriptions()
+        if tool_descriptions and tool_descriptions != "No tools available.":
+            prompt_parts.append("\n" + tool_descriptions)
+            prompt_parts.append("\nTo use a tool, respond with: TOOL_CALL: {\"name\": \"tool_name\", \"arguments\": {...}}")
+
+        return "\n\n".join(prompt_parts)
 
     def action_copy_activity(self):
         """Copy recent activity messages to clipboard"""
