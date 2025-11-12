@@ -82,8 +82,7 @@ class CyberpunkFooter(Static):
         primary = self._get_theme_color("primary", "cyan")
         shade_3 = self._get_theme_color("shade_3", "#4d5966")
         shade_4 = self._get_theme_color("shade_4", "#6b7a8a")
-        # Top separator line
-        result.append("═" * widget_width + "\n", style=shade_4)
+        # Start directly with content (no inner border/box)
         result.append("▓▒░ ", style=f"bold {primary}")
         # 1. System Monitoring Stats
         # CPU
