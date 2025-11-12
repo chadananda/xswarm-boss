@@ -73,6 +73,10 @@ class VoiceVisualizerPanel(Static):
         self.mic_waveform: List[float] = []  # Scrolling waveform data
         self.assistant_amplitude: float = 0.0  # Current assistant speaking amplitude
 
+        # Smoothed amplitudes for stable animation
+        self._smooth_assistant_amplitude: float = 0.0
+        self.smoothing_factor: float = 0.3  # 0.0 = no smoothing, 1.0 = instant
+
         # Buffer sizes
         self.waveform_buffer_size = 100
         self.mic_waveform = [0.0] * self.waveform_buffer_size
@@ -82,7 +86,8 @@ class VoiceVisualizerPanel(Static):
         self._animation_timer = None
 
         # Simulation mode (for testing without real audio)
-        self.simulation_mode = True
+        # Set to False to use real audio data from mic/Moshi
+        self.simulation_mode = False
         self._simulation_phase = 0.0
 
     def start_animation(self):
@@ -104,6 +109,12 @@ class VoiceVisualizerPanel(Static):
         # In simulation mode, generate fake audio data
         if self.simulation_mode:
             self._update_simulated_audio()
+
+        # Apply exponential smoothing to assistant amplitude for stable visuals
+        self._smooth_assistant_amplitude = (
+            self.smoothing_factor * self.assistant_amplitude +
+            (1 - self.smoothing_factor) * self._smooth_assistant_amplitude
+        )
 
         # Refresh the display
         self.refresh()
@@ -477,8 +488,8 @@ class VoiceVisualizerPanel(Static):
                 dy = (y - center_y) * 2  # Adjust for character aspect ratio
                 distance = math.sqrt(dx * dx + dy * dy)
 
-                # Map distance to amplitude rings
-                ring_size = 5 * self.assistant_amplitude
+                # Map distance to amplitude rings (using smoothed amplitude)
+                ring_size = 5 * self._smooth_assistant_amplitude
                 ring_phase = (distance - self.animation_frame * 0.5) % (ring_size + 1)
 
                 if ring_phase < ring_size:
@@ -507,8 +518,8 @@ class VoiceVisualizerPanel(Static):
                 dy = (y - center_y) * 2
                 distance = math.sqrt(dx * dx + dy * dy)
 
-                # Create ripple effect
-                ripple = math.sin(distance * 0.5 - self.animation_frame * 0.3) * self.assistant_amplitude
+                # Create ripple effect (using smoothed amplitude)
+                ripple = math.sin(distance * 0.5 - self.animation_frame * 0.3) * self._smooth_assistant_amplitude
 
                 if ripple > 0.3:
                     char_idx = int((distance + self.animation_frame) % len(wave_chars))
@@ -546,8 +557,8 @@ class VoiceVisualizerPanel(Static):
                 bar_idx = int((angle + math.pi) / (2 * math.pi) * num_bars)
                 bar_angle = (bar_idx / num_bars) * 2 * math.pi - math.pi
 
-                # Calculate amplitude for this bar (varies by bar and time)
-                bar_amplitude = math.sin(self.animation_frame * 0.2 + bar_idx) * self.assistant_amplitude
+                # Calculate amplitude for this bar (varies by bar and time, using smoothed amplitude)
+                bar_amplitude = math.sin(self.animation_frame * 0.2 + bar_idx) * self._smooth_assistant_amplitude
                 bar_height = radius * (0.5 + bar_amplitude)
 
                 # Check if point is within this bar
@@ -587,7 +598,7 @@ class VoiceVisualizerPanel(Static):
 
                 # Check each ring
                 for ring_idx in range(num_rings):
-                    ring_radius = (ring_idx + 1) * 5 * self.assistant_amplitude
+                    ring_radius = (ring_idx + 1) * 5 * self._smooth_assistant_amplitude
 
                     if abs(distance - ring_radius) < 1.5:
                         # Check if we're near a dot position
@@ -620,8 +631,8 @@ class VoiceVisualizerPanel(Static):
 
         spinner_chars = ["◜", "◝", "◞", "◟"]
 
-        # Spinning radius based on amplitude
-        radius = 8 * self.assistant_amplitude
+        # Spinning radius based on smoothed amplitude
+        radius = 8 * self._smooth_assistant_amplitude
 
         for y in range(height):
             line = ""
@@ -665,8 +676,8 @@ class VoiceVisualizerPanel(Static):
                 distance = math.sqrt(dx * dx + dy * dy)
                 angle = math.atan2(dy, dx)
 
-                # Create wave pattern around circle
-                wave_offset = math.sin(angle * 5 + self.animation_frame * 0.3) * self.assistant_amplitude * 5
+                # Create wave pattern around circle (using smoothed amplitude)
+                wave_offset = math.sin(angle * 5 + self.animation_frame * 0.3) * self._smooth_assistant_amplitude * 5
                 target_radius = base_radius + wave_offset
 
                 if abs(distance - target_radius) < 2:

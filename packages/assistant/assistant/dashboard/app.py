@@ -545,9 +545,13 @@ class VoiceAssistantApp(App):
 
             # Start audio input with callback for visualization
             def audio_callback(audio):
-                # Update amplitude for visualizer
-                amplitude = self.moshi_bridge.get_amplitude(audio)
-                self.amplitude = amplitude
+                # Update mic amplitude for bottom waveform visualizer
+                self.moshi_bridge.update_mic_amplitude(audio)
+                amplitude = self.moshi_bridge.mic_amplitude
+
+                # Update visualizer with mic amplitude
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                visualizer.add_mic_sample(amplitude)
 
             self.audio_io.start_input(callback=audio_callback)
             self.audio_io.start_output()
@@ -622,15 +626,19 @@ class VoiceAssistantApp(App):
         # Queue audio for playback
         self.audio_io.play_audio(audio)
 
-        # Update visualizer amplitude during playback
+        # Update Moshi amplitude for top circle visualizer during playback
+        visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
         for i in range(num_frames):
             frame = audio[i * frame_size:(i + 1) * frame_size]
-            amplitude = self.moshi_bridge.get_amplitude(frame)
-            self.amplitude = amplitude
+            self.moshi_bridge.update_moshi_amplitude(frame)
+            amplitude = self.moshi_bridge.moshi_amplitude
+
+            # Update top circle with Moshi output amplitude
+            visualizer.set_assistant_amplitude(amplitude)
             await asyncio.sleep(0.08)  # 80ms per frame
 
-        # Reset amplitude after playback
-        self.amplitude = 0.0
+        # Reset Moshi amplitude after playback
+        visualizer.set_assistant_amplitude(0.0)
 
     def rotate_persona(self):
         """Randomly switch to a different persona"""

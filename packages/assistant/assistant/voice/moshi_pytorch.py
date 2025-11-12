@@ -35,18 +35,22 @@ class MoshiBridge:
 
     def __init__(
         self,
-        device: torch.device,
-        model_dir: Path,
+        device: Optional[torch.device] = None,
+        model_dir: Optional[Path] = None,
         sample_rate: int = 24000
     ):
         """
         Initialize MOSHI bridge.
 
         Args:
-            device: PyTorch device (cuda, mps, or cpu)
-            model_dir: Directory containing MOSHI models
+            device: PyTorch device (auto-detected if None)
+            model_dir: Directory containing MOSHI models (optional)
             sample_rate: Audio sample rate (default: 24kHz)
         """
+        # Auto-detect device if not provided
+        if device is None:
+            device = self._detect_device()
+
         self.device = device
         self.sample_rate = sample_rate
         self.frame_size = 1920  # 80ms at 24kHz
@@ -62,6 +66,38 @@ class MoshiBridge:
 
         # Internal state
         self.conversation_history: List[dict] = []
+
+        # Amplitude tracking
+        self.mic_amplitude = 0.0
+        self.moshi_amplitude = 0.0
+
+    @staticmethod
+    def _detect_device() -> torch.device:
+        """
+        Auto-detect best available PyTorch device.
+
+        Priority:
+        1. CUDA (NVIDIA GPUs)
+        2. ROCm (AMD GPUs)
+        3. MPS (Apple Silicon)
+        4. CPU (fallback)
+
+        Returns:
+            torch.device: Best available device
+        """
+        if torch.cuda.is_available():
+            # NVIDIA GPU or AMD GPU with ROCm
+            device_name = torch.cuda.get_device_name(0)
+            print(f"✓ Using CUDA: {device_name}")
+            return torch.device("cuda:0")
+
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            # Apple Silicon (M1/M2/M3)
+            print("✓ Using Apple Metal (MPS)")
+            return torch.device("mps")
+
+        print("⚠ Using CPU (no GPU acceleration)")
+        return torch.device("cpu")
 
     def encode_audio(self, audio: np.ndarray) -> torch.Tensor:
         """
@@ -176,3 +212,21 @@ class MoshiBridge:
         rms = np.sqrt(np.mean(audio ** 2))
         # Normalize to 0-1 range
         return float(np.clip(rms * 3, 0, 1))
+
+    def update_mic_amplitude(self, audio: np.ndarray):
+        """
+        Update mic amplitude from audio input.
+
+        Args:
+            audio: Microphone audio samples
+        """
+        self.mic_amplitude = self.get_amplitude(audio)
+
+    def update_moshi_amplitude(self, audio: np.ndarray):
+        """
+        Update Moshi amplitude from audio output.
+
+        Args:
+            audio: Moshi audio output samples
+        """
+        self.moshi_amplitude = self.get_amplitude(audio)
