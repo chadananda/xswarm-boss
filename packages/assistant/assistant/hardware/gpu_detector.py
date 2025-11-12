@@ -76,6 +76,23 @@ def _calculate_grade(vram_gb: float) -> str:
         return "F"
 
 
+def _calculate_compute_score(vram_gb: float) -> float:
+    """
+    Calculate numeric compute score (0-100) based on VRAM.
+
+    Linear scale where 128GB = 100, 0GB = 0.
+    This score is used for automatic service selection.
+
+    Examples:
+    - 128GB+ = 100 (max score)
+    - 64GB = 50 (half capacity)
+    - 32GB = 25 (baseline for local inference)
+    - 16GB = 12.5
+    - 8GB = 6.25
+    """
+    return min(100.0, (vram_gb / 128.0) * 100.0)
+
+
 def _detect_nvidia_gpu() -> Optional[GPUCapability]:
     """
     Detect NVIDIA GPU using pynvml (NVIDIA Management Library).
@@ -110,12 +127,11 @@ def _detect_nvidia_gpu() -> Optional[GPUCapability]:
         except:
             temp = None
 
-        # Compute score (simplified: use VRAM as proxy)
-        compute_score = min(100, (vram_total / 128) * 100)
-
         pynvml.nvmlShutdown()
 
+        # Calculate grade and compute score
         grade = _calculate_grade(vram_total)
+        compute_score = _calculate_compute_score(vram_total)
 
         return GPUCapability(
             device_name=name,
@@ -178,13 +194,12 @@ def _detect_apple_gpu() -> Optional[GPUCapability]:
         else:
             device_name = "Apple Silicon"
 
-        # Compute score based on available RAM
-        compute_score = min(100, (total_gb / 128) * 100)
-
         # No temperature sensor accessible via Python on macOS
         temp = None
 
+        # Calculate grade and compute score
         grade = _calculate_grade(total_gb)
+        compute_score = _calculate_compute_score(total_gb)
 
         return GPUCapability(
             device_name=device_name,
@@ -260,10 +275,9 @@ def _detect_amd_gpu() -> Optional[GPUCapability]:
 
         amdsmi.amdsmi_shut_down()
 
-        # Compute score
-        compute_score = min(100, (vram_total / 128) * 100)
-
+        # Calculate grade and compute score
         grade = _calculate_grade(vram_total)
+        compute_score = _calculate_compute_score(vram_total)
 
         return GPUCapability(
             device_name=name,
@@ -322,14 +336,13 @@ def _detect_cpu_fallback() -> GPUCapability:
     else:
         device_name = "CPU"
 
-    # CPU always gets low compute score
-    compute_score = 10.0
-
     # CPU never has temperature accessible
     temp = None
 
     # Grade based on RAM (will be F for most systems)
     grade = _calculate_grade(total_gb)
+    # CPU gets compute score based on RAM, but capped lower since no GPU
+    compute_score = min(10.0, _calculate_compute_score(total_gb))
 
     return GPUCapability(
         device_name=device_name,

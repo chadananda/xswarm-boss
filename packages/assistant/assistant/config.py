@@ -42,6 +42,18 @@ class Config(BaseModel):
     theme_base_color: str = "#8899aa"  # Base color for shade palette generation
     # Can be: hex color ("#8899aa"), or preset name ("blue-gray", "slate", "cyan", etc.)
 
+    # Service selection settings (auto-selected based on GPU capability)
+    moshi_quality: str = "auto"  # "auto", "bf16", "q8", "q4", or "cloud"
+    thinking_mode: str = "auto"  # "auto", "local", or "cloud"
+    thinking_model: str = "auto"  # "auto", "ollama:70b", "ollama:13b", "ollama:7b", or "anthropic:claude"
+    embedding_mode: str = "cpu"  # "cpu" or "cloud" (always CPU for now)
+
+    # API Keys (loaded from .env in debug mode)
+    is_debug_mode: bool = False  # Set to True when --debug flag used
+    anthropic_api_key: Optional[str] = None  # For cloud thinking
+    openai_api_key: Optional[str] = None  # For future cloud services
+    openrouter_api_key: Optional[str] = None  # For alternative cloud routing
+
     class Config:
         """Pydantic configuration"""
         arbitrary_types_allowed = True
@@ -80,6 +92,46 @@ class Config(BaseModel):
         config_dir = Path.home() / ".config" / "xswarm"
         config_dir.mkdir(parents=True, exist_ok=True)
         return config_dir / "config.yaml"
+
+    @classmethod
+    def load_env_keys(cls, config: "Config") -> "Config":
+        """
+        Load API keys from .env file when in debug mode.
+
+        Only loads keys if is_debug_mode is True.
+
+        Args:
+            config: Existing config to update
+
+        Returns:
+            Config: Updated configuration with API keys
+        """
+        if not config.is_debug_mode:
+            return config
+
+        try:
+            from dotenv import load_dotenv
+            import os
+
+            # Load .env from project root
+            load_dotenv()
+
+            # Load API keys from environment
+            if os.getenv("ANTHROPIC_API_KEY"):
+                config.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
+
+            if os.getenv("OPENAI_API_KEY"):
+                config.openai_api_key = os.getenv("OPENAI_API_KEY")
+
+            if os.getenv("OPENROUTER_API_KEY"):
+                config.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+
+            print("✓ Loaded API keys from .env (debug mode)")
+
+        except ImportError:
+            print("Warning: python-dotenv not installed, cannot load .env file")
+
+        return config
 
     @classmethod
     def load_from_file(cls, config_path: Optional[Path] = None) -> "Config":

@@ -40,36 +40,66 @@ class MoshiBridge:
 
     def __init__(
         self,
-        hf_repo: str = "kyutai/moshiko-mlx-q8",
-        quantized: int = 8,  # 4 or 8 bit quantization
+        hf_repo: Optional[str] = None,  # Auto-selected if None
+        quantized: Optional[int] = None,  # Auto-selected if None
         max_steps: int = 500,  # Max generation steps (~40s at 12.5 Hz)
-        sample_rate: int = 24000
+        sample_rate: int = 24000,
+        quality: str = "auto"  # "auto", "bf16", "q8", "q4"
     ):
         """
-        Initialize MLX Moshi bridge.
+        Initialize MLX Moshi bridge with automatic quality selection.
 
         Args:
-            hf_repo: HuggingFace repo for models (default: 8-bit quantized)
-            quantized: Quantization level (4 or 8 bits, None for full precision)
+            hf_repo: HuggingFace repo (auto-selected if None based on quality)
+            quantized: Quantization level (auto-selected if None based on quality)
             max_steps: Maximum generation steps
             sample_rate: Audio sample rate (24kHz)
+            quality: Quality preset ("auto" detects from GPU, or "bf16"/"q8"/"q4")
         """
-        self.hf_repo = hf_repo
-        self.quantized = quantized
+        # Auto-select quality based on GPU capability
+        if quality == "auto":
+            from ..hardware.gpu_detector import detect_gpu_capability
+            from ..hardware.service_selector import select_services
+
+            gpu = detect_gpu_capability()
+            config = select_services(gpu)
+
+            if config.moshi_mode == "cloud":
+                raise RuntimeError(
+                    f"GPU insufficient for local Moshi (score: {gpu.compute_score:.1f}/100, grade: {gpu.grade}). "
+                    "Cloud Moshi not yet implemented."
+                )
+
+            quality = config.moshi_quality
+
+        # Map quality to repo and quantization
+        quality_map = {
+            "bf16": ("kyutai/moshiko-mlx-bf16", None),
+            "q8": ("kyutai/moshiko-mlx-q8", 8),
+            "q4": ("kyutai/moshiko-mlx-q4", 4),
+        }
+
+        if quality not in quality_map:
+            raise ValueError(f"Invalid quality: {quality}. Must be 'auto', 'bf16', 'q8', or 'q4'")
+
+        # Use provided values or auto-selected values
+        self.quality = quality
+        self.hf_repo = hf_repo or quality_map[quality][0]
+        self.quantized = quantized if quantized is not None else quality_map[quality][1]
         self.max_steps = max_steps
         self.sample_rate = sample_rate
         self.frame_size = 1920  # 80ms at 24kHz
 
         # Download model files
-        if quantized == 8:
-            model_file = hf_hub_download(hf_repo, "model.q8.safetensors")
-        elif quantized == 4:
-            model_file = hf_hub_download(hf_repo, "model.q4.safetensors")
+        if self.quantized == 8:
+            model_file = hf_hub_download(self.hf_repo, "model.q8.safetensors")
+        elif self.quantized == 4:
+            model_file = hf_hub_download(self.hf_repo, "model.q4.safetensors")
         else:
-            model_file = hf_hub_download(hf_repo, "model.safetensors")
+            model_file = hf_hub_download(self.hf_repo, "model.safetensors")
 
-        mimi_file = hf_hub_download(hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
-        tokenizer_file = hf_hub_download(hf_repo, "tokenizer_spm_32k_3.model")
+        mimi_file = hf_hub_download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
+        tokenizer_file = hf_hub_download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
