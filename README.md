@@ -17,7 +17,7 @@
 
 <div align="center">
 
-[![Rust](https://img.shields.io/badge/rust-%23000000.svg?style=for-the-badge&logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-blue?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)](https://www.linux.org/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=for-the-badge)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/chadananda/xSwarm-boss?style=for-the-badge)](https://github.com/chadananda/xSwarm-boss/stargazers)
@@ -346,7 +346,7 @@ xSwarm treats your machines as a coordinated team:
 
 The Overlord intelligently routes tasks:
 ```
-Heavy Rust build? → Brawny (16-core builder)
+Heavy Python/GPU build? → Brawny (16-core builder)
 Integration tests? → Speedy (fast SSD, lots of RAM)
 Machine learning? → Brainy (GPU-equipped)
 ```
@@ -485,10 +485,11 @@ Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever persona you 
 ## Roadmap
 
 **Phase 1: Core Foundation** (Q4 2025)
-- ✅ Rust orchestrator with Ratatui UI
-- ✅ Voice interface (Anthropic/local LLM)
-- ✅ Multi-machine WebSocket coordination
-- ✅ Basic task routing
+- ✅ Python voice assistant with Textual TUI
+- ✅ Voice interface with Moshi (local/cloud)
+- ✅ GPU capability detection and service selection
+- ✅ Persona system with theme support
+- 🚧 Multi-machine WebSocket coordination
 - 🚧 Security layer (MCP isolation)
 - 🚧 Memory system (4-layer architecture)
 

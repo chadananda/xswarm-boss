@@ -1,4 +1,10 @@
-# Test Results: Rust Compilation Fixes
+# [ARCHIVED] Test Results: Rust Compilation Fixes
+
+> **⚠️ HISTORICAL DOCUMENT**
+> This document describes test results for the original Rust implementation of xSwarm (Phase 1, Q4 2025).
+> The project has since migrated to Python with Textual TUI.
+> Kept for historical reference only.
+> See current architecture: [docs/planning/ARCHITECTURE.md](../planning/ARCHITECTURE.md)
 
 ## Test Execution Date
 $(date)

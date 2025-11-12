@@ -9,7 +9,7 @@ xSwarm is a voice-first AI assistant platform with a sophisticated tier-based su
 - **Semantic memory system** with vector embeddings
 - **Persona management** with Big Five personality traits
 - **Project orchestration** and team collaboration
-- **Distributed architecture** (Rust client + Node.js server)
+- **Distributed architecture** (Python client + Node.js server)
 
 ---
 
@@ -38,10 +38,11 @@ xSwarm is a voice-first AI assistant platform with a sophisticated tier-based su
                             ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                    Processing Layer                          │
-│  Rust Client (Desktop) ←→ Node.js Server (Cloudflare)       │
-│  • Wake word detection    • API routing                      │
-│  • Voice processing       • Database access                  │
-│  • Local AI inference     • Cloud AI orchestration          │
+│  Python Client (Desktop) ←→ Node.js Server (Cloudflare)     │
+│  • Textual TUI interface  • API routing                      │
+│  • Wake word detection    • Database access                  │
+│  • Voice processing       • Cloud AI orchestration          │
+│  • Local AI inference     • Subscription management         │
 └─────────────────────────────────────────────────────────────┘
                             ↓
 ┌─────────────────────────────────────────────────────────────┐

@@ -1,4 +1,10 @@
-# Rust Client Compilation Fixes
+# [ARCHIVED] Rust Client Compilation Fixes
+
+> **⚠️ HISTORICAL DOCUMENT**
+> This document describes work on the original Rust implementation of xSwarm (Phase 1, Q4 2025).
+> The project has since migrated to Python with Textual TUI.
+> Kept for historical reference only.
+> See current architecture: [docs/planning/ARCHITECTURE.md](../planning/ARCHITECTURE.md)
 
 ## Summary
 
