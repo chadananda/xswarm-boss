@@ -117,7 +117,7 @@ class WorkerDashboard(Static):
         for i, worker in enumerate(self._workers):
             # Add spacing between workers
             if i > 0:
-                text.append("\n")
+                text.append("\n\n")
             # Worker name and status
             status_color = self._get_status_color(worker["status"])
             activity_color = self._get_activity_icon_color(worker["activity"])
