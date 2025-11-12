@@ -9,7 +9,7 @@
 
 ### 1. Standard Test (Automated, uses quiet noise)
 ```bash
-export OPENAI_API_KEY=***REMOVED***
+export OPENAI_API_KEY=your_openai_key_here  # Get from .env
 ./target/release/xswarm --moshi-test
 ```
 
@@ -23,7 +23,7 @@ export OPENAI_API_KEY=***REMOVED***
 
 ### 2. Real Voice Test (Interactive, records your voice)
 ```bash
-export OPENAI_API_KEY=***REMOVED***
+export OPENAI_API_KEY=your_openai_key_here  # Get from .env
 ./scripts/test-real-voice-input.sh
 ```
 
@@ -49,7 +49,7 @@ export OPENAI_API_KEY=***REMOVED***
 
 ### 4. Custom Audio File Test
 ```bash
-export OPENAI_API_KEY=***REMOVED***
+export OPENAI_API_KEY=your_openai_key_here  # Get from .env
 export MOSHI_TEST_INPUT=./path/to/your/audio.wav
 ./target/release/xswarm --moshi-test
 ```
@@ -109,7 +109,7 @@ If real-time is garbled but recordings are clear:
 
 ### "OPENAI_API_KEY not set"
 ```bash
-export OPENAI_API_KEY=***REMOVED***
+export OPENAI_API_KEY=your_openai_key_here  # Get from .env
 ```
 
 ### "sox: command not found"
