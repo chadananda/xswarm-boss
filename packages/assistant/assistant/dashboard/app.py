@@ -21,6 +21,7 @@ from .widgets.activity_feed import ActivityFeed
 from .widgets.footer import CyberpunkFooter
 from .widgets.project_dashboard import ProjectDashboard
 from .widgets.worker_dashboard import WorkerDashboard
+from .widgets.schedule_widget import ScheduleWidget
 from .screens import SettingsScreen, WizardScreen, VoiceVizDemoScreen
 from ..config import Config
 from .theme import generate_palette, get_theme_preset, THEME_PRESETS
@@ -218,11 +219,7 @@ class VoiceAssistantApp(App):
                 # Schedule content
                 with Container(id="content-schedule", classes="content-pane"):
                     yield Static("[dim]📅[/dim] Schedule", classes="pane-header")
-                    with ScrollableContainer(id="schedule-list"):
-                        yield Label("[bold $shade-5]Today's Schedule[/bold $shade-5]", markup=True, id="schedule-title")
-                        yield Label("  └─ Daily standup - 9:00 AM", markup=True, classes="schedule-item")
-                        yield Label("  └─ Code review - 2:00 PM", markup=True, classes="schedule-item")
-                        yield Label("  └─ Deploy to staging - 5:00 PM", markup=True, classes="schedule-item")
+                    yield ScheduleWidget(id="schedule-widget")
 
                 # Workers content
                 with Container(id="content-workers", classes="content-pane"):
@@ -665,6 +662,13 @@ class VoiceAssistantApp(App):
                 worker_dashboard = self.query_one("#workers-dashboard", WorkerDashboard)
                 worker_dashboard.theme_colors = theme_colors_dict
                 worker_dashboard.refresh()
+            except Exception:
+                pass
+            # Update schedule widget if available
+            try:
+                schedule_widget = self.query_one("#schedule-widget", ScheduleWidget)
+                schedule_widget.theme_colors = theme_colors_dict
+                schedule_widget.refresh()
             except Exception:
                 pass
             # Force refresh to re-render with new colors
