@@ -131,11 +131,11 @@ class VoiceAssistantApp(App):
                 with Container(id="content-settings", classes="content-pane"):
                     yield Static("[dim]⚙️[/dim] Settings", classes="pane-header")
 
-                    # Theme group box
-                    with Container(classes="settings-group") as theme_group:
-                        theme_group.border_title = "Theme"
+                    # Persona selector group box
+                    with Container(classes="settings-group") as persona_group:
+                        persona_group.border_title = "Persona"
                         with RadioSet(id="theme-selector"):
-                            # Will be populated dynamically with available themes
+                            # Will be populated dynamically with available personas
                             pass
 
                     # OAuth Connectors group box
@@ -370,22 +370,22 @@ class VoiceAssistantApp(App):
         activity.add_message("Mock critical error - failed to load model checkpoint", "error")
 
     def populate_theme_selector(self):
-        """Populate theme selector with available persona themes"""
+        """Populate persona selector with available personas"""
         try:
             radio_set = self.query_one("#theme-selector", RadioSet)
             # Get personas with theme colors
             themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
-            # Add radio button for each themed persona
+            # Add radio button for each persona
             for persona in themed_personas:
                 radio_btn = RadioButton(persona.name)
                 radio_btn.id = f"theme-{persona.name.lower().replace(' ', '-')}"
                 # Note: RadioButton.value is a boolean (pressed state), not for custom data
                 # We use label (persona.name) to identify which persona was selected
                 radio_set.mount(radio_btn)
-            # Log how many themes we loaded
-            self.update_activity(f"Loaded {len(themed_personas)} themed personas")
+            # Log how many personas we loaded
+            self.update_activity(f"Loaded {len(themed_personas)} personas")
         except Exception as e:
-            self.update_activity(f"Error populating themes: {e}")
+            self.update_activity(f"Error populating personas: {e}")
 
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -491,7 +491,7 @@ class VoiceAssistantApp(App):
             pass  # Widgets not ready yet
 
     def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
-        """Handle theme selection change"""
+        """Handle persona selection change"""
         if event.radio_set.id != "theme-selector":
             return
         # Get selected persona name from RadioButton label
