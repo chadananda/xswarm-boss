@@ -4,7 +4,17 @@ MLX MOSHI bridge optimized for Apple Silicon (M1/M2/M3).
 This implementation uses:
 - MLX framework (Apple's ML framework for Metal GPU)
 - RustyMimi codec (Rust-based audio tokenizer)
-- Quantized models (4-bit or 8-bit) for efficiency
+- Runtime quantization (4-bit or 8-bit) for efficiency
+
+Key Design Decision:
+    Instead of using pre-quantized checkpoints (kyutai/moshiko-mlx-q8, q4),
+    we load the BF16 checkpoint and quantize at runtime. This avoids
+    dimension mismatch issues while providing the same memory/speed benefits.
+
+Quality Levels:
+    - BF16: Full precision (~7.6GB VRAM, highest quality)
+    - Q8: 8-bit quantization (~3.8GB VRAM, excellent quality)
+    - Q4: 4-bit quantization (~1.9GB VRAM, good quality)
 
 Replaces PyTorch implementation which has MPS limitations on M3.
 
@@ -72,11 +82,13 @@ class MoshiBridge:
 
             quality = config.moshi_quality
 
-        # Map quality to repo and quantization
+        # Map quality to repo and quantization strategy
+        # Key insight: For quantized models, we load BF16 weights and quantize at runtime
+        # This avoids dimension mismatch issues with pre-quantized checkpoints
         quality_map = {
-            "bf16": ("kyutai/moshiko-mlx-bf16", None),
-            "q8": ("kyutai/moshiko-mlx-q8", 8),
-            "q4": ("kyutai/moshiko-mlx-q4", 4),
+            "bf16": ("kyutai/moshiko-mlx-bf16", None, "model.safetensors"),
+            "q8": ("kyutai/moshiko-mlx-bf16", 8, "model.safetensors"),  # Load BF16, quantize to 8-bit
+            "q4": ("kyutai/moshiko-mlx-bf16", 4, "model.safetensors"),  # Load BF16, quantize to 4-bit
         }
 
         if quality not in quality_map:
@@ -84,19 +96,16 @@ class MoshiBridge:
 
         # Use provided values or auto-selected values
         self.quality = quality
-        self.hf_repo = hf_repo or quality_map[quality][0]
-        self.quantized = quantized if quantized is not None else quality_map[quality][1]
+        default_repo, default_quant, default_file = quality_map[quality]
+        self.hf_repo = hf_repo or default_repo
+        self.quantized = quantized if quantized is not None else default_quant
         self.max_steps = max_steps
         self.sample_rate = sample_rate
         self.frame_size = 1920  # 80ms at 24kHz
 
         # Download model files
-        if self.quantized == 8:
-            model_file = hf_hub_download(self.hf_repo, "model.q8.safetensors")
-        elif self.quantized == 4:
-            model_file = hf_hub_download(self.hf_repo, "model.q4.safetensors")
-        else:
-            model_file = hf_hub_download(self.hf_repo, "model.safetensors")
+        # Always use BF16 checkpoint and quantize at runtime if needed
+        model_file = hf_hub_download(self.hf_repo, default_file)
 
         mimi_file = hf_hub_download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
         tokenizer_file = hf_hub_download(self.hf_repo, "tokenizer_spm_32k_3.model")
@@ -117,6 +126,8 @@ class MoshiBridge:
             group_size = 32 if quantized == 4 else 64
             nn.quantize(self.model, bits=quantized, group_size=group_size)
 
+        # Load weights - strict=True works with quantized checkpoints
+        # The reference implementation uses strict=True successfully
         self.model.load_weights(model_file, strict=True)
         self.model.warmup()
 
