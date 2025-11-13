@@ -26,6 +26,8 @@ from .screens import SettingsScreen, WizardScreen, VoiceVizDemoScreen
 from ..config import Config
 from .theme import generate_palette, get_theme_preset, THEME_PRESETS
 from ..personas.manager import PersonaManager
+from ..voice.bridge import VoiceBridgeOrchestrator, ConversationState
+from ..memory import MemoryManager
 import re
 import random
 
@@ -58,9 +60,11 @@ class VoiceAssistantApp(App):
         self.audio_io: Optional[object] = None
         self.audio_buffer = []  # Buffer for capturing audio during listening
         self.chat_history = []  # Store chat messages (user + assistant)
-        self.memory_manager: Optional[object] = None  # Memory manager for persistence
+        self.memory_manager: Optional[MemoryManager] = None  # Memory manager for persistence
         self.user_id = "local-user"  # Default user ID
-
+        # Voice bridge orchestrator (initialized later)
+        self.voice_bridge: Optional[VoiceBridgeOrchestrator] = None
+        self.voice_initialized = False
         # Load personas
         self.persona_manager = PersonaManager(personas_dir)
         self.available_personas = list(self.persona_manager.personas.values())
@@ -331,12 +335,10 @@ class VoiceAssistantApp(App):
 
         # Initialize memory manager
         asyncio.create_task(self.initialize_memory())
-
         # Add dummy chat messages
         self.add_dummy_chat_messages()
-
-        # Load MOSHI and start immediately
-        asyncio.create_task(self.initialize_moshi())
+        # Initialize voice bridge in background (don't block UI)
+        asyncio.create_task(self.initialize_voice())
 
     def add_dummy_chat_messages(self):
         """Add dummy chat messages for demonstration"""
@@ -532,19 +534,53 @@ class VoiceAssistantApp(App):
     async def initialize_memory(self):
         """Initialize memory manager for conversation history"""
         try:
-            from ..memory import MemoryManager
-
             self.memory_manager = MemoryManager(
                 server_url=self.config.server_url if hasattr(self.config, 'server_url') else "http://localhost:3000",
                 max_history=100
             )
-
             await self.memory_manager.initialize()
             self.update_activity("✅ Memory system initialized")
-
         except Exception as e:
             self.update_activity(f"⚠️  Memory init failed: {e}, using chat history only")
             self.memory_manager = None
+
+    async def initialize_voice(self) -> bool:
+        """
+        Initialize voice bridge (load Moshi models and connect to orchestrator).
+
+        Returns:
+            True if initialization successful, False otherwise
+        """
+        if self.voice_initialized:
+            return True
+
+        try:
+            self.update_activity("Initializing voice bridge...")
+            # Ensure memory manager is initialized first
+            if not self.memory_manager:
+                await self.initialize_memory()
+
+            # Create voice bridge with persona and memory managers
+            moshi_quality = getattr(self.config, 'moshi_quality', 'auto')
+            self.voice_bridge = VoiceBridgeOrchestrator(
+                persona_manager=self.persona_manager,
+                memory_manager=self.memory_manager,
+                config=self.config,
+                user_id=self.user_id,
+                moshi_quality=moshi_quality
+            )
+            # Initialize Moshi models
+            await self.voice_bridge.initialize()
+            # Register state change callback
+            self.voice_bridge.on_state_change(self._on_voice_state_change)
+            # Mark as initialized
+            self.voice_initialized = True
+            self.update_activity("✅ Voice bridge initialized successfully")
+            return True
+        except Exception as e:
+            self.update_activity(f"❌ Voice initialization failed: {e}")
+            self.voice_initialized = False
+            return False
 
     async def initialize_moshi(self):
         """Load voice models and initialize audio"""
@@ -970,27 +1006,63 @@ class VoiceAssistantApp(App):
         """Update visualizer at 30 FPS"""
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-
-            # Process queued mic amplitudes from audio thread
-            if hasattr(self, '_mic_amplitude_queue') and self._mic_amplitude_queue:
+            # Use voice bridge amplitudes if available
+            if self.voice_initialized and self.voice_bridge:
+                amplitudes = self.voice_bridge.get_amplitudes()
+                mic_amp = amplitudes.get("mic_amplitude", 0.0)
+                moshi_amp = amplitudes.get("moshi_amplitude", 0.0)
+                # Update visualizer with real amplitudes
+                visualizer.add_mic_sample(mic_amp)
+                visualizer.set_assistant_amplitude(moshi_amp)
+            # Fallback to legacy audio callback method
+            elif hasattr(self, '_mic_amplitude_queue') and self._mic_amplitude_queue:
                 # Process all queued amplitudes
                 samples_processed = 0
                 while self._mic_amplitude_queue:
                     amplitude = self._mic_amplitude_queue.pop(0)
                     visualizer.add_mic_sample(amplitude)
                     samples_processed += 1
-
                 # DEBUG: Log occasionally
                 if not hasattr(self, '_visualizer_update_counter'):
                     self._visualizer_update_counter = 0
                 self._visualizer_update_counter += 1
                 if self._visualizer_update_counter % 90 == 0:  # Every 3 seconds at 30 FPS
                     print(f"[DEBUG] Visualizer update: processed {samples_processed} samples, sim_mode={visualizer.simulation_mode}")
-
             # Legacy amplitude property (kept for compatibility)
             visualizer.amplitude = self.amplitude
         except Exception as e:
             pass  # Widget not ready yet
+
+    def _on_voice_state_change(self, new_state: ConversationState):
+        """
+        Callback when voice bridge state changes.
+
+        Args:
+            new_state: New conversation state
+        """
+        # Map ConversationState to app state string
+        state_map = {
+            ConversationState.IDLE: "idle",
+            ConversationState.LISTENING: "listening",
+            ConversationState.THINKING: "thinking",
+            ConversationState.SPEAKING: "speaking",
+            ConversationState.ERROR: "error"
+        }
+        # Update app state (reactive property)
+        self.state = state_map.get(new_state, "idle")
+        # Log state change to activity feed (only if app is mounted)
+        try:
+            state_emojis = {
+                ConversationState.IDLE: "⚪",
+                ConversationState.LISTENING: "🎤",
+                ConversationState.THINKING: "🤔",
+                ConversationState.SPEAKING: "🗣️",
+                ConversationState.ERROR: "❌"
+            }
+            emoji = state_emojis.get(new_state, "⚪")
+            self.update_activity(f"{emoji} Voice state: {new_state.value}")
+        except Exception:
+            pass  # App not mounted yet, skip activity feed update
 
     def update_activity(self, message: str):
         """Add message to activity feed"""
@@ -1117,8 +1189,8 @@ class VoiceAssistantApp(App):
             # Copy recent activity to clipboard
             self.action_copy_activity()
         elif event.key == "ctrl+v":
-            # Paste from clipboard (shows what's in clipboard)
-            self.action_paste()
+            # Toggle voice conversation on/off
+            self.action_toggle_voice()
 
     async def action_open_settings(self):
         """Open settings screen"""
@@ -1132,6 +1204,34 @@ class VoiceAssistantApp(App):
         """Open voice visualizer demo screen"""
         await self.push_screen(VoiceVizDemoScreen(), wait_for_dismiss=True)
         self.update_activity("Opened voice visualizer demo")
+
+    def action_toggle_voice(self):
+        """Toggle voice conversation on/off (Ctrl+V keybinding)"""
+        # Initialize voice if not already done
+        if not self.voice_initialized:
+            self.run_worker(self.initialize_voice)
+            return
+        # Toggle conversation state
+        if self.voice_bridge.get_conversation_state() == ConversationState.IDLE:
+            self.run_worker(self._start_voice)
+        else:
+            self.run_worker(self._stop_voice)
+
+    async def _start_voice(self):
+        """Start voice conversation (worker method)"""
+        try:
+            await self.voice_bridge.start_conversation()
+            self.update_activity("🎙️  Voice conversation started (Ctrl+V to stop)")
+        except Exception as e:
+            self.update_activity(f"❌ Failed to start voice: {e}")
+
+    async def _stop_voice(self):
+        """Stop voice conversation (worker method)"""
+        try:
+            await self.voice_bridge.stop_conversation()
+            self.update_activity("🛑 Voice conversation stopped")
+        except Exception as e:
+            self.update_activity(f"❌ Failed to stop voice: {e}")
 
     def start_listening(self):
         """Start voice input - begin capturing audio"""
