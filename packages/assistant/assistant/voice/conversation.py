@@ -14,6 +14,7 @@ from .audio_io import AudioIO
 from .moshi_mlx import MoshiBridge
 from ..personas.manager import PersonaManager
 from ..memory import MemoryManager
+from ..memory.memory_orchestrator import MemoryOrchestrator
 @dataclass
 class ConversationTurn:
     """Represents one conversation turn with full metadata."""
@@ -129,6 +130,7 @@ class ConversationLoop:
         persona_manager: PersonaManager,
         memory_manager: MemoryManager,
         ai_client: AIClient,
+        memory_orchestrator: Optional[MemoryOrchestrator] = None,
         user_id: str = "default",
         on_turn_complete: Optional[Callable] = None,
         on_state_change: Optional[Callable] = None
@@ -140,6 +142,7 @@ class ConversationLoop:
             persona_manager: Persona manager for current persona
             memory_manager: Memory manager for conversation history
             ai_client: AI client for generating responses
+            memory_orchestrator: Optional memory orchestrator for AI-filtered retrieval
             user_id: User identifier for memory storage
             on_turn_complete: Callback(turn: ConversationTurn) when turn completes
             on_state_change: Callback(state: str) when state changes
@@ -148,6 +151,7 @@ class ConversationLoop:
         self.persona = persona_manager
         self.memory = memory_manager
         self.ai = ai_client
+        self.memory_orchestrator = memory_orchestrator
         self.user_id = user_id
         self.on_turn_complete = on_turn_complete
         self.on_state_change = on_state_change
@@ -259,28 +263,61 @@ class ConversationLoop:
         self._set_state("thinking")
         # Step 1: Update mic amplitude for visualization
         mic_amplitude = self.moshi.get_amplitude(user_audio)
-        # Step 2: Use Moshi's generate_response for STT+TTS
+
+        # Step 2: Retrieve AI-filtered memories (inner monologue)
+        inner_monologue = None
+        if self.memory_orchestrator and self.memory_orchestrator.is_available():
+            try:
+                # Get recent conversation context for query
+                recent_context = await self.memory.get_conversation_history(
+                    user_id=self.user_id,
+                    limit=5
+                )
+
+                # Retrieve filtered memories
+                # Note: We use a generic query since we don't have transcribed text yet
+                filtered_memories = await self.memory_orchestrator.get_memories(
+                    user_id=self.user_id,
+                    query=recent_context or "conversation context",
+                    context=recent_context,
+                    thinking_level="light",
+                    max_memories=3
+                )
+
+                # Format as inner monologue if we have memories
+                if filtered_memories:
+                    memory_texts = [f"- {mem.text}" for mem in filtered_memories]
+                    inner_monologue = (
+                        "[Inner thoughts - relevant memories from past conversations]:\n"
+                        + "\n".join(memory_texts)
+                    )
+                    print(f"💭 Injected {len(filtered_memories)} memories as inner monologue")
+
+            except Exception as e:
+                print(f"⚠️  Memory retrieval failed: {e}")
+
+        # Step 3: Use Moshi's generate_response for STT+TTS
         # Note: Moshi doesn't separate STT from generation, it's all in generate_response
-        # We'll use it as-is and then enhance with AI if needed
+        # We inject memories as text_prompt to provide context
         moshi_audio, moshi_text = self.moshi.generate_response(
             user_audio=user_audio,
-            text_prompt=None,
+            text_prompt=inner_monologue,  # Inject memories as context
             max_frames=125  # ~10 seconds
         )
-        # Step 3: Get AI-enhanced response (optional enhancement)
+        # Step 4: Get AI-enhanced response (optional enhancement)
         # For now, we'll use Moshi's response directly
         # In future, could transcribe user audio separately and use AI for response
         assistant_text = moshi_text if moshi_text else "[No response]"
-        # Step 4: Update Moshi amplitude for visualization
+        # Step 5: Update Moshi amplitude for visualization
         moshi_amplitude = self.moshi.get_amplitude(moshi_audio)
-        # Step 5: Play audio response
+        # Step 6: Play audio response
         self._set_state("speaking")
         if len(moshi_audio) > 0:
             self.audio_io.play_audio(moshi_audio)
             # Wait for audio to finish playing
             duration = len(moshi_audio) / 24000.0  # seconds
             await asyncio.sleep(duration)
-        # Step 6: Store conversation turn in memory
+        # Step 7: Store conversation turn in memory
         persona_name = self.persona.get_current_persona().name
         await self.memory.store_message(
             user_id=self.user_id,
@@ -294,7 +331,7 @@ class ConversationLoop:
             role="assistant",
             metadata={"persona": persona_name}
         )
-        # Step 7: Create turn object and invoke callback
+        # Step 8: Create turn object and invoke callback
         turn = ConversationTurn(
             user_text="[Audio input]",
             assistant_text=assistant_text,
@@ -304,7 +341,8 @@ class ConversationLoop:
             assistant_audio=moshi_audio,
             metadata={
                 "mic_amplitude": mic_amplitude,
-                "moshi_amplitude": moshi_amplitude
+                "moshi_amplitude": moshi_amplitude,
+                "inner_monologue": inner_monologue  # Include memories for debugging
             }
         )
         if self.on_turn_complete:
@@ -312,7 +350,7 @@ class ConversationLoop:
                 self.on_turn_complete(turn)
             except Exception as e:
                 print(f"⚠️  Turn complete callback error: {e}")
-        # Step 8: Return to listening
+        # Step 9: Return to listening
         self._set_state("listening")
         self._is_listening = False  # Ready for next speech segment
     def _set_state(self, state: str):
