@@ -69,6 +69,13 @@ class VoiceAssistantApp(App):
         self.persona_manager = PersonaManager(personas_dir)
         self.available_personas = list(self.persona_manager.personas.values())
 
+        # Set default persona on startup
+        default_persona_name = config.default_persona or "JARVIS"
+        if not self.persona_manager.set_current_persona(default_persona_name):
+            # Fallback to first available persona if default not found
+            if self.available_personas:
+                self.persona_manager.set_current_persona(self.available_personas[0].name)
+
         # Initialize tool registry
         from ..tools import ToolRegistry, ThemeChangeTool
         self.tool_registry = ToolRegistry()

@@ -332,11 +332,13 @@ class MemoryManager:
     def __init__(
         self,
         server_url: str = "http://localhost:3000",
-        api_token: Optional[str] = None
+        api_token: Optional[str] = None,
+        max_history: int = 100
     ):
         self.client = MemoryClient(server_url, api_token)
         self.local_cache = LocalMemoryCache()
         self._server_available = None
+        self.max_history = max_history
 
     async def initialize(self):
         """Initialize and check server availability"""

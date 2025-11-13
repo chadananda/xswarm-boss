@@ -30,6 +30,10 @@ Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
 Requires-Dist: pytest-textual-snapshot>=1.0.0; extra == "dev"
 Requires-Dist: black>=23.12.0; extra == "dev"
 Requires-Dist: mypy>=1.7.0; extra == "dev"
+Provides-Extra: nvidia
+Requires-Dist: pynvml>=11.5.0; extra == "nvidia"
+Provides-Extra: amd
+Requires-Dist: amdsmi>=0.1.0; extra == "amd"
 
 # Voice Assistant - Python/PyTorch Implementation
 
