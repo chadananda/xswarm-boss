@@ -31,6 +31,10 @@ def mulaw_to_pcm24k(mulaw_8k_base64: str) -> np.ndarray:
     # Step 1: Decode base64 to mulaw bytes
     mulaw_bytes = base64.b64decode(mulaw_8k_base64)
 
+    # Handle empty audio
+    if len(mulaw_bytes) == 0:
+        return np.array([], dtype=np.float32)
+
     # Step 2: Decode mulaw to PCM 8kHz int16
     # audioop.ulaw2lin converts mulaw to linear PCM
     # width=2 means 16-bit (int16)
