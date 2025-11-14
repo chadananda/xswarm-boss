@@ -39,7 +39,8 @@
       "WebFetch(domain:textual.textualize.io)",
       "WebFetch(domain:share.cleanshot.com)",
       "Skill(project-cleanup)",
-      "Skill(security-scan)"
+      "Skill(security-scan)",
+      "WebFetch(domain:piapi.ai)"
     ],
     "deny": [],
     "ask": []

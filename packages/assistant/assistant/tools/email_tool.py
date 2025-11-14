@@ -6,6 +6,7 @@ Integrates PersonaMailer with the tool calling system.
 
 import os
 from typing import Dict, Any
+from pathlib import Path
 from .registry import Tool, ToolParameter
 from ..email.persona_mailer import PersonaMailer
 from ..personas.manager import PersonaManager
@@ -28,7 +29,8 @@ def get_persona_manager() -> PersonaManager:
     """Get or create PersonaManager instance."""
     global _persona_manager
     if _persona_manager is None:
-        _persona_manager = PersonaManager()
+        personas_dir = Path(__file__).parent.parent.parent.parent / "personas"
+        _persona_manager = PersonaManager(personas_dir=personas_dir)
     return _persona_manager
 
 
@@ -65,7 +67,7 @@ async def send_email_handler(
         # Get persona
         persona_manager = get_persona_manager()
         if persona_name:
-            persona = persona_manager.load_persona_from_name(persona_name)
+            persona = persona_manager.get_persona(persona_name)
         else:
             persona = persona_manager.get_current_persona()
 

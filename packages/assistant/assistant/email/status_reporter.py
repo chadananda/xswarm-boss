@@ -203,6 +203,7 @@ async def send_quick_status(
         Send result dict
     """
     from ..personas.manager import PersonaManager
+    from pathlib import Path
 
     # Get recipient email
     if not to_email:
@@ -211,8 +212,9 @@ async def send_quick_status(
             return {"success": False, "error": "No recipient email configured"}
 
     # Load persona
-    persona_manager = PersonaManager()
-    persona = persona_manager.load_persona_from_name(persona_name)
+    personas_dir = Path(__file__).parent.parent.parent.parent / "personas"
+    persona_manager = PersonaManager(personas_dir=personas_dir)
+    persona = persona_manager.get_persona(persona_name)
 
     if not persona:
         return {"success": False, "error": f"Persona {persona_name} not found"}

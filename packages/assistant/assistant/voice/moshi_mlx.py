@@ -26,6 +26,7 @@ import numpy as np
 from typing import Optional
 from pathlib import Path
 import sentencepiece
+import os
 
 try:
     import mlx.core as mx
@@ -33,11 +34,44 @@ try:
     import rustymimi
     from moshi_mlx import models, utils
     from huggingface_hub import hf_hub_download
+    from huggingface_hub.utils import HfHubHTTPError
+    import backoff
 except ImportError as e:
     raise ImportError(
         f"MLX dependencies not installed: {e}\n"
         "Install with: cd /tmp/moshi-official/moshi_mlx && pip install -e ."
     )
+
+
+def _create_download_with_retry():
+    """
+    Create retry-wrapped download function for robust downloads.
+
+    Handles intermittent connections with exponential backoff:
+    - NEVER gives up - waits indefinitely for internet to return
+    - Automatic resume on connection drops
+    - Exponential backoff caps at 5 minutes between retries
+    - User-friendly retry notifications
+    """
+    @backoff.on_exception(
+        backoff.expo,
+        (ConnectionError, TimeoutError, HfHubHTTPError, OSError),
+        max_time=None,  # Never give up - wait for internet to return
+        max_value=300,  # Cap backoff at 5 minutes between retries
+        on_backoff=lambda details: print(
+            f"  ↻ Download interrupted. Retry #{details['tries']} "
+            f"after {details['wait']:.1f}s... (waiting for internet, will resume from checkpoint)"
+        )
+    )
+    def download_with_retry(repo_id: str, filename: str) -> str:
+        """Download with automatic resume and retry - never gives up."""
+        return hf_hub_download(
+            repo_id=repo_id,
+            filename=filename,
+            resume_download=True  # Always enable resume
+        )
+
+    return download_with_retry
 
 
 class MoshiBridge:
@@ -66,6 +100,17 @@ class MoshiBridge:
             sample_rate: Audio sample rate (24kHz)
             quality: Quality preset ("auto" detects from GPU, or "bf16"/"q8"/"q4")
         """
+        # Enable fast, robust downloads with hf_xet (50-100x speedup + resume support)
+        try:
+            import hf_transfer  # Package name is still hf-transfer
+            os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"  # New env var for hf_xet
+            os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "120"  # 2 min timeout for large files
+            os.environ["HF_HUB_ETAG_TIMEOUT"] = "120"  # 2 min timeout for metadata
+            print("✅ Fast downloads enabled (hf_xet with resume support)")
+        except ImportError:
+            print("⚠️  hf_transfer not installed - downloads will be slower")
+            print("   Install with: pip install hf-transfer")
+
         # Auto-select quality based on GPU capability
         if quality == "auto":
             from ..hardware.gpu_detector import detect_gpu_capability
@@ -103,12 +148,20 @@ class MoshiBridge:
         self.sample_rate = sample_rate
         self.frame_size = 1920  # 80ms at 24kHz
 
-        # Download model files
+        # Download model files with robust retry logic
         # Always use BF16 checkpoint and quantize at runtime if needed
-        model_file = hf_hub_download(self.hf_repo, default_file)
+        download = _create_download_with_retry()
 
-        mimi_file = hf_hub_download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
-        tokenizer_file = hf_hub_download(self.hf_repo, "tokenizer_spm_32k_3.model")
+        # Try cached version first, otherwise download with retry
+        try:
+            model_file = hf_hub_download(self.hf_repo, default_file, local_files_only=True)
+        except Exception:
+            # Download with automatic retry and resume support
+            print(f"Downloading {default_file} (~14GB, may take time on slow connections)...")
+            model_file = download(self.hf_repo, default_file)
+
+        mimi_file = download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
+        tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)

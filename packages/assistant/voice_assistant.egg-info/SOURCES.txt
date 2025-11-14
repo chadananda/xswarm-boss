@@ -58,7 +58,10 @@ assistant/voice/conversation.py
 assistant/voice/download_models.py
 assistant/voice/moshi_mlx.py
 assistant/voice/moshi_pytorch.py
+assistant/voice/parallel_download.py
+assistant/voice/robust_download.py
 assistant/voice/vad.py
+assistant/voice/verified_fast_download.py
 assistant/wake_word/__init__.py
 assistant/wake_word/detector.py
 tests/test_ai_client.py

@@ -32,6 +32,7 @@ dependencies = [
     "silero-vad>=4.0.0",  # Voice Activity Detection
     "twilio>=8.0.0",  # Phone call integration
     "sendgrid>=6.11.0",  # Email integration
+    "toml>=0.10.2",  # Config file parsing
 ]
 
 [project.optional-dependencies]

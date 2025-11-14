@@ -15,6 +15,13 @@ pyyaml>=6.0.1
 psutil>=5.9.0
 pyperclip>=1.8.2
 huggingface-hub>=0.20.0
+hf-transfer>=0.1.0
+backoff>=1.11.0
+anthropic>=0.18.0
+openai>=1.12.0
+silero-vad>=4.0.0
+twilio>=8.0.0
+sendgrid>=6.11.0
 
 [amd]
 amdsmi>=0.1.0

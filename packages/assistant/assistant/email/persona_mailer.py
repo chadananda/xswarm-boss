@@ -79,6 +79,18 @@ class PersonaMailer:
         if signature is None:
             signature = self._generate_signature(persona)
 
+        # Get icon from persona name (simple emoji mapping)
+        icon_map = {
+            "C-3PO": "🤖",
+            "JARVIS": "🎯",
+            "GLaDOS": "🧪",
+            "HAL 9000": "👁️",
+            "TARS": "📐",
+            "KITT": "🚗",
+            "Marvin": "😔",
+        }
+        persona_icon = icon_map.get(persona.name, "🤖")
+
         html = f"""
 <!DOCTYPE html>
 <html>
@@ -142,7 +154,7 @@ class PersonaMailer:
 </head>
 <body>
     <div class="header">
-        <h2>{persona.icon} {subject}</h2>
+        <h2>{persona_icon} {subject}</h2>
     </div>
     <div class="content">
         {html_content}
@@ -211,11 +223,23 @@ class PersonaMailer:
             # Generate HTML content
             html_content = self._generate_html_template(persona, subject, content)
 
+            # Get icon
+            icon_map = {
+                "C-3PO": "🤖",
+                "JARVIS": "🎯",
+                "GLaDOS": "🧪",
+                "HAL 9000": "👁️",
+                "TARS": "📐",
+                "KITT": "🚗",
+                "Marvin": "😔",
+            }
+            persona_icon = icon_map.get(persona.name, "🤖")
+
             # Create message
             message = Mail(
                 from_email=Email(self.from_email, f"xSwarm {persona.name}"),
                 to_emails=To(to_email),
-                subject=f"{persona.icon} {subject}",
+                subject=f"{persona_icon} {subject}",
                 html_content=Content("text/html", html_content)
             )
 

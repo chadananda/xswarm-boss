@@ -24,6 +24,7 @@ Quick-start guides for specific features:
 - **[Dashboard (TUI)](guides/guide-dashboard-implementation.md)** - Terminal user interface with Textual
 - **[Persona System](implementations/summary-persona-system.md)** - AI personality switching (JARVIS, GLaDOS, etc.)
 - **[Theme System](status/summary-theme-quick.md)** - Dynamic color themes matching personas
+- **[Voice Interface (Moshi)](MOSHI_DOWNLOAD_STATUS.md)** - Voice AI with model download infrastructure
 - **[Authentication](implementations/summary-authentication.md)** - JWT-based auth with session management
 - **[Suggestions](implementations/summary-suggestions.md)** - Context-aware AI-powered suggestions
 - **[Marketing](implementations/summary-marketing.md)** - Email marketing with SendGrid
@@ -41,6 +42,7 @@ Quick-start guides for specific features:
 - **[Development Guide](development/guide-development.md)** - Local development setup
 - **[Testing Guide](testing/README.md)** - Test strategy and execution
 - **[E2E Tests](guides/guide-e2e-tests.md)** - End-to-end testing with pytest-textual
+- **[Moshi Model Download](moshi-model-download-lessons.md)** - Large model download strategies and lessons learned
 - **[Security](SECURITY.md)** - Security best practices and guidelines
 
 ### Planning & Architecture
