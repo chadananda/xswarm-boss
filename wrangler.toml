@@ -24,9 +24,7 @@ preview_bucket_name = "xswarm-boss-dev"
 [vars]
 ENVIRONMENT = "production"
 
-# Twilio Configuration
-TWILIO_ACCOUNT_SID = "***REMOVED***"
-TWILIO_PHONE_NUMBER = "+18447472899"
+
 
 # Database Configuration
 TURSO_DATABASE_URL = "TURSO_DATABASE_URL_PLACEHOLDER"

@@ -12,7 +12,7 @@ dotenv.config();
 
 const ACCOUNT_SID = '***REMOVED***';
 const AUTH_TOKEN = '***REMOVED***';
-const PHONE_NUMBER = '+18447472899';
+const PHONE_NUMBER = process.env.ADMIN_ASSISTANT_PHONE_NUMBER || '+18447472899';
 const WEBHOOK_URL = 'https://tion-fifteen-substantial-jimmy.trycloudflare.com/sms/inbound';
 
 console.log('🔧 Fixing Twilio SMS Webhook Configuration');

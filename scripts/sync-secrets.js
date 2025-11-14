@@ -166,7 +166,7 @@ async function main() {
 	console.log('\nYou can now test the Boss call with:');
 	console.log('  curl -X POST https://xswarm-webhooks.chadananda.workers.dev/api/boss/call \\');
 	console.log('    -H "Content-Type: application/json" \\');
-	console.log('    -d \'{"phone": "+19167656913", "user": "Chad"}\'');
+	console.log('    -d \'{"phone": process.env.ADMIN_PHONE_NUMBER || "+19167656913", "user": "Chad"}\'');
 }
 
 main().catch(error => {

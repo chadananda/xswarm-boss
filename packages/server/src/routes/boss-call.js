@@ -200,7 +200,7 @@ export async function handleBossResponse(request, env) {
  * Trigger Boss to call a user
  *
  * POST /api/boss/call
- * Body: { "phone": "+19167656913", "user": "Chad" }
+ * Body: { "phone": process.env.ADMIN_PHONE_NUMBER || "+19167656913", "user": "Chad" }
  */
 export async function triggerBossCall(request, env) {
 	try {

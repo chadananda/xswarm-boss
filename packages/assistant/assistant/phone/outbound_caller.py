@@ -29,26 +29,36 @@ class OutboundCaller:
             auth_token: Twilio auth token (reads from env if not provided)
             from_number: From phone number (reads from config if not provided)
         """
-        # Load config
-        config_path = Path.home().parent.parent / "Dropbox/Public/JS/Projects/xswarm-boss/config.toml"
-        if not config_path.exists():
-            config_path = Path("config.toml")
-
-        config = toml.load(config_path) if config_path.exists() else {}
-
-        # Get credentials
-        self.account_sid = account_sid or config.get("twilio", {}).get("account_sid")
+        # Get credentials from environment variables first, then fall back to config
+        self.account_sid = account_sid or os.getenv("TWILIO_ACCOUNT_SID")
         self.auth_token = auth_token or os.getenv("TWILIO_AUTH_TOKEN")
 
-        if not self.account_sid or not self.auth_token:
-            raise ValueError("Twilio credentials not found in config.toml or environment")
-
-        # Get from number from config
+        # Get from number from environment
         if from_number:
             self.from_number = from_number
         else:
-            # Use test number from config for now
-            self.from_number = config.get("twilio", {}).get("test_send_number", "+15551234567")
+            self.from_number = os.getenv("TWILIO_PHONE_NUMBER") or os.getenv("ADMIN_ASSISTANT_PHONE_NUMBER")
+
+        # Fall back to config if env vars not set
+        if not self.account_sid or not self.auth_token or not self.from_number:
+            config_path = Path.home().parent.parent / "Dropbox/Public/JS/Projects/xswarm-boss/config.toml"
+            if not config_path.exists():
+                config_path = Path("config.toml")
+
+            config = toml.load(config_path) if config_path.exists() else {}
+
+            if not self.account_sid:
+                self.account_sid = config.get("twilio", {}).get("account_sid")
+            if not self.auth_token:
+                self.auth_token = config.get("twilio", {}).get("auth_token")
+            if not self.from_number:
+                self.from_number = config.get("twilio", {}).get("phone_number", "+15551234567")
+
+        if not self.account_sid or not self.auth_token:
+            raise ValueError("Twilio credentials not found in environment or config.toml")
+
+        if not self.from_number:
+            raise ValueError("Twilio phone number not found in environment or config.toml")
 
         # Initialize Twilio client
         self.client = Client(self.account_sid, self.auth_token)

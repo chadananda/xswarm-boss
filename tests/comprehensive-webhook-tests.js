@@ -16,9 +16,9 @@ const TEST_SERVER_URL = 'http://localhost:8787';
 const TEST_USER = {
   username: 'chadananda',
   name: 'Chad Jones',
-  phone: '+19167656913',
+  phone: process.env.ADMIN_PHONE_NUMBER || '+19167656913',
   email: 'chadananda@gmail.com',
-  boss_phone: '+18447472899',
+  boss_phone: process.env.ADMIN_ASSISTANT_PHONE_NUMBER || '+18447472899',
   boss_email: 'chadananda@xswarm.ai'
 };
 
