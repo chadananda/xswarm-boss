@@ -78,9 +78,12 @@ class VoiceAssistantApp(App):
 
         # Initialize tool registry
         from ..tools import ToolRegistry, ThemeChangeTool
+        from ..tools.email_tool import send_email_tool
         self.tool_registry = ToolRegistry()
         # Register theme change tool (bound to this app instance)
         self.tool_registry.register_tool(ThemeChangeTool.create_tool(self))
+        # Register email tool
+        self.tool_registry.register_tool(send_email_tool)
 
         # Generate dynamic theme colors
         self._theme_palette = self._load_theme(config.theme_base_color)

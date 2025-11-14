@@ -25,6 +25,13 @@ dependencies = [
     "psutil>=5.9.0",
     "pyperclip>=1.8.2",
     "huggingface-hub>=0.20.0",
+    "hf-transfer>=0.1.0",  # Fast model downloads (50-100x speedup)
+    "backoff>=1.11.0",  # Retry logic with exponential backoff for robust downloads
+    "anthropic>=0.18.0",  # Claude API for conversation
+    "openai>=1.12.0",  # GPT API for fallback
+    "silero-vad>=4.0.0",  # Voice Activity Detection
+    "twilio>=8.0.0",  # Phone call integration
+    "sendgrid>=6.11.0",  # Email integration
 ]
 
 [project.optional-dependencies]
