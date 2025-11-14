@@ -25,6 +25,7 @@ Quick-start guides for specific features:
 - **[Persona System](implementations/summary-persona-system.md)** - AI personality switching (JARVIS, GLaDOS, etc.)
 - **[Theme System](status/summary-theme-quick.md)** - Dynamic color themes matching personas
 - **[Voice Interface (Moshi)](MOSHI_DOWNLOAD_STATUS.md)** - Voice AI with model download infrastructure
+- **[Phone Integration](phone-integration.md)** - Interactive phone calls with Twilio + Moshi voice
 - **[Authentication](implementations/summary-authentication.md)** - JWT-based auth with session management
 - **[Suggestions](implementations/summary-suggestions.md)** - Context-aware AI-powered suggestions
 - **[Marketing](implementations/summary-marketing.md)** - Email marketing with SendGrid
@@ -105,6 +106,7 @@ Beautiful, responsive terminal interface built with Textual:
 ### Integrations
 - **Stripe** - Subscription management (Free, Pro, Enterprise tiers)
 - **SendGrid** - Transactional and marketing emails
+- **Twilio** - Interactive phone calls with Moshi voice AI
 - **Claude Code** - AI coding assistant integration
 - **Cloudflare** - Global CDN and secure tunnels
 
