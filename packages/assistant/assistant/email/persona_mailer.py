@@ -5,12 +5,17 @@ Sends emails formatted with persona theme colors and personality-specific signat
 """
 
 import os
+import ssl
 from typing import Dict, Optional, List
 from pathlib import Path
 import toml
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content
 from ..personas.config import PersonaConfig
+
+# Work around SSL certificate verification issues
+import certifi
+os.environ['SSL_CERT_FILE'] = certifi.where()
 
 
 class PersonaMailer:
