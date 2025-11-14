@@ -1169,7 +1169,7 @@ class VoiceAssistantApp(App):
         elif event.key == "space":
             # Space key: Check if a nav button has focus
             # If nav button is focused AND not the active tab, switch to it
-            # Otherwise, use space for voice toggle
+            # Otherwise, use space for voice toggle (via VoiceBridge)
             if self._focused_nav_index >= 0 and self._focused_nav_index < len(self._nav_buttons):
                 button_id = self._nav_buttons[self._focused_nav_index]
                 tab_name = button_id.replace("tab-", "")
@@ -1178,18 +1178,12 @@ class VoiceAssistantApp(App):
                     self.active_tab = tab_name
                     event.prevent_default()
                 else:
-                    # Nav button focused AND active - use space for voice
-                    if self.state == "idle" or self.state == "ready":
-                        self.start_listening()
-                    elif self.state == "listening":
-                        self.stop_listening()
+                    # Nav button focused AND active - use space for voice (VoiceBridge)
+                    self.action_toggle_voice()
                     event.prevent_default()
             else:
-                # No nav button focused - use space for voice
-                if self.state == "idle" or self.state == "ready":
-                    self.start_listening()
-                elif self.state == "listening":
-                    self.stop_listening()
+                # No nav button focused - use space for voice (VoiceBridge)
+                self.action_toggle_voice()
                 event.prevent_default()
         elif event.key == "q":
             self.exit()
