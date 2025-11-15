@@ -110,7 +110,13 @@ class AudioIO:
         Args:
             audio: Audio samples to play (1D NumPy array)
         """
-        self.output_queue.put(audio)
+        # Split audio into frame_size chunks for proper streaming
+        num_frames = int(np.ceil(len(audio) / self.frame_size))
+        for i in range(num_frames):
+            start = i * self.frame_size
+            end = min((i + 1) * self.frame_size, len(audio))
+            chunk = audio[start:end]
+            self.output_queue.put(chunk)
 
     def read_frame(self, timeout: float = 0.1) -> Optional[np.ndarray]:
         """
