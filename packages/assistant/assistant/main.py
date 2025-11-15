@@ -97,7 +97,8 @@ class VoiceAssistant:
                 self.config.wake_word = unique_wake_words
 
         # 2. Initialize memory
-        if self.config.memory_enabled:
+        # Skip memory initialization in debug mode to avoid connection errors
+        if self.config.memory_enabled and not self.config.is_debug_mode:
             self.memory_manager = MemoryManager(
                 server_url=self.config.server_url,
                 api_token=self.config.api_token
@@ -106,6 +107,8 @@ class VoiceAssistant:
                 await self.memory_manager.initialize()
             except Exception:
                 pass  # Continue with local cache only
+        elif self.config.is_debug_mode:
+            print("🐛 Debug mode: Skipping memory server connection")
 
         # 3. Initialize dashboard (TUI)
         self.app = VoiceAssistantApp(self.config, self.personas_dir)
