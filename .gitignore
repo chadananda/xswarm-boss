@@ -155,11 +155,6 @@ tmp/dev_tests/__snapshots__/
 snapshot_report.html
 **/*snapshot_report*.html
 
-# Configuration (generated from config.cjs)
-/config.json
-/wrangler.toml
-/config.toml
-/wake-word.toml
-
-# Config source of truth (committed)
-# config.cjs is the only config file that should be committed
+# Configuration (generated from config.js to ./tmp/)
+# config.js is the only config file that should be committed
+# All generated config files go in ./tmp/ directory

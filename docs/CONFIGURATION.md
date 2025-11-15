@@ -5,20 +5,21 @@ xSwarm Boss uses a unified configuration system with `config.cjs` as the single 
 ## Architecture
 
 ```
-.env (secrets)              → config.cjs (source of truth) → config.json (Python)
-                                         ↓
-                                    wrangler.toml (Cloudflare)
+.env (secrets)              → config.js (ES6 source of truth) → ./tmp/config.json (Python)
+                                                        ↓
+                                                  ./tmp/wrangler.toml (Cloudflare)
 ```
 
 ## Files
 
-### `config.cjs` (Committed)
+### `config.js` (Committed)
 **Single source of truth** for all configuration.
 
 - Contains all non-secret settings
 - Loads secrets from `.env`
-- Generates deployment configs
+- Generates deployment configs to `./tmp/`
 - Provides CLI commands
+- Uses ES6 module syntax
 
 ### `.env` (Gitignored)
 **Secrets only** - never committed.
@@ -46,21 +47,21 @@ S3_ACCESS_KEY_ID=...
 S3_SECRET_ACCESS_KEY=...
 ```
 
-### `config.json` (Generated, Gitignored)
+### `./tmp/config.json` (Generated, Gitignored)
 **Python-compatible export** - secrets excluded.
 
-Generated with: `node config.cjs export-json`
+Generated with: `node config.js export-json`
 
-### `wrangler.toml` (Generated, Gitignored)
-**Cloudflare Workers deployment config** - generated from config.cjs.
+### `./tmp/wrangler.toml` (Generated, Gitignored)
+**Cloudflare Workers deployment config** - generated from config.js.
 
-Generated with: `node config.cjs generate-wrangler`
+Generated with: `node config.js generate-wrangler`
 
 ## Usage
 
 ### Node.js
 ```javascript
-const config = require('./config.cjs');
+import config from './config.js';
 
 console.log(config.project.name);  // "xSwarm Boss"
 console.log(config.ai.anthropic.apiKey);  // From .env
@@ -70,7 +71,7 @@ console.log(config.ai.anthropic.apiKey);  // From .env
 ```python
 import json
 
-with open('config.json') as f:
+with open('./tmp/config.json') as f:
     config = json.load(f)
 
 print(config['project']['name'])  # "xSwarm Boss"
@@ -81,17 +82,17 @@ print(config['project']['name'])  # "xSwarm Boss"
 
 Generate wrangler.toml:
 ```bash
-node config.cjs generate-wrangler
+node config.js generate-wrangler
 ```
 
 Export config.json for Python:
 ```bash
-node config.cjs export-json
+node config.js export-json
 ```
 
 Validate secrets:
 ```bash
-node config.cjs validate
+node config.js validate
 ```
 
 ## Configuration Sections
@@ -243,8 +244,8 @@ features: {
 
 ### Development
 1. Create `.env` with secrets
-2. Run `node config.cjs export-json` to generate config.json for Python
-3. Run `node config.cjs generate-wrangler` to generate wrangler.toml
+2. Run `node config.js export-json` to generate ./tmp/config.json for Python
+3. Run `node config.js generate-wrangler` to generate ./tmp/wrangler.toml
 4. Start development server: `npm run dev`
 
 ### Production
@@ -267,25 +268,26 @@ features: {
 
 ## Migration from Old Config
 
-The old TOML files (`config.toml`, `wake-word.toml`) are no longer needed. All settings have been migrated to `config.cjs`.
+The old TOML files (`config.toml`, `wake-word.toml`) and `config.cjs` are no longer needed. All settings have been migrated to `config.js`.
 
 To migrate custom settings:
-1. Review old TOML files for any custom values
-2. Update corresponding sections in `config.cjs`
+1. Review old config files for any custom values
+2. Update corresponding sections in `config.js`
 3. Regenerate deployment configs:
    ```bash
-   node config.cjs generate-wrangler
-   node config.cjs export-json
+   node config.js generate-wrangler
+   node config.js export-json
    ```
-4. Delete old TOML files (they're gitignored)
+4. Delete old config files (they're gitignored or will be removed)
 
 ## Best Practices
 
 1. **Never commit secrets** - Always use `.env` for secrets
-2. **Regenerate after changes** - Run `node config.cjs export-json` after editing config.cjs
-3. **Validate before deployment** - Run `node config.cjs validate` to check secrets
-4. **Version config.cjs** - This is the only config file that should be committed
+2. **Regenerate after changes** - Run `node config.js export-json` after editing config.js
+3. **Validate before deployment** - Run `node config.js validate` to check secrets
+4. **Version config.js** - This is the only config file that should be committed
 5. **Document changes** - Update this file when adding new config sections
+6. **Use ES6 modules** - All JavaScript code should use ES6 import/export syntax
 
 ## Troubleshooting
 
@@ -298,21 +300,21 @@ To migrate custom settings:
 **Solution**: Add the missing secret to `.env` file.
 
 ### Config out of sync
-If `config.json` or `wrangler.toml` are out of sync with `config.cjs`:
+If `./tmp/config.json` or `./tmp/wrangler.toml` are out of sync with `config.js`:
 
 ```bash
-node config.cjs export-json
-node config.cjs generate-wrangler
+node config.js export-json
+node config.js generate-wrangler
 ```
 
 ### Python can't find config
-Make sure `config.json` is generated:
+Make sure `./tmp/config.json` is generated:
 ```bash
-node config.cjs export-json
+node config.js export-json
 ```
 
 ### Cloudflare deployment fails
-Regenerate `wrangler.toml`:
+Regenerate `./tmp/wrangler.toml`:
 ```bash
-node config.cjs generate-wrangler
+node config.js generate-wrangler
 ```

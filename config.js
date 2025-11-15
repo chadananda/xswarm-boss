@@ -5,14 +5,18 @@
  * Secrets loaded from .env (gitignored)
  *
  * Usage:
- *   Node.js:  const config = require('./config.js')
- *   Python:   import json; config = json.load(open('config.json'))
+ *   Node.js:  import config from './config.js'
+ *   Python:   import json; config = json.load(open('./tmp/config.json'))
  *   CLI:      node config.js generate-wrangler
  */
 
-require('dotenv').config();
-const fs = require('fs');
-const path = require('path');
+import 'dotenv/config';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const config = {
   // =============================================================================
@@ -47,7 +51,7 @@ const config = {
   // Twilio Configuration (Voice & SMS)
   // =============================================================================
   twilio: {
-    accountSid: process.env.TWILIO_ACCOUNT_SID || 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    accountSid: process.env.TWILIO_ACCOUNT_SID || 'TWILIO_ACCOUNT_SID_PLACEHOLDER',
     authToken: process.env.TWILIO_AUTH_TOKEN, // SECRET - from .env
     testAccountSid: 'ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
     testReceiveNumber: '+15559876543',
@@ -306,9 +310,21 @@ const config = {
 // =============================================================================
 
 /**
+ * Ensure ./tmp/ directory exists
+ */
+function ensureTmpDir() {
+  const tmpDir = path.join(__dirname, 'tmp');
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+  }
+  return tmpDir;
+}
+
+/**
  * Generate wrangler.toml from config
  */
 function generateWranglerToml() {
+  const tmpDir = ensureTmpDir();
   const wranglerContent = `# Generated from config.js - DO NOT EDIT MANUALLY
 # To update: node config.js generate-wrangler
 
@@ -354,14 +370,15 @@ EMAIL_ENABLED = "${config.features.emailEnabled}"
 #   - S3_SECRET_ACCESS_KEY
 `;
 
-  fs.writeFileSync(path.join(__dirname, 'wrangler.toml'), wranglerContent);
-  console.log('✅ Generated wrangler.toml from config.js');
+  fs.writeFileSync(path.join(tmpDir, 'wrangler.toml'), wranglerContent);
+  console.log('✅ Generated ./tmp/wrangler.toml from config.js');
 }
 
 /**
  * Export config as JSON for Python
  */
 function exportConfigJson() {
+  const tmpDir = ensureTmpDir();
   const jsonConfig = JSON.parse(JSON.stringify(config, (key, value) => {
     // Don't export secrets to JSON file
     if (key === 'apiKey' || key === 'authToken' || key === 'secretKey' ||
@@ -372,14 +389,14 @@ function exportConfigJson() {
   }));
 
   fs.writeFileSync(
-    path.join(__dirname, 'config.json'),
+    path.join(tmpDir, 'config.json'),
     JSON.stringify(jsonConfig, null, 2)
   );
-  console.log('✅ Exported config.json (secrets excluded)');
+  console.log('✅ Exported ./tmp/config.json (secrets excluded)');
 }
 
 // CLI Commands
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   const command = process.argv[2];
 
   switch (command) {
@@ -408,11 +425,10 @@ if (require.main === module) {
       break;
     default:
       console.log('Usage:');
-      console.log('  node config.js generate-wrangler  # Generate wrangler.toml');
-      console.log('  node config.js export-json        # Export config.json for Python');
+      console.log('  node config.js generate-wrangler  # Generate ./tmp/wrangler.toml');
+      console.log('  node config.js export-json        # Export ./tmp/config.json for Python');
       console.log('  node config.js validate           # Validate secrets');
   }
-} else {
-  // When required as module
-  module.exports = config;
 }
+
+export default config;
