@@ -17,6 +17,10 @@ from assistant.phone import MediaStreamsServer, TwilioVoiceBridge
 from assistant.personas.manager import PersonaManager
 from assistant.memory import MemoryManager
 from assistant.config import Config
+from assistant.voice.moshi_mlx import MoshiBridge
+
+# Global Moshi instance (loaded once at startup, reused for all calls)
+MOSHI = None
 
 
 async def create_bridge(call_sid: str, from_number: str, to_number: str) -> TwilioVoiceBridge:
@@ -41,7 +45,7 @@ async def create_bridge(call_sid: str, from_number: str, to_number: str) -> Twil
     # Initialize memory
     memory_manager = MemoryManager()
 
-    # Create bridge
+    # Create bridge with pre-loaded Moshi instance
     bridge = TwilioVoiceBridge(
         call_sid=call_sid,
         from_number=from_number,
@@ -49,7 +53,7 @@ async def create_bridge(call_sid: str, from_number: str, to_number: str) -> Twil
         persona_manager=persona_manager,
         memory_manager=memory_manager,
         config=config,
-        moshi_quality="q8",  # 8-bit quantization for phone calls (balanced)
+        moshi=MOSHI,  # Use pre-loaded global Moshi instance
         on_state_change=lambda state: print(f"[Call {call_sid[-8:]}] State: {state}"),
     )
 
@@ -58,17 +62,30 @@ async def create_bridge(call_sid: str, from_number: str, to_number: str) -> Twil
 
 async def main():
     """Run the Media Streams server."""
+    global MOSHI
+
     import argparse
+    import time
 
     parser = argparse.ArgumentParser(description="Twilio Media Streams server for Moshi")
     parser.add_argument("--host", default="0.0.0.0", help="Server host (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=5000, help="Server port (default: 5000)")
+    parser.add_argument("--quality", default="q8", choices=["q4", "q8", "bf16"], help="Moshi quality (default: q8)")
     args = parser.parse_args()
 
     print("=" * 60)
     print("🎙️  Twilio Media Streams Server - Moshi Voice Calls")
     print("=" * 60)
     print()
+
+    # Pre-load Moshi BEFORE starting server
+    print(f"🚀 Loading Moshi ({args.quality})...")
+    start = time.time()
+    MOSHI = MoshiBridge(quality=args.quality)
+    elapsed = time.time() - start
+    print(f"✅ Moshi loaded in {elapsed:.1f}s")
+    print()
+
     print(f"Host: {args.host}")
     print(f"Port: {args.port}")
     print(f"WebSocket URL: ws://{args.host if args.host != '0.0.0.0' else 'localhost'}:{args.port}")

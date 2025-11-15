@@ -58,13 +58,12 @@ class MediaStreamsServer:
             print(f"✅ Server ready - waiting for connections...")
             await asyncio.Future()  # Run forever
 
-    async def handle_connection(self, websocket, path):
+    async def handle_connection(self, websocket):
         """
         Handle incoming Twilio WebSocket connection.
 
         Args:
             websocket: WebSocket connection
-            path: Request path
         """
         stream_sid = None
         call_sid = None
@@ -81,6 +80,14 @@ class MediaStreamsServer:
                     if event == "start":
                         # Initialize call session
                         stream_sid, call_sid, bridge = await self._handle_start(data, websocket)
+                        # Send greeting to test audio playback
+                        print("[MediaStreams] Generating greeting...")
+                        greeting_audio = await bridge.generate_and_send_greeting()
+                        if greeting_audio:
+                            print(f"[MediaStreams] Sending greeting audio ({len(greeting_audio)} bytes)")
+                            await self.send_audio(websocket, stream_sid, greeting_audio)
+                        else:
+                            print("[MediaStreams] No greeting audio generated")
 
                     elif event == "media":
                         # Process audio chunk
@@ -149,7 +156,6 @@ class MediaStreamsServer:
         # Store session
         self._sessions[call_sid] = bridge
         self._streams[stream_sid] = call_sid
-
         return stream_sid, call_sid, bridge
 
     async def _handle_media(self, data: dict, bridge: TwilioVoiceBridge, websocket, stream_sid: str):

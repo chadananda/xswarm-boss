@@ -6,6 +6,7 @@ and Moshi for natural voice conversations over the phone.
 """
 
 import asyncio
+import time
 import numpy as np
 from typing import Optional, Callable
 from pathlib import Path
@@ -36,7 +37,7 @@ class TwilioVoiceBridge:
         persona_manager: PersonaManager,
         memory_manager: MemoryManager,
         config,
-        moshi_quality: str = "auto",
+        moshi: Optional[MoshiBridge] = None,
         on_state_change: Optional[Callable] = None,
     ):
         """
@@ -49,7 +50,7 @@ class TwilioVoiceBridge:
             persona_manager: Persona manager
             memory_manager: Memory manager
             config: Config with API keys
-            moshi_quality: "auto", "bf16", "q8", "q4"
+            moshi: Pre-loaded MoshiBridge instance (if None, will be loaded)
             on_state_change: Optional callback for state changes
         """
         self.call_sid = call_sid
@@ -58,46 +59,34 @@ class TwilioVoiceBridge:
         self.persona_manager = persona_manager
         self.memory_manager = memory_manager
         self.config = config
-        self.moshi_quality = moshi_quality
 
-        # Moshi bridge (lazy loaded)
-        self.moshi: Optional[MoshiBridge] = None
+        # Moshi bridge (pre-loaded or will be loaded)
+        self.moshi: Optional[MoshiBridge] = moshi
+        self.lm_gen = None  # Persistent LM generator for streaming
+        self._greeting_sent = False  # Track if greeting was sent
 
-        # Audio buffering
+        # Audio buffering (for frame accumulation only)
         self._input_buffer = []  # Accumulate incoming audio chunks
         self._frame_size = 1920  # 80ms at 24kHz (Moshi frame size)
-        self._silence_threshold = 0.02  # RMS threshold for silence detection
-        self._speech_timeout_frames = 15  # ~1.2 seconds of silence ends turn
 
         # State tracking
         self.state = "idle"  # idle, listening, thinking, speaking
-        self._silence_frames = 0
         self._on_state_change = on_state_change or (lambda s: None)
 
         # Conversation history (for this call)
         self._call_transcript = []
 
     async def initialize(self):
-        """Initialize Moshi models and AI client."""
+        """Initialize bridge (Moshi should already be pre-loaded)."""
         print(f"[TwilioVoiceBridge] Initializing for call {self.call_sid}")
 
-        # Initialize Moshi
-        from ..voice.moshi_mlx import MoshiBridge
+        # Moshi should be pre-loaded, just create LM generator
+        if self.moshi is None:
+            raise ValueError("Moshi instance not provided - should be pre-loaded at server startup")
 
-        # Determine quality setting
-        if self.moshi_quality == "auto":
-            # Use q8 for phone calls (balanced quality/performance)
-            quality = "q8"
-        else:
-            quality = self.moshi_quality
-
-        self.moshi = MoshiBridge(
-            hf_repo=f"kyutai/moshiko-mlx-{quality}",
-            quantized=int(quality[1]) if quality.startswith("q") else None,
-            max_steps=500
-        )
-
-        print(f"[TwilioVoiceBridge] Moshi loaded ({quality})")
+        # Create persistent LM generator for streaming
+        self.lm_gen = self.moshi.create_lm_generator(max_steps=500)
+        print(f"[TwilioVoiceBridge] LM generator created (using pre-loaded Moshi)")
 
         # Initialize memory for this user (use phone number as user_id)
         user_id = self.from_number.replace("+", "")
@@ -107,49 +96,49 @@ class TwilioVoiceBridge:
 
     async def process_audio_chunk(self, mulaw_base64: str) -> Optional[str]:
         """
-        Process incoming audio chunk from phone.
+        Process incoming audio chunk in streaming mode.
 
         Args:
             mulaw_base64: Base64-encoded mulaw 8kHz audio from Twilio
 
         Returns:
-            Base64-encoded mulaw 8kHz response audio (if ready), else None
+            Base64-encoded mulaw 8kHz response audio (if any), else None
         """
         # Convert Twilio audio to Moshi format
         pcm_24k = mulaw_to_pcm24k(mulaw_base64)
+        print(f"[TwilioVoiceBridge] Received {len(pcm_24k)} PCM samples")
 
         # Add to buffer
         self._input_buffer.append(pcm_24k)
-
         # Calculate total buffered samples
         total_samples = sum(len(chunk) for chunk in self._input_buffer)
+        print(f"[TwilioVoiceBridge] Buffer has {total_samples} samples (need {self._frame_size})")
 
-        # Check if we have enough for a full frame (80ms = 1920 samples at 24kHz)
+        # Not enough for a frame yet
         if total_samples < self._frame_size:
             return None
 
-        # Extract a frame
+        # Extract exactly one frame (80ms = 1920 samples)
         frame = self._concatenate_buffer(self._frame_size)
+        print(f"[TwilioVoiceBridge] Processing frame of {len(frame)} samples")
 
-        # Check for silence (end of speech)
-        rms = np.sqrt(np.mean(frame ** 2))
+        # Process frame through Moshi (streaming!)
+        response_audio, text_piece = self.moshi.step_frame(self.lm_gen, frame)
 
-        if rms < self._silence_threshold:
-            self._silence_frames += 1
-
-            # If enough silence, process accumulated speech
-            if self._silence_frames >= self._speech_timeout_frames:
-                if len(self._input_buffer) > 0:
-                    # We have accumulated speech - process it
-                    return await self._process_speech()
-                else:
-                    # Just silence, keep listening
-                    self._silence_frames = 0
-                    return None
+        # If Moshi generated audio, convert and return
+        if response_audio is not None and len(response_audio) > 0:
+            print(f"[TwilioVoiceBridge] Moshi generated {len(response_audio)} samples")
+            # Track text for transcript (optional, for logging)
+            if text_piece:
+                print(f"[TwilioVoiceBridge] Moshi text: '{text_piece}'")
+                # Accumulate text (could be used for real-time transcript)
+                pass
+            # Convert to mulaw and return immediately
+            mulaw_response = pcm24k_to_mulaw(response_audio)
+            print(f"[TwilioVoiceBridge] Sending {len(mulaw_response)} bytes back to Twilio")
+            return mulaw_response
         else:
-            # Speech detected - reset silence counter
-            self._silence_frames = 0
-
+            print(f"[TwilioVoiceBridge] Moshi returned no audio (still listening)")
         return None
 
     def _concatenate_buffer(self, num_samples: int) -> np.ndarray:
@@ -181,97 +170,42 @@ class TwilioVoiceBridge:
 
         return np.concatenate(result) if result else np.array([], dtype=np.float32)
 
-    async def _process_speech(self) -> str:
+    async def generate_and_send_greeting(self) -> str:
         """
-        Process accumulated speech and generate response.
+        Generate Moshi's initial greeting.
 
         Returns:
-            Base64-encoded mulaw response audio
+            Base64-encoded mulaw greeting audio
         """
-        self._set_state("thinking")
-
-        # Get all accumulated audio
-        user_audio = np.concatenate(self._input_buffer) if self._input_buffer else np.array([], dtype=np.float32)
-        self._input_buffer = []
-        self._silence_frames = 0
-
+        if self._greeting_sent:
+            return ""
+        self._greeting_sent = True
         # Get current persona
         persona = self.persona_manager.get_current_persona()
         if not persona:
-            persona = self.persona_manager.get_persona("C-3PO")  # Fallback
-
-        # Build conversation prompt
-        text_prompt = await self._build_prompt(persona, user_audio)
-
-        # Generate Moshi response
+            persona = self.persona_manager.get_persona("C-3PO")
+        # Build greeting prompt
+        persona_prompt = persona.system_prompt or f"You are {persona.name}."
+        persona_prompt += "\n\nYou just answered a phone call. Introduce yourself briefly and ask how you can help."
+        # Generate greeting
         self._set_state("speaking")
-
-        try:
-            response_audio, response_text = self.moshi.generate_response(
-                user_audio,
-                text_prompt=text_prompt,
-                max_tokens=300  # Keep responses concise for phone
-            )
-
-            # Store in conversation history
-            self._call_transcript.append({
-                "role": "user",
-                "content": "[Speech audio]",
-                "timestamp": asyncio.get_event_loop().time(),
-            })
-
-            self._call_transcript.append({
-                "role": "assistant",
-                "content": response_text or "[Audio response]",
-                "timestamp": asyncio.get_event_loop().time(),
-            })
-
-            # Save to memory (async, don't wait)
-            user_id = self.from_number.replace("+", "")
-            asyncio.create_task(self.memory_manager.store_conversation(
-                user_id=user_id,
-                messages=self._call_transcript[-2:]  # Last 2 messages
-            ))
-
-            # Convert response to Twilio format
-            mulaw_response = pcm24k_to_mulaw(response_audio)
-
-            self._set_state("listening")
-
-            return mulaw_response
-
-        except Exception as e:
-            print(f"[TwilioVoiceBridge] Error generating response: {e}")
-            self._set_state("listening")
-            return None
-
-    async def _build_prompt(self, persona: PersonaConfig, user_audio: np.ndarray) -> str:
-        """
-        Build conversation prompt with persona and context.
-
-        Args:
-            persona: Current persona
-            user_audio: User's audio (for context)
-
-        Returns:
-            Text prompt for Moshi
-        """
-        # Start with persona system prompt
-        prompt = persona.system_prompt or f"You are {persona.name}, a helpful AI assistant."
-
-        # Add phone call context
-        prompt += "\n\nYou are currently on a phone call. Keep responses brief and conversational."
-
-        # Add recent conversation history
-        if len(self._call_transcript) > 0:
-            prompt += "\n\nRecent conversation:"
-            for msg in self._call_transcript[-6:]:  # Last 6 messages
-                role = "User" if msg["role"] == "user" else persona.name
-                content = msg.get("content", "[Audio]")
-                prompt += f"\n{role}: {content}"
-
-        return prompt
-
+        greeting_audio, greeting_text = self.moshi.generate_greeting(
+            self.lm_gen,
+            persona_prompt=persona_prompt,
+            num_frames=25  # ~2 seconds
+        )
+        # Log greeting
+        print(f"[TwilioVoiceBridge] Greeting: {greeting_text}")
+        # Store in transcript
+        self._call_transcript.append({
+            "role": "assistant",
+            "content": greeting_text or "[Greeting audio]",
+            "timestamp": time.time(),
+        })
+        self._set_state("listening")
+        # Convert to mulaw
+        mulaw_greeting = pcm24k_to_mulaw(greeting_audio)
+        return mulaw_greeting
     def _set_state(self, new_state: str):
         """Update state and notify callback."""
         if new_state != self.state:

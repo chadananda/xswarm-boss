@@ -381,3 +381,71 @@ class MoshiBridge:
             audio: Moshi audio output samples
         """
         self.moshi_amplitude = self.get_amplitude(audio)
+    # Streaming methods for full-duplex phone integration
+    def create_lm_generator(self, max_steps: int = 500):
+        """
+        Create a persistent LM generator for streaming.
+
+        Returns:
+            LmGen instance for frame-by-frame processing
+        """
+        return models.LmGen(
+            model=self.model,
+            max_steps=max_steps,
+            text_sampler=utils.Sampler(),
+            audio_sampler=utils.Sampler(),
+            batch_size=1,
+            check=False
+        )
+    def step_frame(self, lm_gen, audio_frame: np.ndarray) -> tuple[Optional[np.ndarray], Optional[str]]:
+        """
+        Process a single 80ms frame through Moshi.
+
+        Args:
+            lm_gen: LmGen generator instance
+            audio_frame: 1920 samples at 24kHz (80ms)
+
+        Returns:
+            (response_audio_chunk, text_token) or (None, None)
+        """
+        # Encode frame
+        codes = self.encode_audio(audio_frame)
+        audio_codes_mx = mx.array(codes).transpose(1, 0)[:, :8]
+        # Step model
+        text_token = lm_gen.step(audio_codes_mx)
+        text_token_id = text_token[0].item()
+        # Get audio output
+        audio_tokens = lm_gen.last_audio_tokens()
+        if audio_tokens is not None:
+            audio_tokens_np = np.array(audio_tokens).astype(np.uint32)
+            audio_chunk = self.decode_audio(audio_tokens_np)
+            # Return audio and text
+            text_piece = ""
+            if text_token_id not in (0, 3):
+                text_piece = self.text_tokenizer.id_to_piece(text_token_id).replace("▁", " ")
+            return audio_chunk, text_piece
+        return None, None
+    def generate_greeting(self, lm_gen, persona_prompt: str = None, num_frames: int = 25) -> tuple[np.ndarray, str]:
+        """
+        Generate Moshi greeting by feeding silence frames.
+
+        Args:
+            lm_gen: LmGen generator instance
+            persona_prompt: Optional persona context
+            num_frames: Number of frames to generate (~2 seconds for 25 frames)
+
+        Returns:
+            (greeting_audio, greeting_text)
+        """
+        silence_frame = np.zeros(self.frame_size, dtype=np.float32)
+        audio_chunks = []
+        text_pieces = []
+        for _ in range(num_frames):
+            audio_chunk, text_piece = self.step_frame(lm_gen, silence_frame)
+            if audio_chunk is not None:
+                audio_chunks.append(audio_chunk)
+            if text_piece:
+                text_pieces.append(text_piece)
+        greeting_audio = np.concatenate(audio_chunks) if audio_chunks else np.array([], dtype=np.float32)
+        greeting_text = "".join(text_pieces)
+        return greeting_audio, greeting_text

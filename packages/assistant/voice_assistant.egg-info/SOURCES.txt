@@ -30,6 +30,9 @@ assistant/dashboard/widgets/panels/panel_base.py
 assistant/dashboard/widgets/panels/projects_panel.py
 assistant/dashboard/widgets/panels/todo_panel.py
 assistant/dashboard/widgets/panels/voice_visualizer_panel.py
+assistant/email/__init__.py
+assistant/email/persona_mailer.py
+assistant/email/status_reporter.py
 assistant/hardware/__init__.py
 assistant/hardware/gpu_detector.py
 assistant/hardware/service_selector.py
@@ -42,12 +45,19 @@ assistant/memory/model_config.py
 assistant/personas/__init__.py
 assistant/personas/config.py
 assistant/personas/manager.py
+assistant/phone/__init__.py
+assistant/phone/audio_converter.py
+assistant/phone/media_streams_server.py
+assistant/phone/outbound_caller.py
+assistant/phone/twilio_voice_bridge.py
 assistant/plugins/__init__.py
 assistant/plugins/base.py
 assistant/plugins/manager.py
 assistant/thinking/deep_thinking.py
 assistant/tools/__init__.py
+assistant/tools/email_tool.py
 assistant/tools/persona_tool.py
+assistant/tools/phone_tool.py
 assistant/tools/registry.py
 assistant/tools/theme_tool.py
 assistant/utils/__init__.py
@@ -65,6 +75,7 @@ assistant/voice/verified_fast_download.py
 assistant/wake_word/__init__.py
 assistant/wake_word/detector.py
 tests/test_ai_client.py
+tests/test_audio_converter.py
 tests/test_audio_functionality.py
 tests/test_chat_panel_snapshots.py
 tests/test_common_wake_words.py
@@ -74,6 +85,7 @@ tests/test_dashboard.py
 tests/test_integration.py
 tests/test_multi_wake_words.py
 tests/test_persona_switching.py
+tests/test_phone_integration.py
 tests/test_responsive_comprehensive.py
 tests/test_sidebar_layout.py
 tests/test_theme_switching.py

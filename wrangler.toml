@@ -1,39 +1,27 @@
-# Boss AI - Unified Deployment Configuration
-# Simple, single-file configuration for all environments
+# Generated from config.js - DO NOT EDIT MANUALLY
+# To update: node config.js generate-wrangler
 
 name = "boss-ai"
 main = "packages/server/src/index.js"
 compatibility_date = "2024-10-23"
 compatibility_flags = ["nodejs_compat"]
 
-# Cloudflare account
 account_id = "CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER"
 
-# Local development
 [dev]
 port = 8787
 local_protocol = "http"
 
-# R2 Storage - Single bucket for everything
 [[r2_buckets]]
 binding = "R2_BUCKET"
 bucket_name = "xswarm-boss"
 preview_bucket_name = "xswarm-boss-dev"
 
-# Environment Variables (non-secret, safe to commit)
 [vars]
 ENVIRONMENT = "production"
-
-
-
-# Database Configuration
 TURSO_DATABASE_URL = "TURSO_DATABASE_URL_PLACEHOLDER"
-
-# SendGrid Configuration
 SENDGRID_FROM_EMAIL = "boss@xswarm.ai"
 SENDGRID_FROM_NAME = "Boss AI"
-
-# Feature Flags
 VOICE_ENABLED = "true"
 SMS_ENABLED = "true"
 EMAIL_ENABLED = "true"
@@ -41,17 +29,15 @@ EMAIL_ENABLED = "true"
 # =============================================================================
 # SECRETS (Managed separately - NOT in this file)
 # =============================================================================
-# Set these using: pnpm run setup:secrets
-# Or manually: wrangler secret put <KEY>
+# Set using: wrangler secret put <KEY>
 #
 # Required secrets:
-#   - ANTHROPIC_API_KEY          (Claude AI)
-#   - OPENAI_API_KEY             (Embeddings)
-#   - TWILIO_AUTH_TOKEN          (Voice & SMS)
-#   - SENDGRID_API_KEY           (Email)
-#   - STRIPE_SECRET_KEY          (Payments)
-#   - STRIPE_WEBHOOK_SECRET      (Webhook verification)
-#   - TURSO_AUTH_TOKEN           (Database)
-#   - CLOUDFLARE_API_TOKEN       (Deployment)
-#   - S3_ACCESS_KEY_ID           (R2 Storage)
-#   - S3_SECRET_ACCESS_KEY       (R2 Storage)
+#   - ANTHROPIC_API_KEY
+#   - OPENAI_API_KEY
+#   - TWILIO_AUTH_TOKEN
+#   - SENDGRID_API_KEY
+#   - STRIPE_SECRET_KEY
+#   - STRIPE_WEBHOOK_SECRET
+#   - TURSO_AUTH_TOKEN
+#   - S3_ACCESS_KEY_ID
+#   - S3_SECRET_ACCESS_KEY

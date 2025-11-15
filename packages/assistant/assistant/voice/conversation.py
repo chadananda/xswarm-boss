@@ -270,16 +270,22 @@ class ConversationLoop:
         if self.memory_orchestrator and self.memory_orchestrator.is_available():
             try:
                 # Get recent conversation context for query
-                recent_context = await self.memory.get_conversation_history(
+                recent_context_list = await self.memory.get_context(
                     user_id=self.user_id,
                     limit=5
                 )
+
+                # Convert context list to string for query
+                recent_context = "\n".join([
+                    f"{msg.get('role', 'user')}: {msg.get('message', msg.get('content', ''))}"
+                    for msg in recent_context_list
+                ]) if recent_context_list else "conversation context"
 
                 # Retrieve filtered memories
                 # Note: We use a generic query since we don't have transcribed text yet
                 filtered_memories = await self.memory_orchestrator.get_memories(
                     user_id=self.user_id,
-                    query=recent_context or "conversation context",
+                    query=recent_context,
                     context=recent_context,
                     thinking_level="light",
                     max_memories=3

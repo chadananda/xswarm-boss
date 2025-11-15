@@ -4,6 +4,7 @@ from textual.widgets import Static
 from textual.reactive import reactive
 from rich.text import Text
 from ...hardware.gpu_detector import detect_gpu_capability, GPUCapability
+from importlib.metadata import version
 
 
 class CyberpunkFooter(Static):
@@ -122,7 +123,15 @@ class CyberpunkFooter(Static):
             result.append(f" {gpu.util_percent:.0f}%", style=f"{grade_color}")
             result.append(" │ ", style=shade_3)
 
-        # 2. System Monitoring Stats
+        # 2. Version Number
+        try:
+            app_version = version("voice-assistant")
+            result.append(f"v{app_version}", style=f"bold {primary}")
+            result.append(" │ ", style=shade_3)
+        except Exception:
+            pass  # Skip if version not available
+
+        # 3. System Monitoring Stats
         # CPU
         result.append("CPU:", style=shade_4)
         cpu_color = "red" if self.cpu_percent > 80 else "yellow" if self.cpu_percent > 60 else "green"
