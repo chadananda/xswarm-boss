@@ -37,6 +37,13 @@ class VoiceAssistantApp(App):
 
     TITLE = "Voice Assistant"
 
+    # Key bindings
+    BINDINGS = [
+        ("q", "quit", "Quit"),
+        ("ctrl+q", "quit", "Quit"),
+        ("ctrl+c", "quit", "Quit"),
+    ]
+
     # Reactive state
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
@@ -590,6 +597,14 @@ class VoiceAssistantApp(App):
             # Mark as initialized
             self.voice_initialized = True
             self.update_activity("✅ Voice bridge initialized successfully")
+
+            # Auto-start conversation for microphone visualization and greeting
+            await self.voice_bridge.start_conversation()
+            self.update_activity("🎙️  Microphone active (press Space to toggle)")
+
+            # Generate and play startup greeting
+            await self.generate_greeting_with_voice_bridge()
+
             return True
         except Exception as e:
             self.update_activity(f"❌ Voice initialization failed: {e}")
@@ -724,6 +739,39 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error generating greeting: {e}")
             self.state = "ready"
+
+    async def generate_greeting_with_voice_bridge(self):
+        """
+        Generate and play startup greeting using VoiceBridgeOrchestrator.
+
+        This is called after initialize_voice() completes to introduce the assistant.
+        """
+        import numpy as np
+
+        try:
+            self.state = "speaking"
+            self.update_activity("👋 Generating startup greeting...")
+
+            # Get current persona name
+            persona_name = self.current_persona_name if self.current_persona_name != "Default" else (self.config.default_persona or "JARVIS")
+
+            # Create greeting text prompt
+            greeting_text = f"You are {persona_name}. Greet the user warmly and introduce yourself in character in 1-2 sentences."
+
+            # Use voice bridge's generate_response method for text input
+            # This will create audio through Moshi
+            result = await self.voice_bridge.generate_response(greeting_text)
+
+            if result and result.get("response_text"):
+                self.update_activity(f"💬 {result['response_text']}")
+                self.add_chat_message("assistant", result['response_text'])
+
+            self.state = "idle"
+            self.update_activity("✓ Ready - press Space to start talking")
+
+        except Exception as e:
+            self.update_activity(f"Error generating greeting: {e}")
+            self.state = "idle"
 
     async def play_audio_with_visualization(self, audio: "np.ndarray"):
         """Play audio and update visualizer amplitude during playback"""
