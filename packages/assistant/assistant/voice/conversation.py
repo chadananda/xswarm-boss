@@ -263,6 +263,7 @@ class ConversationLoop:
         self._set_state("thinking")
         # Step 1: Update mic amplitude for visualization
         mic_amplitude = self.moshi.get_amplitude(user_audio)
+        self.moshi.update_mic_amplitude(user_audio)  # Update Moshi's internal amplitude state
 
         # Step 2: Retrieve AI-filtered memories (inner monologue)
         inner_monologue = None
@@ -310,6 +311,7 @@ class ConversationLoop:
         assistant_text = moshi_text if moshi_text else "[No response]"
         # Step 5: Update Moshi amplitude for visualization
         moshi_amplitude = self.moshi.get_amplitude(moshi_audio)
+        self.moshi.update_moshi_amplitude(moshi_audio)  # Update Moshi's internal amplitude state
         # Step 6: Play audio response
         self._set_state("speaking")
         if len(moshi_audio) > 0:
