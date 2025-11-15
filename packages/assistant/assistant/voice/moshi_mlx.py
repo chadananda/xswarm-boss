@@ -28,6 +28,13 @@ from pathlib import Path
 import sentencepiece
 import os
 
+# CRITICAL: Disable hf_transfer BEFORE importing huggingface_hub
+# hf_transfer auto-enables when installed and ignores local_files_only=True
+# This causes network requests and hangs when offline or files are cached
+os.environ["HF_HUB_DISABLE_EXPERIMENTAL_WARNING"] = "1"
+if "HF_HUB_ENABLE_HF_TRANSFER" in os.environ:
+    del os.environ["HF_HUB_ENABLE_HF_TRANSFER"]
+
 try:
     import mlx.core as mx
     import mlx.nn as nn
@@ -100,16 +107,7 @@ class MoshiBridge:
             sample_rate: Audio sample rate (24kHz)
             quality: Quality preset ("auto" detects from GPU, or "bf16"/"q8"/"q4")
         """
-        # Enable fast, robust downloads with hf_xet (50-100x speedup + resume support)
-        try:
-            import hf_transfer  # Package name is still hf-transfer
-            os.environ["HF_XET_HIGH_PERFORMANCE"] = "1"  # New env var for hf_xet
-            os.environ["HF_HUB_DOWNLOAD_TIMEOUT"] = "120"  # 2 min timeout for large files
-            os.environ["HF_HUB_ETAG_TIMEOUT"] = "120"  # 2 min timeout for metadata
-            print("✅ Fast downloads enabled (hf_xet with resume support)")
-        except ImportError:
-            print("⚠️  hf_transfer not installed - downloads will be slower")
-            print("   Install with: pip install hf-transfer")
+        print(f"🚀 Starting Moshi initialization (quality={quality})...")
 
         # Auto-select quality based on GPU capability
         if quality == "auto":
@@ -150,39 +148,57 @@ class MoshiBridge:
 
         # Download model files with robust retry logic
         # Always use BF16 checkpoint and quantize at runtime if needed
+        print(f"📦 Checking for cached model files...")
         download = _create_download_with_retry()
 
-        # Try cached version first, otherwise download with retry
+        # Try cached versions first for all files
+        print(f"🔍 Looking for {self.hf_repo}/{default_file}...")
         try:
             model_file = hf_hub_download(self.hf_repo, default_file, local_files_only=True)
-        except Exception:
-            # Download with automatic retry and resume support
-            print(f"Downloading {default_file} (~14GB, may take time on slow connections)...")
+            mimi_file = hf_hub_download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors", local_files_only=True)
+            tokenizer_file = hf_hub_download(self.hf_repo, "tokenizer_spm_32k_3.model", local_files_only=True)
+        except Exception as e:
+            # Files not in cache, download with automatic retry and resume support
+            print(f"Downloading Moshi models (~14GB, may take time on slow connections)...")
+            print(f"Error loading cached files: {e}")
             model_file = download(self.hf_repo, default_file)
-
-        mimi_file = download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
-        tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
+            mimi_file = download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
+            tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
+        print(f"📝 Loading text tokenizer...")
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
+        print(f"✓ Text tokenizer loaded")
 
         # Load Mimi audio codec (Rust implementation)
+        print(f"🎵 Loading Mimi audio codec...")
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
+        print(f"✓ Mimi codec loaded")
 
         # Load Moshi language model
+        print(f"🧠 Initializing Moshi model...")
         mx.random.seed(299792458)
         lm_config = models.config_v0_1()
         self.model = models.Lm(lm_config)
         self.model.set_dtype(mx.bfloat16)
+        print(f"✓ Model structure initialized")
 
         if quantized is not None:
+            print(f"🔧 Quantizing model to {quantized}-bit...")
             group_size = 32 if quantized == 4 else 64
             nn.quantize(self.model, bits=quantized, group_size=group_size)
+            print(f"✓ Model quantized")
 
         # Load weights - strict=True works with quantized checkpoints
         # The reference implementation uses strict=True successfully
+        print(f"⏳ Loading model weights (~{self.quality}, ~14GB)...")
+        print(f"   This uses Apple Silicon Metal GPU and may take 10-30s...")
         self.model.load_weights(model_file, strict=True)
+        print(f"✓ Weights loaded")
+
+        print(f"🔥 Warming up GPU...")
         self.model.warmup()
+        print(f"✓ Model ready!")
 
         # Amplitude tracking
         self.mic_amplitude = 0.0
