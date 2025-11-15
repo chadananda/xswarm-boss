@@ -154,3 +154,12 @@ tmp/dev_tests/__snapshots__/
 # HTML test/snapshot reports (may contain env var data)
 snapshot_report.html
 **/*snapshot_report*.html
+
+# Configuration (generated from config.cjs)
+/config.json
+/wrangler.toml
+/config.toml
+/wake-word.toml
+
+# Config source of truth (committed)
+# config.cjs is the only config file that should be committed
