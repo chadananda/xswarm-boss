@@ -40,7 +40,8 @@
       "WebFetch(domain:share.cleanshot.com)",
       "Skill(project-cleanup)",
       "Skill(security-scan)",
-      "WebFetch(domain:piapi.ai)"
+      "WebFetch(domain:piapi.ai)",
+      "Skill(tui-viewer)"
     ],
     "deny": [],
     "ask": []

@@ -499,275 +499,34 @@ class VoiceVisualizerPanel(Static):
 
         return result
 
-    def _render_concentric_circles(self, width: int, height: int) -> List[str]:
-        """Style 1: Concentric circles that expand based on amplitude."""
+    def _render_simple_circle(self, width: int, height: int) -> List[str]:
+        """Simple, fast circle rendering without per-pixel calculation."""
         lines = []
-        center_x = width // 2
-        center_y = height // 2
-
-        # Density characters for circles
-        chars = [" ", "░", "▒", "▓", "█"]
-
-        # Scale radius based on amplitude: NO rendering when 0.0, full size when loud
-        # Don't show anything if amplitude is exactly 0.0 (before voice init)
-        if self._smooth_assistant_amplitude == 0.0:
-            # Return empty lines - no visualization until voice is initialized
-            return [" " * width for _ in range(height)]
-
-        # Minimum radius = 1 (dot), maximum radius = width/4
-        min_radius = 1
-        max_radius = width // 4
-        scaled_radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
-
-        for y in range(height):
-            line = ""
-            for x in range(width):
-                # Calculate distance from center
-                dx = x - center_x
-                dy = (y - center_y) * 2  # Adjust for character aspect ratio
-                distance = math.sqrt(dx * dx + dy * dy)
-
-                # Show content only within the scaled radius
-                if distance <= scaled_radius:
-                    # Map distance to amplitude rings (using smoothed amplitude)
-                    ring_size = max(1, 5 * self._smooth_assistant_amplitude)
-                    ring_phase = (distance - self.animation_frame * 0.5) % (ring_size + 1)
-
-                    if ring_phase < ring_size:
-                        intensity = 1.0 - (ring_phase / ring_size)
-                        char_idx = int(intensity * (len(chars) - 1))
-                        line += chars[char_idx]
-                    else:
-                        line += " "
-                else:
-                    line += " "
-
-            lines.append(line)
-
-        return lines
-
-    def _render_ripple_waves(self, width: int, height: int) -> List[str]:
-        """Style 2: Ripple effect with wave characters."""
-        lines = []
-        center_x = width // 2
-        center_y = height // 2
-
-        wave_chars = ["◠", "◡", "◝", "◞"]
 
         # Don't show anything if amplitude is exactly 0.0 (before voice init)
         if self._smooth_assistant_amplitude == 0.0:
             return [" " * width for _ in range(height)]
 
-        # Scale radius based on amplitude: tiny dot when silent, full size when loud
-        min_radius = 1
-        max_radius = min(width, height * 2) // 3
-        scaled_radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
-
-        for y in range(height):
-            line = ""
-            for x in range(width):
-                dx = x - center_x
-                dy = (y - center_y) * 2
-                distance = math.sqrt(dx * dx + dy * dy)
-
-                # Only show ripples within the scaled radius
-                if distance <= scaled_radius:
-                    # Create ripple effect (using smoothed amplitude)
-                    ripple = math.sin(distance * 0.5 - self.animation_frame * 0.3) * self._smooth_assistant_amplitude
-
-                    if ripple > 0.3:
-                        char_idx = int((distance + self.animation_frame) % len(wave_chars))
-                        line += wave_chars[char_idx]
-                    else:
-                        line += " "
-                else:
-                    line += " "
-
-            lines.append(line)
-
-        return lines
-
-    def _render_circular_bars(self, width: int, height: int) -> List[str]:
-        """Style 3: Vertical bars arranged in a circle."""
-        lines = []
-        center_x = width // 2
         center_y = height // 2
-
-        bar_chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
-
-        # Don't show anything if amplitude is exactly 0.0 (before voice init)
-        if self._smooth_assistant_amplitude == 0.0:
-            return [" " * width for _ in range(height)]
-
-        # Number of bars around circle
-        num_bars = 12
-        radius = min(width, height * 2) // 3
-
-        for y in range(height):
-            line = ""
-            for x in range(width):
-                dx = x - center_x
-                dy = (y - center_y) * 2
-
-                # Calculate angle and distance
-                angle = math.atan2(dy, dx)
-                distance = math.sqrt(dx * dx + dy * dy)
-
-                # Check if we're near a bar position
-                bar_idx = int((angle + math.pi) / (2 * math.pi) * num_bars)
-                bar_angle = (bar_idx / num_bars) * 2 * math.pi - math.pi
-
-                # Calculate amplitude for this bar (varies by bar and time, using smoothed amplitude)
-                bar_amplitude = math.sin(self.animation_frame * 0.2 + bar_idx) * self._smooth_assistant_amplitude
-                bar_height = radius * (0.5 + bar_amplitude)
-
-                # Check if point is within this bar
-                angle_diff = abs(angle - bar_angle)
-                if angle_diff < 0.3 and distance < bar_height:
-                    # Height of bar at this point
-                    bar_intensity = 1.0 - (distance / bar_height)
-                    char_idx = int(bar_intensity * (len(bar_chars) - 1))
-                    line += bar_chars[char_idx]
-                else:
-                    line += " "
-
-            lines.append(line)
-
-        return lines
-
-    def _render_pulsing_dots(self, width: int, height: int) -> List[str]:
-        """Style 4: Pulsing dot pattern."""
-        lines = []
         center_x = width // 2
-        center_y = height // 2
 
-        dot_chars = ["·", "•", "●", "⬤"]
-
-        # Don't show anything if amplitude is exactly 0.0 (before voice init)
-        if self._smooth_assistant_amplitude == 0.0:
-            return [" " * width for _ in range(height)]
-
-        # Multiple rings of dots
-        num_rings = 3
-        dots_per_ring = [8, 12, 16]
+        # Simple amplitude indicator - just a pulsing circle character
+        pulse_chars = ["·", "o", "O", "◯", "⬤"]
+        char_idx = int(self._smooth_assistant_amplitude * (len(pulse_chars) - 1))
+        char = pulse_chars[char_idx]
 
         for y in range(height):
-            line = ""
-            for x in range(width):
-                dx = x - center_x
-                dy = (y - center_y) * 2
-                distance = math.sqrt(dx * dx + dy * dy)
-
-                found_dot = False
-
-                # Check each ring
-                for ring_idx in range(num_rings):
-                    ring_radius = (ring_idx + 1) * 5 * self._smooth_assistant_amplitude
-
-                    if abs(distance - ring_radius) < 1.5:
-                        # Check if we're near a dot position
-                        angle = math.atan2(dy, dx)
-                        num_dots = dots_per_ring[ring_idx]
-                        dot_idx = int((angle + math.pi) / (2 * math.pi) * num_dots)
-                        dot_angle = (dot_idx / num_dots) * 2 * math.pi - math.pi
-
-                        angle_diff = abs(angle - dot_angle)
-                        if angle_diff < 0.3:
-                            # Pulse effect
-                            pulse = math.sin(self.animation_frame * 0.2 + ring_idx) * 0.5 + 0.5
-                            char_idx = int(pulse * (len(dot_chars) - 1))
-                            line += dot_chars[char_idx]
-                            found_dot = True
-                            break
-
-                if not found_dot:
-                    line += " "
-
+            if y == center_y:
+                # Center line with character
+                padding = " " * (center_x - 1)
+                line = padding + char * 3 + padding
+            else:
+                # Empty line
+                line = " " * width
             lines.append(line)
 
         return lines
 
-    def _render_spinning_indicator(self, width: int, height: int) -> List[str]:
-        """Style 5: Spinning/rotating indicator."""
-        lines = []
-        center_x = width // 2
-        center_y = height // 2
-
-        spinner_chars = ["◜", "◝", "◞", "◟"]
-
-        # Don't show anything if amplitude is exactly 0.0 (before voice init)
-        if self._smooth_assistant_amplitude == 0.0:
-            return [" " * width for _ in range(height)]
-
-        # Spinning radius based on smoothed amplitude: tiny dot when silent, full size when loud
-        min_radius = 1
-        max_radius = min(width, height * 2) // 4
-        radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
-
-        for y in range(height):
-            line = ""
-            for x in range(width):
-                dx = x - center_x
-                dy = (y - center_y) * 2
-                distance = math.sqrt(dx * dx + dy * dy)
-
-                # Rotating effect
-                angle = math.atan2(dy, dx)
-                spin_angle = self.animation_frame * 0.3
-
-                # Draw spiral
-                target_distance = (angle + spin_angle) % (2 * math.pi) * radius / (2 * math.pi)
-
-                if abs(distance - target_distance) < 2:
-                    char_idx = int(self.animation_frame / 5) % len(spinner_chars)
-                    line += spinner_chars[char_idx]
-                else:
-                    line += " "
-
-            lines.append(line)
-
-        return lines
-
-    def _render_sound_wave_circle(self, width: int, height: int) -> List[str]:
-        """Style 6: Sound wave pattern in circular arrangement."""
-        lines = []
-        center_x = width // 2
-        center_y = height // 2
-
-        wave_chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
-
-        # Don't show anything if amplitude is exactly 0.0 (before voice init)
-        if self._smooth_assistant_amplitude == 0.0:
-            return [" " * width for _ in range(height)]
-
-        # Scale radius based on amplitude: tiny dot when silent, full size when loud
-        min_radius = 1
-        max_radius = min(width, height * 2) // 3
-        base_radius = min_radius + (max_radius - min_radius) * self._smooth_assistant_amplitude
-
-        for y in range(height):
-            line = ""
-            for x in range(width):
-                dx = x - center_x
-                dy = (y - center_y) * 2
-                distance = math.sqrt(dx * dx + dy * dy)
-                angle = math.atan2(dy, dx)
-
-                # Create wave pattern around circle (using smoothed amplitude)
-                wave_offset = math.sin(angle * 5 + self.animation_frame * 0.3) * self._smooth_assistant_amplitude * 5
-                target_radius = base_radius + wave_offset
-
-                if abs(distance - target_radius) < 2:
-                    # Intensity based on wave
-                    intensity = (math.sin(angle * 5 + self.animation_frame * 0.3) + 1) / 2
-                    char_idx = int(intensity * (len(wave_chars) - 1))
-                    line += wave_chars[char_idx]
-                else:
-                    line += " "
-
-            lines.append(line)
-
-        return lines
 
     def render(self) -> Text:
         """
@@ -803,21 +562,8 @@ class VoiceVisualizerPanel(Static):
             result.append(waveform)
             return result
 
-        # Render circular visualization based on style
-        if self.visualization_style == VisualizationStyle.CONCENTRIC_CIRCLES:
-            viz_lines = self._render_concentric_circles(content_width, circular_viz_lines)
-        elif self.visualization_style == VisualizationStyle.RIPPLE_WAVES:
-            viz_lines = self._render_ripple_waves(content_width, circular_viz_lines)
-        elif self.visualization_style == VisualizationStyle.CIRCULAR_BARS:
-            viz_lines = self._render_circular_bars(content_width, circular_viz_lines)
-        elif self.visualization_style == VisualizationStyle.PULSING_DOTS:
-            viz_lines = self._render_pulsing_dots(content_width, circular_viz_lines)
-        elif self.visualization_style == VisualizationStyle.SPINNING_INDICATOR:
-            viz_lines = self._render_spinning_indicator(content_width, circular_viz_lines)
-        elif self.visualization_style == VisualizationStyle.SOUND_WAVE_CIRCLE:
-            viz_lines = self._render_sound_wave_circle(content_width, circular_viz_lines)
-        else:
-            viz_lines = [""] * circular_viz_lines
+        # Use SIMPLE circle rendering (no expensive math) - all styles use same fast implementation
+        viz_lines = self._render_simple_circle(content_width, circular_viz_lines)
 
         # Use dynamic theme colors if available
         theme = getattr(self, 'theme_colors', None)
