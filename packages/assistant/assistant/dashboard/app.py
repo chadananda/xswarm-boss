@@ -684,11 +684,16 @@ class VoiceAssistantApp(App):
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
 
-            def load_moshi_thread():
-                """Background thread for model loading"""
+            def moshi_thread_main():
+                """
+                Dedicated Moshi thread - loads model then processes frames.
+                This thread owns ALL MLX operations (loading + processing).
+                """
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("DEBUG: load_moshi_thread() ENTERED\n")
+                    f.write("DEBUG: Moshi thread started - loading model\n")
                     f.flush()
+
+                # PHASE 1: Load model
                 try:
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write(f"DEBUG: Starting MoshiBridge({moshi_quality})...\n")
@@ -704,15 +709,30 @@ class VoiceAssistantApp(App):
                         f.write(traceback.format_exc())
                         f.flush()
                     moshi_bridge_result[0] = e
+                    return  # Exit thread on load failure
 
-            # Start loading in background thread
+                # PHASE 2: Process frames (after model loads)
+                # Wait for signal that processing should start
+                import time
+                while not hasattr(self, '_moshi_thread_ready'):
+                    time.sleep(0.1)
+
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Moshi thread entering processing loop\n")
+                    f.flush()
+
+                # Processing loop (runs until app closes)
+                self._moshi_processing_thread()
+
+            # Start dedicated Moshi thread (NOT daemon - we need it to stay alive)
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Starting background thread\n")
+                f.write("DEBUG: Starting Moshi thread\n")
                 f.flush()
-            loading_thread = threading.Thread(target=load_moshi_thread, daemon=True)
+            loading_thread = threading.Thread(target=moshi_thread_main, daemon=False, name="MoshiMain")
             loading_thread.start()
+            self._moshi_thread = loading_thread
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Background thread started\n")
+                f.write("DEBUG: Moshi thread started\n")
                 f.flush()
 
 
@@ -841,9 +861,10 @@ class VoiceAssistantApp(App):
                 f.write("DEBUG: Audio started successfully\n")
                 f.flush()
 
-            # Start background workers for Moshi processing pipeline
-            # Processing loop: consumes input queue, calls step_frame(), produces output queue
-            self.run_worker(self.moshi_processing_loop(), exclusive=False, group="moshi_processing")
+            # Signal Moshi thread to start processing (it's been waiting after model load)
+            self._processing_thread_stop = threading.Event()
+            self._moshi_thread_ready = True  # Signal to start processing loop
+
             # Playback loop: consumes output queue, plays audio to speakers
             self.run_worker(self.moshi_playback_loop(), exclusive=False, group="moshi_playback")
 
@@ -965,67 +986,56 @@ class VoiceAssistantApp(App):
             self.update_activity(f"Error generating greeting: {e}")
             self.state = "idle"
 
-    async def moshi_processing_loop(self):
+    def _moshi_processing_thread(self):
         """
-        Continuous loop to process queued audio frames through Moshi.
-        Runs on main async event loop to safely call MLX operations.
-        Consumes from _moshi_input_queue, produces to _moshi_output_queue.
+        Dedicated thread for Moshi processing. Runs independently of:
+        - Audio callback thread (avoids segfaults)
+        - Async event loop (avoids blocking UI)
 
-        OPTIMIZED: Process multiple frames before yielding to reduce latency.
+        This is the ONLY thread that calls MLX operations (thread-safe design).
+        Consumes from _moshi_input_queue, produces to _moshi_output_queue.
         """
-        import asyncio
+        import time
 
         with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write("DEBUG: moshi_processing_loop started\n")
+            f.write("DEBUG: Moshi processing thread started\n")
             f.flush()
 
-        frames_processed = 0
-
-        while True:
+        while not self._processing_thread_stop.is_set():
             try:
-                # Process multiple frames before yielding (reduce async overhead)
-                batch_size = min(len(self._moshi_input_queue), 5)  # Process up to 5 frames at once
+                # Check if there's audio to process
+                if len(self._moshi_input_queue) > 0:
+                    # Get next audio frame
+                    audio_frame = self._moshi_input_queue.pop(0)
 
-                if batch_size > 0:
-                    for _ in range(batch_size):
-                        if len(self._moshi_input_queue) == 0:
-                            break
+                    # Process through Moshi (MLX operations safe in this dedicated thread)
+                    audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio_frame)
 
-                        # Get next audio frame
-                        audio_frame = self._moshi_input_queue.pop(0)
+                    # Queue output audio for playback
+                    if audio_chunk is not None and len(audio_chunk) > 0:
+                        self._moshi_output_queue.append(audio_chunk)
+                        # Update Moshi amplitude for visualization
+                        self.moshi_bridge.update_moshi_amplitude(audio_chunk)
 
-                        # Process through Moshi (safe on main thread)
-                        audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio_frame)
+                    # Log text output (for debugging)
+                    if text_piece and text_piece.strip():
+                        with open("/tmp/moshi_text.log", "a") as f:
+                            f.write(text_piece)
+                            f.flush()
 
-                        # Queue output audio for playback
-                        if audio_chunk is not None and len(audio_chunk) > 0:
-                            self._moshi_output_queue.append(audio_chunk)
-                            # Update Moshi amplitude for visualization
-                            self.moshi_bridge.update_moshi_amplitude(audio_chunk)
-
-                        # Log text output (for debugging)
-                        if text_piece and text_piece.strip():
-                            with open("/tmp/moshi_text.log", "a") as f:
-                                f.write(text_piece)
-                                f.flush()
-
-                        frames_processed += 1
-
-                    # Yield control only after processing batch (minimize sleep overhead)
-                    await asyncio.sleep(0)  # Yield immediately, no delay
+                    # No sleep needed - processing naturally takes time
                 else:
-                    # No frames to process, wait for new input
-                    # Use shorter sleep to reduce latency when frames arrive
-                    await asyncio.sleep(0.005)  # 5ms instead of 10ms
+                    # No frames to process, sleep briefly
+                    time.sleep(0.001)  # 1ms when idle
 
             except Exception as e:
-                # Log errors but keep loop running
+                # Log errors but keep thread running
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"ERROR in moshi_processing_loop: {e}\n")
+                    f.write(f"ERROR in moshi_processing_thread: {e}\n")
                     import traceback
                     f.write(traceback.format_exc())
                     f.flush()
-                await asyncio.sleep(0.1)
+                time.sleep(0.1)
 
     async def moshi_playback_loop(self):
         """Continuous loop to play Moshi output audio from queue"""
