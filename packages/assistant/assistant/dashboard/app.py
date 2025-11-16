@@ -670,18 +670,23 @@ class VoiceAssistantApp(App):
                     moshi_bridge_result[0] = e
                     loading_complete.set()
 
-            # Start loading in background
+            # Start loading in background thread
             loading_thread = threading.Thread(target=load_moshi_thread, daemon=True)
             loading_thread.start()
 
-            # Show progress updates while loading
+            # Poll for completion using threading.Event.wait() with timeout (non-blocking)
+            # This yields control back to event loop every 100ms
             progress_dots = 0
-            while not loading_complete.is_set():
-                dots = "." * (progress_dots % 4)
-                spaces = " " * (3 - (progress_dots % 4))
-                self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} still loading, please wait...")
+            while True:
+                if loading_complete.wait(timeout=0.1):  # 100ms poll, non-blocking
+                    break
+                # Update progress every ~2 seconds (20 * 100ms)
+                if progress_dots % 20 == 0:
+                    dots = "." * ((progress_dots // 20) % 4)
+                    spaces = " " * (3 - ((progress_dots // 20) % 4))
+                    self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} still loading, please wait...")
                 progress_dots += 1
-                await asyncio.sleep(2.0)  # Update every 2 seconds
+                await asyncio.sleep(0)  # Yield to event loop immediately
 
             # Check result
             if isinstance(moshi_bridge_result[0], Exception):
