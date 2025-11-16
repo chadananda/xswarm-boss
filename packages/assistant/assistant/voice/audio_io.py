@@ -56,12 +56,18 @@ class AudioIO:
             if status:
                 print(f"Audio input status: {status}")
 
-            # Copy audio data
-            audio = indata[:, 0].copy()
-            self.input_queue.put(audio)
+            try:
+                # Copy audio data and ensure it's contiguous
+                audio = np.ascontiguousarray(indata[:, 0], dtype=np.float32)
+                self.input_queue.put(audio)
 
-            if callback:
-                callback(audio)
+                if callback:
+                    try:
+                        callback(audio)
+                    except Exception as e:
+                        print(f"Audio callback error: {e}")
+            except Exception as e:
+                print(f"Audio input error: {e}")
 
         self.input_stream = sd.InputStream(
             samplerate=self.sample_rate,
@@ -85,13 +91,24 @@ class AudioIO:
 
             try:
                 audio = self.output_queue.get_nowait()
+                # Ensure audio is float32
+                if audio.dtype != np.float32:
+                    audio = audio.astype(np.float32)
+
                 # Reshape to (frames, channels)
                 if audio.shape[0] < frames:
                     # Pad with zeros if needed
                     audio = np.pad(audio, (0, frames - audio.shape[0]))
-                outdata[:] = audio[:frames].reshape(-1, 1)
-            except:
-                # Silence if no audio available
+
+                # Ensure correct shape and copy to output buffer
+                try:
+                    outdata[:] = audio[:frames].reshape(-1, 1)
+                except ValueError as e:
+                    # If reshape fails, fill with silence to avoid crash
+                    print(f"Audio reshape error: {e}, shape={audio.shape}, frames={frames}")
+                    outdata.fill(0)
+            except Exception as e:
+                # Silence if no audio available or other error
                 outdata.fill(0)
 
         self.output_stream = sd.OutputStream(
@@ -110,12 +127,20 @@ class AudioIO:
         Args:
             audio: Audio samples to play (1D NumPy array)
         """
+        if len(audio) == 0:
+            return
+
+        # Ensure audio is float32 and contiguous
+        audio = np.asarray(audio, dtype=np.float32)
+        if not audio.flags['C_CONTIGUOUS']:
+            audio = np.ascontiguousarray(audio)
+
         # Split audio into frame_size chunks for proper streaming
         num_frames = int(np.ceil(len(audio) / self.frame_size))
         for i in range(num_frames):
             start = i * self.frame_size
             end = min((i + 1) * self.frame_size, len(audio))
-            chunk = audio[start:end]
+            chunk = audio[start:end].copy()  # Make a copy to avoid reference issues
             self.output_queue.put(chunk)
 
     def read_frame(self, timeout: float = 0.1) -> Optional[np.ndarray]:
