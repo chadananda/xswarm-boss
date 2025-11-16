@@ -779,7 +779,13 @@ class VoiceVisualizerPanel(Static):
         result.append("─" * content_width + "\n", style=shade_3)  # shade-3
 
         # Microphone waveform at bottom with cyan tint
-        waveform = self._render_waveform(content_width)
+        # Add mic icon (🎤) on the left, then the waveform
+        # Note: 🎤 emoji takes 2 terminal cells + 1 space = 3 total width
+        mic_icon = "🎤 "
+        mic_icon_width = 3  # Account for wide emoji character (2 cells) + space
+        waveform_width = max(1, content_width - mic_icon_width)
+        waveform = self._render_waveform(waveform_width)
+        result.append(mic_icon, style=shade_5)  # Use lightest shade for icon
         result.append(waveform)
 
         return result

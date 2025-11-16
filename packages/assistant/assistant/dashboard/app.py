@@ -136,9 +136,6 @@ class VoiceAssistantApp(App):
                 # Don't hide the widget - keep it visible with 0 amplitude (will be set in on_mount)
                 yield viz_panel
 
-                # Persona name below visualizer (centered)
-                yield Static("", id="persona-name", classes="persona-name-label")
-
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
                     yield Button(" 📊  Status", id="tab-status", classes="tab-button active-tab")
@@ -357,11 +354,10 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-        # Set persona name label below visualizer
+        # Set persona name as visualizer subtitle (bottom border)
         try:
             persona_name = self.config.default_persona or "JARVIS"
-            persona_label = self.query_one("#persona-name", Static)
-            persona_label.update(f"◈ {persona_name} ◈")
+            visualizer.border_subtitle = f"◈ {persona_name} ◈"
         except Exception:
             pass
 
@@ -548,10 +544,10 @@ class VoiceAssistantApp(App):
             self.current_persona_name = persona.name
             # Update title
             self.title = f"xSwarm Voice Assistant - {persona.name}"
-            # Update persona name label below visualizer
+            # Update persona name as visualizer subtitle (bottom border)
             try:
-                persona_label = self.query_one("#persona-name", Static)
-                persona_label.update(f"◈ {persona.name} ◈")
+                viz_panel = self.query_one("#visualizer", VoiceVisualizerPanel)
+                viz_panel.border_subtitle = f"◈ {persona.name} ◈"
             except Exception:
                 pass
             # Keep visualizer title as static "xSwarm Assistant" (don't change it)
@@ -897,10 +893,10 @@ class VoiceAssistantApp(App):
         # Log the switch to activity feed
         self.update_activity(f"👤 Switched to persona: {persona.name}")
 
-        # Update persona name label below visualizer
+        # Update persona name as visualizer subtitle (bottom border)
         try:
-            persona_label = self.query_one("#persona-name", Static)
-            persona_label.update(f"◈ {persona.name} ◈")
+            viz_panel = self.query_one("#visualizer", VoiceVisualizerPanel)
+            viz_panel.border_subtitle = f"◈ {persona.name} ◈"
         except Exception:
             pass
         # Keep visualizer title as static "xSwarm Assistant" (don't change it)
