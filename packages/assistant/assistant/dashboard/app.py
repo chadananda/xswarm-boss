@@ -623,11 +623,44 @@ class VoiceAssistantApp(App):
             # Initialize MOSHI bridge (MLX for Apple Silicon)
             from ..voice.moshi_mlx import MoshiBridge
             from ..voice.audio_io import AudioIO
+            import asyncio
+            import threading
 
-            self.update_activity(f"Loading MOSHI MLX models (quantized for {device})...")
-            # Use quality parameter like in working CLI examples
+            # Show loading progress with animation
             moshi_quality = getattr(self.config, 'moshi_quality', 'q4')
-            self.moshi_bridge = MoshiBridge(quality=moshi_quality)
+            self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}, ~30-60s on M1/M2/M3)...")
+
+            # Load Moshi in background thread to allow progress updates
+            moshi_bridge_result = [None]  # List to store result from thread
+            loading_complete = threading.Event()
+
+            def load_moshi_thread():
+                """Background thread for model loading"""
+                try:
+                    moshi_bridge_result[0] = MoshiBridge(quality=moshi_quality)
+                    loading_complete.set()
+                except Exception as e:
+                    moshi_bridge_result[0] = e
+                    loading_complete.set()
+
+            # Start loading in background
+            loading_thread = threading.Thread(target=load_moshi_thread, daemon=True)
+            loading_thread.start()
+
+            # Show progress updates while loading
+            progress_dots = 0
+            while not loading_complete.is_set():
+                dots = "." * (progress_dots % 4)
+                spaces = " " * (3 - (progress_dots % 4))
+                self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} still loading, please wait...")
+                progress_dots += 1
+                await asyncio.sleep(2.0)  # Update every 2 seconds
+
+            # Check result
+            if isinstance(moshi_bridge_result[0], Exception):
+                raise moshi_bridge_result[0]
+
+            self.moshi_bridge = moshi_bridge_result[0]
             self.update_activity("✓ MOSHI MLX models loaded")
 
             # Initialize audio I/O
