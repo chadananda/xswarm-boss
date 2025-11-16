@@ -511,12 +511,34 @@ Takes ~5 minutes. Then just say: **"Hey HAL, hello!"** (or whatever persona you 
 - 🔜 Multi-user support
 - 🔜 Web dashboard
 
+**Phase 5: Smart Intelligence Layer** (Future - After Moshi Complete)
+- 🔜 Hardware-based intelligence level selection (Levels 0-6)
+- 🔜 Automatic VRAM detection (Windows/Linux/macOS)
+- 🔜 Local LLM integration (llama.cpp/Ollama)
+- 🔜 Smart API routing for low-resource systems
+- 🔜 Qwen2.5 model family support with adaptive quantization
+- 🔜 Context memory management
+- 🔜 Zero-configuration model downloads and launching
+- 📖 See [Intelligence Layer PRD](docs/INTELLEGENCE_LAYER.md) for complete specification
+
+**Intelligence Levels:**
+- **Level 0**: <8GB VRAM - API routing (Claude Sonnet 4, Gemini Flash) - ~97% quality
+- **Level 1**: 12-16GB VRAM - Qwen2.5-7B Q5_K_M - ~89% quality
+- **Level 2**: 20-24GB VRAM - Qwen2.5-14B Q6_K - ~93% quality
+- **Level 3**: 28-32GB VRAM - Qwen3-30B-A3B Q4_K_M - ~96% quality
+- **Level 4**: 40-48GB VRAM - Qwen2.5-72B IQ4_XS - ~98% quality
+- **Level 5**: 60-80GB VRAM - Qwen2.5-72B Q6_K/Q8_0 - ~99% quality
+- **Level 6**: 12GB+ VRAM - Hybrid (best local + API fallback) - ~97% quality
+
+This layer will automatically detect your hardware capabilities and configure the optimal intelligence engine—local LLM or API—with zero manual setup. Models download automatically, engines launch transparently, and the system adapts to your available resources.
+
 ---
 
 ## Documentation
 
 - **[Architecture](docs/planning/ARCHITECTURE.md)** - Technical system design
 - **[Complete Specification](docs/planning/COMPLETE_SPECIFICATION.md)** - Full product requirements
+- **[Intelligence Layer PRD](docs/INTELLEGENCE_LAYER.md)** - Smart intelligence integration (Phase 5)
 - **[Quickstart Guide](docs/quickstart/QUICKSTART.md)** - Get started quickly
 - **[Website](https://xswarm.ai)** - Project homepage
 
