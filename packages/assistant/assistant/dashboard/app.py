@@ -686,10 +686,7 @@ class VoiceAssistantApp(App):
                 alpha = 0.3  # Balance between responsiveness and smoothness
                 self._smoothed_amplitude = alpha * raw_amplitude + (1 - alpha) * self._smoothed_amplitude
 
-                # DEBUG: Log every 30 callbacks (~2.4 seconds)
                 self._audio_callback_counter += 1
-                if self._audio_callback_counter % 30 == 0:
-                    print(f"[DEBUG] Audio callback: raw={raw_amplitude:.3f}, smoothed={self._smoothed_amplitude:.3f}, queue_len={len(self._mic_amplitude_queue)}")
 
                 # Queue smoothed amplitude for main thread to process
                 self._mic_amplitude_queue.append(self._smoothed_amplitude)
@@ -1118,12 +1115,6 @@ class VoiceAssistantApp(App):
                     amplitude = self._mic_amplitude_queue.pop(0)
                     visualizer.add_mic_sample(amplitude)
                     samples_processed += 1
-                # DEBUG: Log occasionally
-                if not hasattr(self, '_visualizer_update_counter'):
-                    self._visualizer_update_counter = 0
-                self._visualizer_update_counter += 1
-                if self._visualizer_update_counter % 90 == 0:  # Every 3 seconds at 30 FPS
-                    print(f"[DEBUG] Visualizer update: processed {samples_processed} samples, sim_mode={visualizer.simulation_mode}")
             # Legacy amplitude property (kept for compatibility)
             visualizer.amplitude = self.amplitude
         except Exception as e:

@@ -107,9 +107,6 @@ class VoiceAssistant:
                 await self.memory_manager.initialize()
             except Exception:
                 pass  # Continue with local cache only
-        elif self.config.is_debug_mode:
-            import logging
-            logging.getLogger(__name__).debug("Debug mode: Skipping memory server connection")
 
         # 3. Initialize dashboard (TUI)
         self.app = VoiceAssistantApp(self.config, self.personas_dir)
@@ -138,17 +135,11 @@ class VoiceAssistant:
 
     async def cleanup(self):
         """Cleanup resources"""
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug("Cleaning up...")
-
         if self.wake_word_detector:
             self.wake_word_detector.stop()
 
         if self.memory_manager:
             await self.memory_manager.close()
-
-        logger.debug("Cleanup complete")
 
 
 async def show_wizard(personas_dir: Path) -> Config:
@@ -216,37 +207,15 @@ Configuration:
 
     args = parser.parse_args()
 
-    # Configure logging BEFORE any imports that might log
-    # Suppress all logging except CRITICAL unless debug mode
-    import logging
-    if args.debug:
-        logging.basicConfig(level=logging.DEBUG)
-    else:
-        # Suppress all logging from third-party libraries
-        logging.basicConfig(level=logging.CRITICAL)
-        # Specifically silence noisy libraries
-        logging.getLogger("httpcore").setLevel(logging.CRITICAL)
-        logging.getLogger("httpx").setLevel(logging.CRITICAL)
-        logging.getLogger("anthropic").setLevel(logging.CRITICAL)
-        logging.getLogger("openai").setLevel(logging.CRITICAL)
-        logging.getLogger("asyncio").setLevel(logging.WARNING)
-
     # Get personas directory
     personas_dir = Path(__file__).parent.parent.parent / "personas"
 
-    # GPU detection and service selection (silent unless debug)
+    # GPU detection and service selection
     from .hardware.gpu_detector import detect_gpu_capability
     from .hardware.service_selector import select_services
-    import logging
 
     gpu = detect_gpu_capability()
     service_config = select_services(gpu)
-
-    # Only log service configuration in debug mode
-    if args.debug:
-        logger = logging.getLogger(__name__)
-        logger.debug(f"GPU: {gpu.device_name} ({gpu.vram_total_gb:.1f}GB)")
-        logger.debug(f"Service Config: Moshi={service_config.moshi_quality}, Thinking={service_config.thinking_model}")
 
     # Load or create config
     config_path = args.config if args.config else None
@@ -280,7 +249,6 @@ Configuration:
             print("Using default configuration.")
             config = Config()
     elif args.debug and not (args.config or Config.get_config_path().exists()):
-        logging.getLogger(__name__).debug("Debug mode: Skipping authentication, using default config")
         config = Config()
 
     # Create and run assistant

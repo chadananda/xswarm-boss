@@ -44,8 +44,6 @@ class PersonaManager:
             List of discovered persona names
         """
         if not self.personas_dir.exists():
-            import logging
-            logging.getLogger(__name__).warning(f"Personas directory not found: {self.personas_dir}")
             return []
 
         discovered = []
@@ -62,11 +60,8 @@ class PersonaManager:
                 persona = self.load_persona_from_dir(persona_dir)
                 self.personas[persona.name] = persona
                 discovered.append(persona.name)
-                import logging
-                logging.getLogger(__name__).debug(f"Loaded persona: {persona.name} (v{persona.version})")
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"Failed to load persona from {persona_dir}: {e}")
+            except Exception:
+                pass  # Skip failed persona loads
 
         return discovered
 
@@ -122,12 +117,8 @@ class PersonaManager:
         persona = self.get_persona(name)
         if persona:
             self.current_persona = persona
-            import logging
-            logging.getLogger(__name__).debug(f"Switched to persona: {name}")
             return True
         else:
-            import logging
-            logging.getLogger(__name__).warning(f"Persona not found: {name}")
             return False
 
     def list_personas(self) -> List[str]:
@@ -153,10 +144,6 @@ class PersonaManager:
             if self.current_persona and self.current_persona.name == name:
                 self.current_persona = persona
 
-            import logging
-            logging.getLogger(__name__).debug(f"Reloaded persona: {name}")
             return True
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).error(f"Failed to reload persona {name}: {e}")
+        except Exception:
             return False

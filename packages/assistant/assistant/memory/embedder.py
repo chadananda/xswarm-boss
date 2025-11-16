@@ -28,9 +28,6 @@ import os
 import asyncio
 from typing import List, Optional, TYPE_CHECKING, Any
 from dataclasses import dataclass
-import logging
-
-logger = logging.getLogger(__name__)
 
 # Type checking imports (not runtime)
 if TYPE_CHECKING:
@@ -43,7 +40,6 @@ try:
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
-    logger.warning("openai package not installed. Production mode embeddings unavailable.")
 
 try:
     from sentence_transformers import SentenceTransformer
@@ -51,7 +47,6 @@ try:
 except ImportError:
     SENTENCE_TRANSFORMERS_AVAILABLE = False
     SentenceTransformer = Any  # Fallback type
-    logger.warning("sentence-transformers package not installed. Dev mode embeddings unavailable.")
 
 
 @dataclass
@@ -139,7 +134,6 @@ class Embedder:
             SentenceTransformer: Loaded model instance.
         """
         if self._local_model is None:
-            logger.info(f"Loading local embedding model: {self.config.local_model}")
             self._local_model = SentenceTransformer(self.config.local_model)
         return self._local_model
 
@@ -151,7 +145,6 @@ class Embedder:
             openai.AsyncOpenAI: OpenAI client instance.
         """
         if self._openai_client is None:
-            logger.info("Initializing OpenAI embeddings client")
             self._openai_client = openai.AsyncOpenAI(
                 api_key=self.config.openai_api_key
             )
@@ -181,7 +174,6 @@ class Embedder:
         """
         # Truncate text if too long
         if len(text) > self.config.max_tokens * 4:  # Rough estimate: 4 chars per token
-            logger.warning(f"Text length {len(text)} exceeds max_tokens, truncating")
             text = text[:self.config.max_tokens * 4]
 
         if self.debug_mode:
@@ -214,11 +206,9 @@ class Embedder:
             # Convert numpy array to list
             embedding_list = embedding.tolist()
 
-            logger.debug(f"Generated local embedding: {len(embedding_list)} dimensions")
             return embedding_list
 
-        except Exception as e:
-            logger.error(f"Local embedding failed: {e}")
+        except Exception:
             # Return zero vector (graceful degradation)
             return [0.0] * self.config.embedding_dimension
 
@@ -245,11 +235,9 @@ class Embedder:
 
             embedding = response.data[0].embedding
 
-            logger.debug(f"Generated OpenAI embedding: {len(embedding)} dimensions")
             return embedding
 
-        except Exception as e:
-            logger.error(f"OpenAI embedding failed: {e}")
+        except Exception:
             # Return zero vector (graceful degradation)
             return [0.0] * self.config.embedding_dimension
 
@@ -300,11 +288,9 @@ class Embedder:
             # Convert numpy arrays to lists
             embeddings_list = [emb.tolist() for emb in embeddings]
 
-            logger.debug(f"Generated {len(embeddings_list)} local embeddings (batch)")
             return embeddings_list
 
-        except Exception as e:
-            logger.error(f"Local batch embedding failed: {e}")
+        except Exception:
             # Return zero vectors for all texts
             return [[0.0] * self.config.embedding_dimension for _ in texts]
 
@@ -331,11 +317,9 @@ class Embedder:
             # Extract embeddings (preserve order)
             embeddings = [item.embedding for item in response.data]
 
-            logger.debug(f"Generated {len(embeddings)} OpenAI embeddings (batch)")
             return embeddings
 
-        except Exception as e:
-            logger.error(f"OpenAI batch embedding failed: {e}")
+        except Exception:
             # Return zero vectors for all texts
             return [[0.0] * self.config.embedding_dimension for _ in texts]
 

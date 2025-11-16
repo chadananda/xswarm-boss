@@ -167,40 +167,26 @@ class MoshiBridge:
             tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.debug("Loading text tokenizer...")
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
-        logger.debug("Text tokenizer loaded")
 
         # Load Mimi audio codec (Rust implementation)
-        logger.debug("Loading Mimi audio codec...")
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
-        logger.debug("Mimi codec loaded")
 
         # Load Moshi language model
-        logger.debug("Initializing Moshi model...")
         mx.random.seed(299792458)
         lm_config = models.config_v0_1()
         self.model = models.Lm(lm_config)
         self.model.set_dtype(mx.bfloat16)
-        logger.debug("Model structure initialized")
 
         if quantized is not None:
-            logger.debug(f"Quantizing model to {quantized}-bit...")
             group_size = 32 if quantized == 4 else 64
             nn.quantize(self.model, bits=quantized, group_size=group_size)
-            logger.debug("Model quantized")
 
         # Load weights - strict=True works with quantized checkpoints
         # The reference implementation uses strict=True successfully
-        logger.debug(f"Loading model weights (~{self.quality}, ~14GB)...")
         self.model.load_weights(model_file, strict=True)
-        logger.debug("Weights loaded")
 
-        logger.debug("Warming up GPU...")
         self.model.warmup()
-        logger.debug("Model ready!")
 
         # Amplitude tracking
         self.mic_amplitude = 0.0
