@@ -167,6 +167,26 @@ class CyberpunkActivityFeed(Static):
         })
         self.refresh()
 
+    def update_last_message(self, message: str, msg_type: str = None):
+        """Update the last message instead of adding a new one (useful for progress updates)"""
+        if not self.messages:
+            # No messages yet, add one
+            self.add_message(message, msg_type)
+            return
+
+        # Auto-detect type if not specified
+        if msg_type is None:
+            msg_type = self._detect_message_type(message)
+
+        # Update last message in place
+        self.messages[-1] = {
+            "id": self.messages[-1]["id"],  # Keep same ID
+            "timestamp": self.messages[-1]["timestamp"],  # Keep original timestamp
+            "message": message,
+            "type": msg_type
+        }
+        self.refresh()
+
     def _detect_message_type(self, message: str) -> str:
         """Auto-detect message type from keywords"""
         message_lower = message.lower()

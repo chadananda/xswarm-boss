@@ -686,6 +686,9 @@ class VoiceAssistantApp(App):
 
             def load_moshi_thread():
                 """Background thread for model loading"""
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: load_moshi_thread() ENTERED\n")
+                    f.flush()
                 try:
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write(f"DEBUG: Starting MoshiBridge({moshi_quality})...\n")
@@ -715,20 +718,30 @@ class VoiceAssistantApp(App):
 
             # Use set_interval for non-blocking progress updates
             progress_counter = 0
+            progress_message_added = False
 
             def update_progress_tick():
                 """Update loading progress on each timer tick"""
-                nonlocal progress_counter
+                nonlocal progress_counter, progress_message_added
                 elapsed_seconds = progress_counter // 10
                 dots = "." * ((progress_counter // 5) % 4)
                 spaces = " " * (3 - ((progress_counter // 5) % 4))
                 bar_chars = "▁▂▃▄▅▆▇█"
                 bar_idx = (progress_counter // 3) % len(bar_chars)
 
-                self.update_activity(
+                progress_msg = (
                     f"{bar_chars[bar_idx]} Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} "
                     f"{elapsed_seconds}s elapsed - please wait..."
                 )
+
+                # First tick: add message, subsequent ticks: update it
+                activity = self.query_one("#activity", ActivityFeed)
+                if not progress_message_added:
+                    activity.add_message(progress_msg)
+                    progress_message_added = True
+                else:
+                    activity.update_last_message(progress_msg)
+
                 progress_counter += 1
 
             # Start repeating timer for progress updates (every 100ms)
@@ -755,6 +768,13 @@ class VoiceAssistantApp(App):
                 f.flush()
             self.update_activity("✓ MOSHI MLX models loaded")
 
+            # Create LM generator for full-duplex streaming
+            self.lm_generator = self.moshi_bridge.create_lm_generator(max_steps=1000)
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: LM generator created\n")
+                f.flush()
+            self.update_activity("✓ Full-duplex stream ready")
+
             # Initialize audio I/O
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: About to create AudioIO\n")
@@ -769,20 +789,24 @@ class VoiceAssistantApp(App):
                 f.write("DEBUG: AudioIO created\n")
                 f.flush()
 
-            # Start audio input with callback for visualization
+            # Start audio input with callback for full-duplex Moshi processing
             self._audio_callback_counter = 0  # For debug logging
             self._mic_amplitude_queue = []  # Queue for thread-safe amplitude updates
             self._smoothed_amplitude = 0.0  # Smoothed amplitude to prevent jitter
+            self._moshi_output_queue = []  # Queue for Moshi output audio chunks
 
             def audio_callback(audio):
                 # Update mic amplitude for bottom waveform visualizer
                 self.moshi_bridge.update_mic_amplitude(audio)
                 raw_amplitude = self.moshi_bridge.mic_amplitude
 
+                # Boost mic amplitude by 3x for better low-level visibility
+                boosted_amplitude = min(raw_amplitude * 3.0, 1.0)  # Cap at 1.0
+
                 # Apply exponential smoothing to prevent jitter
                 # Higher alpha = more responsive but jittery, lower alpha = smoother but laggy
                 alpha = 0.3  # Balance between responsiveness and smoothness
-                self._smoothed_amplitude = alpha * raw_amplitude + (1 - alpha) * self._smoothed_amplitude
+                self._smoothed_amplitude = alpha * boosted_amplitude + (1 - alpha) * self._smoothed_amplitude
 
                 self._audio_callback_counter += 1
 
@@ -791,6 +815,28 @@ class VoiceAssistantApp(App):
                 # Keep queue small to avoid memory buildup
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue.pop(0)
+
+                # Full-duplex Moshi processing: feed frame to model, get response
+                try:
+                    # Process this frame through Moshi
+                    audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio)
+
+                    # Queue output audio for playback
+                    if audio_chunk is not None and len(audio_chunk) > 0:
+                        self._moshi_output_queue.append(audio_chunk)
+                        # Update Moshi amplitude for visualization
+                        self.moshi_bridge.update_moshi_amplitude(audio_chunk)
+
+                    # Log text output (for debugging)
+                    if text_piece and text_piece.strip():
+                        with open("/tmp/moshi_text.log", "a") as f:
+                            f.write(text_piece)
+                            f.flush()
+                except Exception as e:
+                    # Log errors but don't crash the audio thread
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"ERROR in audio_callback: {e}\n")
+                        f.flush()
 
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: Starting audio input\n")
@@ -803,6 +849,10 @@ class VoiceAssistantApp(App):
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: Audio started successfully\n")
                 f.flush()
+
+            # Start background worker to play Moshi output audio
+            self.run_worker(self.moshi_playback_loop(), exclusive=False, group="moshi_playback")
+
             self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
 
             # Set voice as initialized so visualizer can show mic input
@@ -920,6 +970,49 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error generating greeting: {e}")
             self.state = "idle"
+
+    async def moshi_playback_loop(self):
+        """Continuous loop to play Moshi output audio from queue"""
+        import asyncio
+        import numpy as np
+
+        while True:
+            try:
+                # Check if there's audio in the queue
+                if len(self._moshi_output_queue) > 0:
+                    # Get next chunk
+                    audio_chunk = self._moshi_output_queue.pop(0)
+
+                    # Play it
+                    self.audio_io.play_audio(audio_chunk)
+
+                    # Update visualizer to show Moshi is speaking
+                    try:
+                        visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                        visualizer.connection_amplitude = 2  # Speaking
+                    except Exception:
+                        pass
+
+                    # Small delay to prevent tight loop
+                    await asyncio.sleep(0.01)
+                else:
+                    # No audio, idle state
+                    try:
+                        visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                        if visualizer.connection_amplitude == 2:
+                            visualizer.connection_amplitude = 1  # Idle/breathing
+                    except Exception:
+                        pass
+
+                    # Longer delay when idle to save CPU
+                    await asyncio.sleep(0.05)
+
+            except Exception as e:
+                # Log errors but keep loop running
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"ERROR in moshi_playback_loop: {e}\n")
+                    f.flush()
+                await asyncio.sleep(0.1)
 
     async def play_audio_with_visualization(self, audio: "np.ndarray"):
         """Play audio and update visualizer amplitude during playback"""

@@ -167,26 +167,59 @@ class MoshiBridge:
             tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
+        import time
+        timing_log = open("/tmp/moshi_timing.log", "a")
+        t0 = time.time()
+        timing_log.write(f"⏱️  Loading text tokenizer...\n")
+        timing_log.flush()
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
+        timing_log.write(f"✓ Text tokenizer loaded ({time.time()-t0:.1f}s)\n")
+        timing_log.flush()
 
         # Load Mimi audio codec (Rust implementation)
+        t0 = time.time()
+        timing_log.write(f"⏱️  Loading Mimi audio codec...\n")
+        timing_log.flush()
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
+        timing_log.write(f"✓ Mimi codec loaded ({time.time()-t0:.1f}s)\n")
+        timing_log.flush()
 
         # Load Moshi language model
+        t0 = time.time()
+        timing_log.write(f"⏱️  Creating Moshi model architecture...\n")
+        timing_log.flush()
         mx.random.seed(299792458)
         lm_config = models.config_v0_1()
         self.model = models.Lm(lm_config)
         self.model.set_dtype(mx.bfloat16)
+        timing_log.write(f"✓ Model architecture created ({time.time()-t0:.1f}s)\n")
+        timing_log.flush()
 
         if quantized is not None:
+            t0 = time.time()
+            timing_log.write(f"⏱️  Quantizing model to {quantized}-bit...\n")
+            timing_log.flush()
             group_size = 32 if quantized == 4 else 64
             nn.quantize(self.model, bits=quantized, group_size=group_size)
+            timing_log.write(f"✓ Model quantized ({time.time()-t0:.1f}s)\n")
+            timing_log.flush()
 
         # Load weights - strict=True works with quantized checkpoints
         # The reference implementation uses strict=True successfully
+        t0 = time.time()
+        timing_log.write(f"⏱️  Loading model weights (~7GB)...\n")
+        timing_log.flush()
         self.model.load_weights(model_file, strict=True)
+        timing_log.write(f"✓ Weights loaded ({time.time()-t0:.1f}s)\n")
+        timing_log.flush()
 
+        t0 = time.time()
+        timing_log.write(f"⏱️  Warming up MLX model (compiling kernels for Metal GPU)...\n")
+        timing_log.flush()
         self.model.warmup()
+        timing_log.write(f"✓ Model warmed up ({time.time()-t0:.1f}s)\n")
+        timing_log.flush()
+        timing_log.close()
 
         # Amplitude tracking
         self.mic_amplitude = 0.0
