@@ -631,7 +631,7 @@ class VoiceAssistantApp(App):
 
             # Auto-start conversation for microphone visualization and greeting
             await self.voice_bridge.start_conversation()
-            self.update_activity("🎙️  Microphone active (press Space to toggle)")
+            self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
 
             # Generate and play startup greeting
             await self.generate_greeting_with_voice_bridge()
@@ -826,7 +826,7 @@ class VoiceAssistantApp(App):
                 self.add_chat_message("assistant", result['response_text'])
 
             self.state = "idle"
-            self.update_activity("✓ Ready - press Space to start talking")
+            self.update_activity("✓ Ready - listening for your voice...")
 
         except Exception as e:
             self.update_activity(f"Error generating greeting: {e}")
