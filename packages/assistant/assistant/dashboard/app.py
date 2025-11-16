@@ -127,13 +127,13 @@ class VoiceAssistantApp(App):
         with Horizontal(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
             with Vertical(id="left-column"):
-                # Voice visualizer - small square at top (initially hidden until voice initialized)
+                # Voice visualizer - small square at top (visible but with 0 amplitude until voice initialized)
                 viz_panel = VoiceVisualizerPanel(
                     visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
                 )
                 viz_panel.id = "visualizer"
-                viz_panel.simulation_mode = True
-                viz_panel.display = False  # Hidden until voice initialized
+                viz_panel.simulation_mode = False  # Use real audio, not simulation
+                # Don't hide the widget - keep it visible with 0 amplitude (will be set in on_mount)
                 yield viz_panel
 
                 # Persona name below visualizer (centered)
@@ -351,6 +351,9 @@ class VoiceAssistantApp(App):
 
             # Set title to static "xSwarm Assistant" (not persona-specific)
             visualizer.border_title = "xSwarm Assistant"
+
+            # Initialize with 0 amplitude (flat line) until Moshi loads
+            visualizer.set_assistant_amplitude(0.0)
         except Exception:
             pass
 
@@ -369,8 +372,8 @@ class VoiceAssistantApp(App):
         asyncio.create_task(self.initialize_memory())
         # Add dummy chat messages
         self.add_dummy_chat_messages()
-        # Initialize Moshi directly (bypass complex orchestrator for now)
-        asyncio.create_task(self.initialize_moshi())
+        # Initialize Moshi in background worker (non-blocking)
+        self.run_worker(self.initialize_moshi(), exclusive=True, group="moshi_init")
 
     def add_dummy_chat_messages(self):
         """Add dummy chat messages for demonstration"""
@@ -613,10 +616,11 @@ class VoiceAssistantApp(App):
             self.voice_initialized = True
             self.update_activity("✅ Voice bridge initialized successfully")
 
-            # Show visualizer now that voice is ready
+            # Update visualizer to show baseline amplitude now that voice is ready
             try:
                 visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                visualizer.display = True
+                # Start showing minimal baseline animation (0.05) instead of flat line (0.0)
+                visualizer.set_assistant_amplitude(0.05)
             except Exception:
                 pass
 
@@ -717,10 +721,11 @@ class VoiceAssistantApp(App):
             self.audio_io.start_output()
             self.update_activity("✓ Audio streams started")
 
-            # Show visualizer now that Moshi is ready
+            # Update visualizer to show baseline amplitude now that Moshi is ready
             try:
                 visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                visualizer.display = True
+                # Start showing minimal baseline animation (0.05) instead of flat line (0.0)
+                visualizer.set_assistant_amplitude(0.05)
                 # Keep static title "xSwarm Assistant" (don't change it)
             except Exception:
                 pass
