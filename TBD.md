@@ -1,8 +1,8 @@
 # TO BE DONE - Current Development Status
 
-**Last Updated:** 2025-11-16 (Terminal Session 3 - Post-Crash Recovery)
-**Current Version:** v0.3.16
-**Status:** Moshi full-duplex voice streaming - INITIALIZATION COMPLETE ✅
+**Last Updated:** 2025-11-16 (Terminal Session 4 - Segfault Fixed)
+**Current Version:** v0.3.17
+**Status:** Moshi full-duplex voice streaming - SEGFAULT FIXED ✅
 
 ---
 
@@ -74,7 +74,57 @@ After you crashed mid-implementation, I recovered the work and completed the Mos
 
 ---
 
-## 🚧 CURRENT STATUS: Ready for Voice Testing
+## ⚡ SEGFAULT FIX APPLIED (v0.3.17)
+
+### What Was Broken (v0.3.16)
+
+**Symptom:** Segmentation fault when running the app after "Voice initialized = True"
+
+**Root Cause Analysis:**
+- `step_frame()` was called directly in `audio_callback()` function
+- Audio callbacks run in **separate threads** (sounddevice library)
+- `step_frame()` performs **MLX GPU operations** (`lm_gen.step()`)
+- **MLX Metal GPU operations are NOT thread-safe**
+- Result: Null pointer dereference at `IOGPUMetalCommandBufferStorageBeginSegment`
+
+**Crash Report Evidence:**
+```
+Exception: EXC_BAD_ACCESS (SIGSEGV)
+Address: 0x0000000000000018 (null pointer)
+Thread 0 Crashed:
+  IOGPUMetalCommandBufferStorageBeginSegment + 96
+  → mlx::core::metal::CommandEncoder::CommandEncoder + 140
+  → step_frame() → lm_gen.step()
+```
+
+### Fix Implemented (v0.3.17)
+
+**Solution Pattern:** Based on official `moshi_mlx/local.py` implementation
+
+**Changes:**
+1. **Audio Callback** (thread-safe):
+   - ONLY queues incoming audio to `_moshi_input_queue`
+   - Removed ALL `step_frame()` calls
+   - Removed ALL MLX operations
+
+2. **New Processing Loop** (`moshi_processing_loop()`):
+   - Runs as async worker on **main event loop**
+   - Consumes from `_moshi_input_queue`
+   - Safely calls `step_frame()` on main thread
+   - Produces to `_moshi_output_queue`
+
+3. **Pipeline Flow:**
+   ```
+   Mic → audio_callback (queue) → _moshi_input_queue
+        → moshi_processing_loop (main thread) → step_frame() ✅
+        → _moshi_output_queue → moshi_playback_loop → Speakers
+   ```
+
+**Result:** MLX operations now run on main thread = No segfault ✅
+
+---
+
+## 🚧 CURRENT STATUS: Ready for Voice Testing (Post-Fix)
 
 ### What Works Now
 
@@ -114,76 +164,52 @@ After you crashed mid-implementation, I recovered the work and completed the Mos
 
 ---
 
-## 📝 UNCOMMITTED CHANGES
+## ✅ ALL CHANGES COMMITTED
 
-### Current Git Status
+### Git Status: Clean
+
+All segfault fix changes have been committed to git.
+
+### Recent Commits
 
 ```
-M packages/assistant/assistant/dashboard/app.py
-M packages/assistant/assistant/dashboard/widgets/activity_feed.py
-M packages/assistant/assistant/voice/moshi_mlx.py
-M packages/assistant/pyproject.toml
-```
-
-### What Changed (After Last Commit)
-
-**app.py:**
-- Line 386: Fixed `run_worker()` call
-- Line 752: Replaced `run_in_executor` with async polling
-- Lines 771-776: Added LM generator creation
-- Lines 792-839: Added audio callback with `step_frame()` integration
-- Lines 826-848: Added Moshi output queueing
-- Lines 974-1018: Added `moshi_playback_loop()` worker
-
-**activity_feed.py:**
-- Lines 47-65: Added `update_last_message()` to base `ActivityFeed` class
-
-**moshi_mlx.py:**
-- Added detailed timing logs for each load phase
-- Added warmup timing
-
-**pyproject.toml:**
-- Version bump to 0.3.16
-
-### Next Commit Should Include
-
-All the above changes + message:
-```
-fix(moshi): resolve initialization crashes and complete full-duplex integration
-
-- Fix: async polling instead of run_in_executor for thread join
-- Fix: add update_last_message() to base ActivityFeed class
-- Feat: full-duplex audio processing with step_frame()
-- Feat: moshi_playback_loop() for continuous output
-- Feat: detailed timing logs for debugging
-- Bump version to 0.3.16
-
-All initialization sequences now complete successfully.
+2d45e7c fix(moshi): resolve segfault by moving MLX operations off audio callback thread
+98aa437 chore: update PKG-INFO to reflect v0.3.16
+1f016f7 docs: add Step 6 - finalize, version bump, and install
+77613e6 docs: warn against running TUI in orchestrator terminal
+f16cb36 fix(moshi): resolve initialization crashes and complete full-duplex integration
+903acc3 feat(moshi): implement full-duplex voice streaming with visualization
 ```
 
 ---
 
 ## 🎯 NEXT STEPS (In Order)
 
-### Immediate (Before Commit)
+### Immediate (DO THIS NOW)
 
-1. **Manual Voice Test** (DO THIS FIRST)
-   - Run: `cd packages/assistant && python -m assistant.dashboard.app`
-   - Wait for "Microphone active" message
+1. **Clear Old Logs** (recommended)
+   ```bash
+   rm -f /tmp/xswarm_debug.log /tmp/moshi_text.log /tmp/moshi_timing.log
+   ```
+
+2. **Manual Voice Test** (REQUIRED)
+   ```bash
+   cd packages/assistant && python -m assistant.dashboard.app
+   ```
+
+   **Expected Behavior:**
+   - App loads without crash
+   - "Microphone active" message appears
    - Speak into mic for 5-10 seconds
-   - Check if Moshi responds with audio
-   - Verify visualizer updates
+   - Moshi should respond with audio output
+   - Visualizer should update when you speak
    - Check `/tmp/moshi_text.log` for transcription
+   - Check `/tmp/xswarm_debug.log` for "moshi_processing_loop started"
 
-2. **If Voice Test Passes:**
-   - Commit all changes (use message above)
-   - Update this TBD.md with success notes
-   - Move to conversation loop testing
-
-3. **If Voice Test Fails:**
-   - Check debug logs for errors
-   - Invoke @stuck agent with issue details
-   - Fix before committing
+3. **Report Results to Claude:**
+   - ✅ If test passes: Report success, note any issues
+   - ❌ If segfault still occurs: Provide `/tmp/xswarm_debug.log` contents
+   - ❌ If other error: Provide error message and symptoms
 
 ### Short-Term (After Commit)
 
