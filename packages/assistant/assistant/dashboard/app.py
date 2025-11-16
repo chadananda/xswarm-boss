@@ -683,7 +683,6 @@ class VoiceAssistantApp(App):
 
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
-            loading_complete = threading.Event()
 
             def load_moshi_thread():
                 """Background thread for model loading"""
@@ -695,7 +694,6 @@ class VoiceAssistantApp(App):
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write("DEBUG: MoshiBridge loaded successfully\n")
                         f.flush()
-                    loading_complete.set()
                 except Exception as e:
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write(f"DEBUG: MoshiBridge failed: {e}\n")
@@ -703,7 +701,6 @@ class VoiceAssistantApp(App):
                         f.write(traceback.format_exc())
                         f.flush()
                     moshi_bridge_result[0] = e
-                    loading_complete.set()
 
             # Start loading in background thread
             with open("/tmp/xswarm_debug.log", "a") as f:
@@ -722,9 +719,6 @@ class VoiceAssistantApp(App):
             def update_progress_tick():
                 """Update loading progress on each timer tick"""
                 nonlocal progress_counter
-                if loading_complete.is_set():
-                    return  # Stop updating when complete
-
                 elapsed_seconds = progress_counter // 10
                 dots = "." * ((progress_counter // 5) % 4)
                 spaces = " " * (3 - ((progress_counter // 5) % 4))
@@ -740,9 +734,9 @@ class VoiceAssistantApp(App):
             # Start repeating timer for progress updates (every 100ms)
             progress_timer = self.set_interval(0.1, update_progress_tick)
 
-            # Wait for loading to complete using async polling (truly non-blocking)
-            while not loading_complete.is_set():
-                await asyncio.sleep(0.1)
+            # Wait for loading thread to complete using run_in_executor (truly non-blocking)
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, loading_thread.join)
 
             # Stop progress timer
             progress_timer.stop()
