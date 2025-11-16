@@ -369,9 +369,9 @@ class VoiceAssistantApp(App):
         asyncio.create_task(self.initialize_memory())
         # Add dummy chat messages
         self.add_dummy_chat_messages()
-        # Initialize voice bridge in background worker (non-blocking)
-        # Use voice_bridge (VoiceBridgeOrchestrator) for proper mic + AI integration
-        self.run_worker(self.initialize_voice(), exclusive=True, group="voice_init")
+        # Initialize Moshi models in background with proper async loading
+        # This uses threading + async polling to keep TUI responsive
+        self.run_worker(self.initialize_moshi(), exclusive=True, group="moshi_init")
 
     def add_dummy_chat_messages(self):
         """Add dummy chat messages for demonstration"""
@@ -726,10 +726,19 @@ class VoiceAssistantApp(App):
 
             self.audio_io.start_input(callback=audio_callback)
             self.audio_io.start_output()
-            self.update_activity("✓ Audio streams started")
+            self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
 
-            # DON'T set baseline amplitude here - let it stay at 0.0 until greeting is played
-            # The generate_greeting() call below will set amplitude when audio is played
+            # Set voice as initialized so visualizer can show mic input
+            self.voice_initialized = True
+
+            # Set connection_amplitude to idle (breathing) after voice is ready
+            try:
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                visualizer.connection_amplitude = 1  # Idle/breathing
+                # Set callback so widget can pull data from app during its own animation timer
+                visualizer.data_callback = self.get_visualizer_data
+            except Exception:
+                pass
 
             # Generate greeting immediately
             self.state = "ready"
