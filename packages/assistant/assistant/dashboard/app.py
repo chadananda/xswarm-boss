@@ -681,11 +681,17 @@ class VoiceAssistantApp(App):
             def update_progress():
                 """Update loading progress without blocking event loop"""
                 if not loading_complete.is_set():
-                    # Update progress every ~2 seconds
-                    if progress_dots[0] % 20 == 0:
-                        dots = "." * ((progress_dots[0] // 20) % 4)
-                        spaces = " " * (3 - ((progress_dots[0] // 20) % 4))
-                        self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} still loading, please wait...")
+                    # Update progress every second with animated indicator
+                    elapsed_seconds = progress_dots[0] // 10
+                    dots = "." * ((progress_dots[0] // 5) % 4)
+                    spaces = " " * (3 - ((progress_dots[0] // 5) % 4))
+                    bar_chars = "▁▂▃▄▅▆▇█"
+                    bar_idx = (progress_dots[0] // 3) % len(bar_chars)
+
+                    self.update_activity(
+                        f"{bar_chars[bar_idx]} Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} "
+                        f"{elapsed_seconds}s elapsed - please wait..."
+                    )
                     progress_dots[0] += 1
                     # Schedule next update
                     self.call_later(0.1, update_progress)
@@ -699,7 +705,11 @@ class VoiceAssistantApp(App):
 
             # Check result
             if isinstance(moshi_bridge_result[0], Exception):
-                raise moshi_bridge_result[0]
+                error = moshi_bridge_result[0]
+                self.update_activity(f"❌ ERROR loading Moshi: {error}")
+                import traceback
+                traceback.print_exc()
+                raise error
 
             self.moshi_bridge = moshi_bridge_result[0]
             self.update_activity("✓ MOSHI MLX models loaded")
