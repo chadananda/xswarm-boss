@@ -1,6 +1,6 @@
 [project]
 name = "voice-assistant"
-version = "0.3.17"
+version = "0.3.18"
 description = "Cross-platform voice assistant with MOSHI, Textual TUI, and persona system"
 authors = [{name = "xSwarm", email = "support@xswarm.io"}]
 requires-python = ">=3.11"
