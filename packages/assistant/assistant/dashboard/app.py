@@ -1116,6 +1116,12 @@ class VoiceAssistantApp(App):
         """Update visualizer with real audio data (called at 30 FPS after voice init)"""
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+
+            # Step 1: Update the visualizer's animation frame (without refresh)
+            if hasattr(visualizer, '_update_animation'):
+                visualizer._update_animation()
+
+            # Step 2: Update audio data
             # Use voice bridge amplitudes if available
             if self.voice_initialized and self.voice_bridge:
                 amplitudes = self.voice_bridge.get_amplitudes()
@@ -1149,6 +1155,10 @@ class VoiceAssistantApp(App):
                 # If queue is still full, drain excess samples to prevent buildup
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue = self._mic_amplitude_queue[-50:]  # Keep only recent 50 samples
+
+            # Step 3: Single refresh call at the end (prevents dual-refresh race condition)
+            visualizer.refresh()
+
         except Exception as e:
             # Log exception to help debug freezes
             self.update_activity(f"Visualizer update error: {e}")

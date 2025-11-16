@@ -98,7 +98,9 @@ class VoiceVisualizerPanel(Static):
         """Start the visualization animation at 20 FPS."""
         if not self.is_animating:
             self.is_animating = True
-            self._animation_timer = self.set_interval(1 / self.fps, self._update_animation)
+            # DON'T start internal timer - controlled by app.py's 30 FPS timer instead
+            # This prevents dual-timer race condition that causes TUI freeze
+            # self._animation_timer = self.set_interval(1 / self.fps, self._update_animation)
 
     def stop_animation(self):
         """Stop the visualization animation."""
@@ -107,7 +109,11 @@ class VoiceVisualizerPanel(Static):
             self.is_animating = False
 
     def _update_animation(self):
-        """Animation update callback (called at 20 FPS)."""
+        """
+        Animation update callback (called manually from app.py at 30 FPS).
+        NO internal timer - controlled externally to prevent race conditions.
+        Does NOT call refresh() - that's done once per frame by app.py.
+        """
         # Always increment animation frame for smooth scrolling
         self.animation_frame += 1
 
@@ -121,8 +127,7 @@ class VoiceVisualizerPanel(Static):
                 (1 - self.smoothing_factor) * self._smooth_assistant_amplitude
             )
 
-        # Refresh the display
-        self.refresh()
+        # DON'T refresh here - app.py calls refresh() once per frame to prevent dual-refresh race condition
 
     def _update_simulated_audio(self):
         """Generate simulated audio data for testing."""
