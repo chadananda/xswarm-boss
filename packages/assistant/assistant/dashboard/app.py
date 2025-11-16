@@ -793,9 +793,15 @@ class VoiceAssistantApp(App):
             self._audio_callback_counter = 0  # For debug logging
             self._mic_amplitude_queue = []  # Queue for thread-safe amplitude updates
             self._smoothed_amplitude = 0.0  # Smoothed amplitude to prevent jitter
+            self._moshi_input_queue = []  # Queue for incoming audio frames to process
             self._moshi_output_queue = []  # Queue for Moshi output audio chunks
 
             def audio_callback(audio):
+                """
+                Audio callback runs in separate thread - ONLY queue data, NO processing.
+                MLX operations are NOT thread-safe and will cause segfaults if called here.
+                Processing happens in moshi_processing_loop() on the main async event loop.
+                """
                 # Update mic amplitude for bottom waveform visualizer
                 self.moshi_bridge.update_mic_amplitude(audio)
                 raw_amplitude = self.moshi_bridge.mic_amplitude
@@ -816,27 +822,12 @@ class VoiceAssistantApp(App):
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue.pop(0)
 
-                # Full-duplex Moshi processing: feed frame to model, get response
-                try:
-                    # Process this frame through Moshi
-                    audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio)
-
-                    # Queue output audio for playback
-                    if audio_chunk is not None and len(audio_chunk) > 0:
-                        self._moshi_output_queue.append(audio_chunk)
-                        # Update Moshi amplitude for visualization
-                        self.moshi_bridge.update_moshi_amplitude(audio_chunk)
-
-                    # Log text output (for debugging)
-                    if text_piece and text_piece.strip():
-                        with open("/tmp/moshi_text.log", "a") as f:
-                            f.write(text_piece)
-                            f.flush()
-                except Exception as e:
-                    # Log errors but don't crash the audio thread
-                    with open("/tmp/xswarm_debug.log", "a") as f:
-                        f.write(f"ERROR in audio_callback: {e}\n")
-                        f.flush()
+                # CRITICAL: Only queue audio, do NOT call step_frame() here
+                # MLX GPU operations must run on main thread to avoid segfaults
+                self._moshi_input_queue.append(audio.copy())  # Copy to avoid data race
+                # Keep queue small to avoid latency buildup
+                if len(self._moshi_input_queue) > 10:
+                    self._moshi_input_queue.pop(0)  # Drop oldest frame if queue backs up
 
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: Starting audio input\n")
@@ -850,7 +841,10 @@ class VoiceAssistantApp(App):
                 f.write("DEBUG: Audio started successfully\n")
                 f.flush()
 
-            # Start background worker to play Moshi output audio
+            # Start background workers for Moshi processing pipeline
+            # Processing loop: consumes input queue, calls step_frame(), produces output queue
+            self.run_worker(self.moshi_processing_loop(), exclusive=False, group="moshi_processing")
+            # Playback loop: consumes output queue, plays audio to speakers
             self.run_worker(self.moshi_playback_loop(), exclusive=False, group="moshi_playback")
 
             self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
@@ -970,6 +964,55 @@ class VoiceAssistantApp(App):
         except Exception as e:
             self.update_activity(f"Error generating greeting: {e}")
             self.state = "idle"
+
+    async def moshi_processing_loop(self):
+        """
+        Continuous loop to process queued audio frames through Moshi.
+        Runs on main async event loop to safely call MLX operations.
+        Consumes from _moshi_input_queue, produces to _moshi_output_queue.
+        """
+        import asyncio
+
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: moshi_processing_loop started\n")
+            f.flush()
+
+        while True:
+            try:
+                # Check if there's audio to process
+                if len(self._moshi_input_queue) > 0:
+                    # Get next audio frame
+                    audio_frame = self._moshi_input_queue.pop(0)
+
+                    # Process through Moshi (safe on main thread)
+                    audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio_frame)
+
+                    # Queue output audio for playback
+                    if audio_chunk is not None and len(audio_chunk) > 0:
+                        self._moshi_output_queue.append(audio_chunk)
+                        # Update Moshi amplitude for visualization
+                        self.moshi_bridge.update_moshi_amplitude(audio_chunk)
+
+                    # Log text output (for debugging)
+                    if text_piece and text_piece.strip():
+                        with open("/tmp/moshi_text.log", "a") as f:
+                            f.write(text_piece)
+                            f.flush()
+
+                    # Small delay to prevent tight loop
+                    await asyncio.sleep(0.001)
+                else:
+                    # No frames to process, wait longer
+                    await asyncio.sleep(0.01)
+
+            except Exception as e:
+                # Log errors but keep loop running
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"ERROR in moshi_processing_loop: {e}\n")
+                    import traceback
+                    f.write(traceback.format_exc())
+                    f.flush()
+                await asyncio.sleep(0.1)
 
     async def moshi_playback_loop(self):
         """Continuous loop to play Moshi output audio from queue"""
