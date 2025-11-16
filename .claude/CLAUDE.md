@@ -38,6 +38,16 @@ When the user gives you a project:
 2. Move to next todo item
 3. Repeat steps 2-4 until ALL todos are complete
 
+### Step 6: FINALIZE & INSTALL
+1. **Test until everything works** - don't stop at first success, verify end-to-end
+2. **Bump version** in `pyproject.toml` (Python), `package.json` (Node), or `Cargo.toml` (Rust)
+3. **Install the app** so user can try it:
+   - Python: `pip install -e packages/assistant` (editable install)
+   - Node: `npm install -g .` (global install)
+   - Rust: `cargo install --path .`
+4. **Commit with version in message**: `git commit -m "feat: complete [feature] v[X.Y.Z]"`
+5. **Tell user to try it** - provide the command to run the app
+
 ## 🛠️ Available Subagents
 
 ### coder
@@ -330,6 +340,7 @@ TEXTUAL_ANIMATIONS=none pytest tests/ -v
 - **Tester verifies ALL navigation links work** with Playwright
 - **TUI never run in orchestrator terminal** - user tests manually in fresh terminal
 - **Orchestrator terminal stays clean** - no corruption, no dangling processes
+- **Test until working** → bump version → commit → install → user can try it
 
 ---
 
