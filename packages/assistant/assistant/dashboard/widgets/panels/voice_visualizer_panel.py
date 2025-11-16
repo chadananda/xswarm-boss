@@ -79,7 +79,8 @@ class VoiceVisualizerPanel(Static):
 
         # Buffer sizes
         self.waveform_buffer_size = 100
-        self.mic_waveform = [(" ", "#252a33")] * self.waveform_buffer_size  # Initialize with silent dots
+        # Initialize with small dots (not spaces) so waveform is visible even when silent
+        self.mic_waveform = [("·", "#363d47")] * self.waveform_buffer_size  # shade_2 tiny dots
 
         # Animation state
         self.is_animating = False
@@ -471,7 +472,12 @@ class VoiceVisualizerPanel(Static):
         # Density characters for circles
         chars = [" ", "░", "▒", "▓", "█"]
 
-        # Scale radius based on amplitude: tiny dot when silent, full size when loud
+        # Scale radius based on amplitude: NO rendering when 0.0, full size when loud
+        # Don't show anything if amplitude is exactly 0.0 (before voice init)
+        if self._smooth_assistant_amplitude == 0.0:
+            # Return empty lines - no visualization until voice is initialized
+            return [" " * width for _ in range(height)]
+
         # Minimum radius = 1 (dot), maximum radius = width/4
         min_radius = 1
         max_radius = width // 4
@@ -512,6 +518,10 @@ class VoiceVisualizerPanel(Static):
 
         wave_chars = ["◠", "◡", "◝", "◞"]
 
+        # Don't show anything if amplitude is exactly 0.0 (before voice init)
+        if self._smooth_assistant_amplitude == 0.0:
+            return [" " * width for _ in range(height)]
+
         # Scale radius based on amplitude: tiny dot when silent, full size when loud
         min_radius = 1
         max_radius = min(width, height * 2) // 3
@@ -548,6 +558,10 @@ class VoiceVisualizerPanel(Static):
         center_y = height // 2
 
         bar_chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+        # Don't show anything if amplitude is exactly 0.0 (before voice init)
+        if self._smooth_assistant_amplitude == 0.0:
+            return [" " * width for _ in range(height)]
 
         # Number of bars around circle
         num_bars = 12
@@ -592,6 +606,10 @@ class VoiceVisualizerPanel(Static):
         center_y = height // 2
 
         dot_chars = ["·", "•", "●", "⬤"]
+
+        # Don't show anything if amplitude is exactly 0.0 (before voice init)
+        if self._smooth_assistant_amplitude == 0.0:
+            return [" " * width for _ in range(height)]
 
         # Multiple rings of dots
         num_rings = 3
@@ -641,6 +659,10 @@ class VoiceVisualizerPanel(Static):
 
         spinner_chars = ["◜", "◝", "◞", "◟"]
 
+        # Don't show anything if amplitude is exactly 0.0 (before voice init)
+        if self._smooth_assistant_amplitude == 0.0:
+            return [" " * width for _ in range(height)]
+
         # Spinning radius based on smoothed amplitude: tiny dot when silent, full size when loud
         min_radius = 1
         max_radius = min(width, height * 2) // 4
@@ -677,6 +699,10 @@ class VoiceVisualizerPanel(Static):
         center_y = height // 2
 
         wave_chars = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+
+        # Don't show anything if amplitude is exactly 0.0 (before voice init)
+        if self._smooth_assistant_amplitude == 0.0:
+            return [" " * width for _ in range(height)]
 
         # Scale radius based on amplitude: tiny dot when silent, full size when loud
         min_radius = 1

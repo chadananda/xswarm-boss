@@ -338,13 +338,14 @@ class VoiceAssistantApp(App):
 
     def on_mount(self) -> None:
         """Initialize on mount"""
-        self.set_interval(1/30, self.update_visualizer)  # 30 FPS
+        # DON'T start update_visualizer() yet - wait until voice is initialized
+        # This prevents Moshi animation from showing before models load
 
         # Start visualizer animation and set title to static "xSwarm Assistant"
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             visualizer.simulation_mode = False  # Ensure we use real audio, not simulation
-            visualizer.start_animation()
+            visualizer.start_animation()  # This starts the widget's internal 20 FPS loop
 
             # Set title to static "xSwarm Assistant" (not persona-specific)
             visualizer.border_title = "xSwarm Assistant"
@@ -614,6 +615,9 @@ class VoiceAssistantApp(App):
 
             # DON'T set baseline amplitude here - let it stay at 0.0 until actually speaking
             # The greeting generation below will set the amplitude when audio is played
+
+            # NOW start the 30 FPS visualizer update loop (after voice is ready)
+            self.set_interval(1/30, self.update_visualizer)
 
             # Auto-start conversation for microphone visualization and greeting
             await self.voice_bridge.start_conversation()
@@ -1109,7 +1113,7 @@ class VoiceAssistantApp(App):
             pass
 
     def update_visualizer(self):
-        """Update visualizer at 30 FPS"""
+        """Update visualizer with real audio data (called at 30 FPS after voice init)"""
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             # Use voice bridge amplitudes if available
@@ -1145,10 +1149,9 @@ class VoiceAssistantApp(App):
                 # If queue is still full, drain excess samples to prevent buildup
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue = self._mic_amplitude_queue[-50:]  # Keep only recent 50 samples
-            # Legacy amplitude property (kept for compatibility)
-            visualizer.amplitude = self.amplitude
         except Exception as e:
-            pass  # Widget not ready yet
+            # Log exception to help debug freezes
+            self.update_activity(f"Visualizer update error: {e}")
 
     def _on_voice_state_change(self, new_state: ConversationState):
         """
