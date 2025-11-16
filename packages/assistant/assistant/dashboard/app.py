@@ -369,8 +369,9 @@ class VoiceAssistantApp(App):
         asyncio.create_task(self.initialize_memory())
         # Add dummy chat messages
         self.add_dummy_chat_messages()
-        # Initialize Moshi in background worker (non-blocking)
-        self.run_worker(self.initialize_moshi(), exclusive=True, group="moshi_init")
+        # Initialize voice bridge in background worker (non-blocking)
+        # Use voice_bridge (VoiceBridgeOrchestrator) for proper mic + AI integration
+        self.run_worker(self.initialize_voice(), exclusive=True, group="voice_init")
 
     def add_dummy_chat_messages(self):
         """Add dummy chat messages for demonstration"""
@@ -674,19 +675,16 @@ class VoiceAssistantApp(App):
             loading_thread = threading.Thread(target=load_moshi_thread, daemon=True)
             loading_thread.start()
 
-            # Poll for completion using threading.Event.wait() with timeout (non-blocking)
-            # This yields control back to event loop every 100ms
+            # Poll for completion truly async (no blocking calls)
             progress_dots = 0
-            while True:
-                if loading_complete.wait(timeout=0.1):  # 100ms poll, non-blocking
-                    break
-                # Update progress every ~2 seconds (20 * 100ms)
+            while not loading_complete.is_set():
+                # Update progress every ~2 seconds
                 if progress_dots % 20 == 0:
                     dots = "." * ((progress_dots // 20) % 4)
                     spaces = " " * (3 - ((progress_dots // 20) % 4))
                     self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} still loading, please wait...")
                 progress_dots += 1
-                await asyncio.sleep(0)  # Yield to event loop immediately
+                await asyncio.sleep(0.1)  # 100ms async sleep - fully non-blocking
 
             # Check result
             if isinstance(moshi_bridge_result[0], Exception):
