@@ -754,15 +754,24 @@ class VoiceAssistantApp(App):
                 raise error
 
             self.moshi_bridge = moshi_bridge_result[0]
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Moshi bridge assigned successfully\n")
+                f.flush()
             self.update_activity("✓ MOSHI MLX models loaded")
 
             # Initialize audio I/O
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: About to create AudioIO\n")
+                f.flush()
             self.update_activity("Starting audio streams...")
             self.audio_io = AudioIO(
                 sample_rate=24000,
                 frame_size=1920,
                 channels=1
             )
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: AudioIO created\n")
+                f.flush()
 
             # Start audio input with callback for visualization
             self._audio_callback_counter = 0  # For debug logging
@@ -787,12 +796,24 @@ class VoiceAssistantApp(App):
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue.pop(0)
 
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Starting audio input\n")
+                f.flush()
             self.audio_io.start_input(callback=audio_callback)
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Starting audio output\n")
+                f.flush()
             self.audio_io.start_output()
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Audio started successfully\n")
+                f.flush()
             self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
 
             # Set voice as initialized so visualizer can show mic input
             self.voice_initialized = True
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Voice initialized = True\n")
+                f.flush()
 
             # Set connection_amplitude to idle (breathing) after voice is ready
             try:
