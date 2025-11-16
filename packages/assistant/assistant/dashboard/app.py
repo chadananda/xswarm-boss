@@ -970,6 +970,8 @@ class VoiceAssistantApp(App):
         Continuous loop to process queued audio frames through Moshi.
         Runs on main async event loop to safely call MLX operations.
         Consumes from _moshi_input_queue, produces to _moshi_output_queue.
+
+        OPTIMIZED: Process multiple frames before yielding to reduce latency.
         """
         import asyncio
 
@@ -977,33 +979,44 @@ class VoiceAssistantApp(App):
             f.write("DEBUG: moshi_processing_loop started\n")
             f.flush()
 
+        frames_processed = 0
+
         while True:
             try:
-                # Check if there's audio to process
-                if len(self._moshi_input_queue) > 0:
-                    # Get next audio frame
-                    audio_frame = self._moshi_input_queue.pop(0)
+                # Process multiple frames before yielding (reduce async overhead)
+                batch_size = min(len(self._moshi_input_queue), 5)  # Process up to 5 frames at once
 
-                    # Process through Moshi (safe on main thread)
-                    audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio_frame)
+                if batch_size > 0:
+                    for _ in range(batch_size):
+                        if len(self._moshi_input_queue) == 0:
+                            break
 
-                    # Queue output audio for playback
-                    if audio_chunk is not None and len(audio_chunk) > 0:
-                        self._moshi_output_queue.append(audio_chunk)
-                        # Update Moshi amplitude for visualization
-                        self.moshi_bridge.update_moshi_amplitude(audio_chunk)
+                        # Get next audio frame
+                        audio_frame = self._moshi_input_queue.pop(0)
 
-                    # Log text output (for debugging)
-                    if text_piece and text_piece.strip():
-                        with open("/tmp/moshi_text.log", "a") as f:
-                            f.write(text_piece)
-                            f.flush()
+                        # Process through Moshi (safe on main thread)
+                        audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio_frame)
 
-                    # Small delay to prevent tight loop
-                    await asyncio.sleep(0.001)
+                        # Queue output audio for playback
+                        if audio_chunk is not None and len(audio_chunk) > 0:
+                            self._moshi_output_queue.append(audio_chunk)
+                            # Update Moshi amplitude for visualization
+                            self.moshi_bridge.update_moshi_amplitude(audio_chunk)
+
+                        # Log text output (for debugging)
+                        if text_piece and text_piece.strip():
+                            with open("/tmp/moshi_text.log", "a") as f:
+                                f.write(text_piece)
+                                f.flush()
+
+                        frames_processed += 1
+
+                    # Yield control only after processing batch (minimize sleep overhead)
+                    await asyncio.sleep(0)  # Yield immediately, no delay
                 else:
-                    # No frames to process, wait longer
-                    await asyncio.sleep(0.01)
+                    # No frames to process, wait for new input
+                    # Use shorter sleep to reduce latency when frames arrive
+                    await asyncio.sleep(0.005)  # 5ms instead of 10ms
 
             except Exception as e:
                 # Log errors but keep loop running
