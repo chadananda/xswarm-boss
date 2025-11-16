@@ -546,7 +546,10 @@ class VoiceAssistantApp(App):
         # Stop audio streams
         if self.audio_io:
             self.audio_io.stop()
-            self.update_activity("Audio streams stopped")
+            try:
+                self.update_activity("Audio streams stopped")
+            except:
+                pass  # Widget already removed during shutdown
 
         # Close memory manager (create task to run async close)
         if self.memory_manager:
@@ -720,7 +723,7 @@ class VoiceAssistantApp(App):
             response_audio, response_text = self.moshi_bridge.generate_response(
                 silent_audio,
                 text_prompt=greeting_prompt,
-                max_tokens=200  # Shorter for greeting
+                max_frames=50  # Shorter greeting (~4 seconds at 12.5 Hz)
             )
 
             # Log the greeting text
