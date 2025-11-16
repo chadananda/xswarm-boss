@@ -338,6 +338,9 @@ class VoiceAssistantApp(App):
 
     def on_mount(self) -> None:
         """Initialize on mount"""
+        with open("/tmp/xswarm_debug.log", "w") as f:
+            f.write("DEBUG: on_mount() ENTRY\n")
+            f.flush()
         # DON'T start update_visualizer() yet - wait until voice is initialized
         # This prevents Moshi animation from showing before models load
 
@@ -366,12 +369,25 @@ class VoiceAssistantApp(App):
         self.populate_theme_selector()
 
         # Initialize memory manager
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: on_mount() - before initialize_memory()\n")
+            f.flush()
         asyncio.create_task(self.initialize_memory())
         # Add dummy chat messages
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: on_mount() - before add_dummy_chat_messages()\n")
+            f.flush()
         self.add_dummy_chat_messages()
         # Initialize Moshi models in background with proper async loading
         # This uses threading + async polling to keep TUI responsive
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: on_mount() - before run_worker(initialize_moshi)\n")
+            f.flush()
         self.run_worker(self.initialize_moshi(), exclusive=True, group="moshi_init")
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: on_mount() - after run_worker(initialize_moshi)\n")
+            f.flush()
+
 
     def add_dummy_chat_messages(self):
         """Add dummy chat messages for demonstration"""
@@ -645,8 +661,15 @@ class VoiceAssistantApp(App):
     async def initialize_moshi(self):
         """Load voice models and initialize audio"""
         try:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: initialize_moshi() called\n")
+                f.flush()
             self.update_activity("Initializing voice models...")
             device = self.config.detect_device()
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: Device detected: {device}\n")
+                f.flush()
+
 
             # Initialize MOSHI bridge (MLX for Apple Silicon)
             from ..voice.moshi_mlx import MoshiBridge
@@ -665,15 +688,33 @@ class VoiceAssistantApp(App):
             def load_moshi_thread():
                 """Background thread for model loading"""
                 try:
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: Starting MoshiBridge({moshi_quality})...\n")
+                        f.flush()
                     moshi_bridge_result[0] = MoshiBridge(quality=moshi_quality)
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write("DEBUG: MoshiBridge loaded successfully\n")
+                        f.flush()
                     loading_complete.set()
                 except Exception as e:
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: MoshiBridge failed: {e}\n")
+                        import traceback
+                        f.write(traceback.format_exc())
+                        f.flush()
                     moshi_bridge_result[0] = e
                     loading_complete.set()
 
             # Start loading in background thread
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Starting background thread\n")
+                f.flush()
             loading_thread = threading.Thread(target=load_moshi_thread, daemon=True)
             loading_thread.start()
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Background thread started\n")
+                f.flush()
+
 
             # Use call_later for non-blocking progress updates
             progress_dots = [0]  # Mutable container for closure
@@ -693,8 +734,9 @@ class VoiceAssistantApp(App):
                         f"{elapsed_seconds}s elapsed - please wait..."
                     )
                     progress_dots[0] += 1
-                    # Schedule next update
-                    self.call_later(0.1, update_progress)
+                    # Schedule next update ONLY if still loading
+                    if not loading_complete.is_set():
+                        self.call_later(0.1, update_progress)
 
             # Start progress updates
             update_progress()
