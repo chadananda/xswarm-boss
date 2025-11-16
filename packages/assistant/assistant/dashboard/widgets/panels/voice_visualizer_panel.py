@@ -99,6 +99,9 @@ class VoiceVisualizerPanel(Static):
         # Persona name (rendered above divider line)
         self.persona_name = "JARVIS"  # Default persona name
 
+        # Data callback - app provides this to let widget pull real-time data
+        self.data_callback = None  # Set by app after initialization
+
     def start_animation(self):
         """Start the visualization animation at 20 FPS."""
         if not self.is_animating:
@@ -114,8 +117,30 @@ class VoiceVisualizerPanel(Static):
             self.is_animating = False
 
     def _update_animation(self):
-        """Animation update callback (20 FPS) - driven by connection_amplitude state."""
+        """
+        Animation update callback (20 FPS) - pulls data from app and renders.
+        This is the ONLY timer - no dual-timer race condition.
+        """
         self.animation_frame += 1
+
+        # Pull real-time data from app (if callback is set)
+        if self.data_callback and not self.simulation_mode:
+            try:
+                data = self.data_callback()
+                # Update mic waveform
+                mic_amp = data.get("mic_amplitude", 0.0)
+                if mic_amp > 0.0:
+                    self.add_mic_sample(mic_amp)
+                # Process batch samples if available
+                if "mic_samples" in data:
+                    for sample in data["mic_samples"]:
+                        self.add_mic_sample(sample)
+                # Update connection amplitude
+                conn_amp = data.get("connection_amplitude")
+                if conn_amp is not None:
+                    self.connection_amplitude = conn_amp
+            except Exception:
+                pass  # Callback failed, use existing data
 
         if self.connection_amplitude == 0:
             # Not connected - no animation

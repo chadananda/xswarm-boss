@@ -620,11 +620,13 @@ class VoiceAssistantApp(App):
             try:
                 visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
                 visualizer.connection_amplitude = 1  # Idle/breathing
+                # Set callback so widget can pull data from app during its own animation timer
+                visualizer.data_callback = self.get_visualizer_data
             except Exception:
                 pass
 
-            # Start microphone data update timer (30 FPS for smooth mic waveform)
-            self.set_interval(1/30, self.update_visualizer)
+            # NO app timer needed - widget pulls data during its own 20 FPS animation timer
+            # This eliminates dual-timer race condition that caused freezes
 
             # Auto-start conversation for microphone visualization and greeting
             await self.voice_bridge.start_conversation()
@@ -1119,12 +1121,15 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-    def update_visualizer(self):
-        """Update visualizer with real audio data - just sets reactive state"""
-        try:
-            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+    def get_visualizer_data(self):
+        """
+        Get current visualizer data for the widget to consume.
+        Called by the widget's animation timer (20 FPS) - NO app timer needed.
 
-            # Update microphone waveform data
+        Returns:
+            Dict with mic_amplitude, connection_amplitude
+        """
+        try:
             # Use voice bridge amplitudes if available
             if self.voice_initialized and self.voice_bridge:
                 amplitudes = self.voice_bridge.get_amplitudes()
@@ -1135,22 +1140,26 @@ class VoiceAssistantApp(App):
                 if self.state == "idle" or self.state == "ready":
                     mic_amp = max(mic_amp, 0.05)
 
-                # Update mic waveform
-                visualizer.add_mic_sample(mic_amp)
-
-                # Set connection_amplitude based on voice state
+                # Determine connection_amplitude based on voice state
                 if moshi_amp > 0.02:
                     # Speaking - map amplitude to 2-100 range
-                    visualizer.connection_amplitude = int(moshi_amp * 98) + 2
+                    connection_amp = int(moshi_amp * 98) + 2
                 else:
                     # Idle - breathing animation
-                    visualizer.connection_amplitude = 1
+                    connection_amp = 1
+
+                return {
+                    "mic_amplitude": mic_amp,
+                    "connection_amplitude": connection_amp
+                }
 
             # Fallback to legacy audio callback method
             elif hasattr(self, '_mic_amplitude_queue') and self._mic_amplitude_queue:
                 # Process queued amplitudes with iteration limit
                 MAX_SAMPLES_PER_UPDATE = 10
                 samples_processed = 0
+                mic_samples = []
+
                 while self._mic_amplitude_queue and samples_processed < MAX_SAMPLES_PER_UPDATE:
                     amplitude = self._mic_amplitude_queue.pop(0)
 
@@ -1158,16 +1167,30 @@ class VoiceAssistantApp(App):
                     if self.state == "idle" or self.state == "ready":
                         amplitude = max(amplitude, 0.05)
 
-                    visualizer.add_mic_sample(amplitude)
+                    mic_samples.append(amplitude)
                     samples_processed += 1
 
                 # Drain excess samples if queue is too full
                 if len(self._mic_amplitude_queue) > 100:
                     self._mic_amplitude_queue = self._mic_amplitude_queue[-50:]
 
+                # Return average amplitude and idle connection
+                avg_mic = sum(mic_samples) / len(mic_samples) if mic_samples else 0.0
+                return {
+                    "mic_amplitude": avg_mic,
+                    "mic_samples": mic_samples,  # For batch processing
+                    "connection_amplitude": 1  # Idle
+                }
+
         except Exception as e:
             # Log exception to help debug issues
-            self.update_activity(f"Visualizer update error: {e}")
+            self.update_activity(f"Visualizer data error: {e}")
+
+        # Fallback: return zero data
+        return {
+            "mic_amplitude": 0.0,
+            "connection_amplitude": 0
+        }
 
     def _on_voice_state_change(self, new_state: ConversationState):
         """
