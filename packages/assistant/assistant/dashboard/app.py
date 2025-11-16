@@ -622,11 +622,9 @@ class VoiceAssistantApp(App):
             from ..voice.audio_io import AudioIO
 
             self.update_activity(f"Loading MOSHI MLX models (quantized for {device})...")
-            self.moshi_bridge = MoshiBridge(
-                hf_repo="kyutai/moshiko-mlx-q8",
-                quantized=8,
-                max_steps=500
-            )
+            # Use quality parameter like in working CLI examples
+            moshi_quality = getattr(self.config, 'moshi_quality', 'q4')
+            self.moshi_bridge = MoshiBridge(quality=moshi_quality)
             self.update_activity("✓ MOSHI MLX models loaded")
 
             # Initialize audio I/O
