@@ -358,8 +358,8 @@ class VoiceAssistantApp(App):
         asyncio.create_task(self.initialize_memory())
         # Add dummy chat messages
         self.add_dummy_chat_messages()
-        # Initialize voice bridge in background (don't block UI)
-        asyncio.create_task(self.initialize_voice())
+        # Initialize Moshi directly (bypass complex orchestrator for now)
+        asyncio.create_task(self.initialize_moshi())
 
     def add_dummy_chat_messages(self):
         """Add dummy chat messages for demonstration"""
