@@ -54,7 +54,8 @@ class AudioIO:
 
         def audio_callback(indata, frames, time, status):
             if status:
-                print(f"Audio input status: {status}")
+                import logging
+                logging.getLogger(__name__).warning(f"Audio input status: {status}")
 
             try:
                 # Copy audio data and ensure it's contiguous
@@ -65,9 +66,11 @@ class AudioIO:
                     try:
                         callback(audio)
                     except Exception as e:
-                        print(f"Audio callback error: {e}")
+                        import logging
+                        logging.getLogger(__name__).error(f"Audio callback error: {e}")
             except Exception as e:
-                print(f"Audio input error: {e}")
+                import logging
+                logging.getLogger(__name__).error(f"Audio input error: {e}")
 
         self.input_stream = sd.InputStream(
             samplerate=self.sample_rate,
@@ -76,7 +79,8 @@ class AudioIO:
             callback=audio_callback
         )
         self.input_stream.start()
-        print(f"Audio input started: {self.sample_rate}Hz, {self.frame_size} samples/frame")
+        import logging
+        logging.getLogger(__name__).debug(f"Audio input started: {self.sample_rate}Hz, {self.frame_size} samples/frame")
 
     def start_output(self):
         """
@@ -87,7 +91,8 @@ class AudioIO:
 
         def audio_callback(outdata, frames, time, status):
             if status:
-                print(f"Audio output status: {status}")
+                import logging
+                logging.getLogger(__name__).warning(f"Audio output status: {status}")
 
             try:
                 audio = self.output_queue.get_nowait()
@@ -105,7 +110,8 @@ class AudioIO:
                     outdata[:] = audio[:frames].reshape(-1, 1)
                 except ValueError as e:
                     # If reshape fails, fill with silence to avoid crash
-                    print(f"Audio reshape error: {e}, shape={audio.shape}, frames={frames}")
+                    import logging
+                    logging.getLogger(__name__).error(f"Audio reshape error: {e}, shape={audio.shape}, frames={frames}")
                     outdata.fill(0)
             except Exception as e:
                 # Silence if no audio available or other error
@@ -118,7 +124,8 @@ class AudioIO:
             callback=audio_callback
         )
         self.output_stream.start()
-        print(f"Audio output started: {self.sample_rate}Hz")
+        import logging
+        logging.getLogger(__name__).debug(f"Audio output started: {self.sample_rate}Hz")
 
     def play_audio(self, audio: np.ndarray):
         """
@@ -166,4 +173,5 @@ class AudioIO:
         if self.output_stream:
             self.output_stream.stop()
             self.output_stream.close()
-        print("Audio I/O stopped")
+        import logging
+        logging.getLogger(__name__).debug("Audio I/O stopped")

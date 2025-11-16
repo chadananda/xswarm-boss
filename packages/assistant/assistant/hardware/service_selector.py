@@ -182,32 +182,34 @@ def select_services(gpu: GPUCapability) -> ServiceConfig:
     )
 
 
-def print_service_config(config: ServiceConfig) -> None:
+def format_service_config(config: ServiceConfig) -> str:
     """
-    Print human-readable service configuration.
+    Format service configuration as string for logging.
 
-    Useful for debugging and logging.
+    Useful for debugging.
     """
-    print("=" * 60)
-    print("AI Service Configuration")
-    print("=" * 60)
-    print(f"GPU Score: {config.gpu_score:.1f}/100 (Grade: {config.gpu_grade})")
-    print(f"Mode: {'Hybrid' if config.hybrid_mode else 'All Local' if config.moshi_mode == 'local' else 'All Cloud'}")
-    print()
-    print(f"🎤 Voice (Moshi): {config.moshi_mode.upper()}")
+    lines = []
+    lines.append("=" * 60)
+    lines.append("AI Service Configuration")
+    lines.append("=" * 60)
+    lines.append(f"GPU Score: {config.gpu_score:.1f}/100 (Grade: {config.gpu_grade})")
+    lines.append(f"Mode: {'Hybrid' if config.hybrid_mode else 'All Local' if config.moshi_mode == 'local' else 'All Cloud'}")
+    lines.append("")
+    lines.append(f"🎤 Voice (Moshi): {config.moshi_mode.upper()}")
     if config.moshi_mode == "local":
-        print(f"   Quality: {config.moshi_quality.upper()} ({config.moshi_vram_needed_gb:.0f}GB VRAM)")
-    print()
-    print(f"🧠 Thinking Engine: {config.thinking_mode.upper()}")
-    print(f"   Model: {config.thinking_model}")
+        lines.append(f"   Quality: {config.moshi_quality.upper()} ({config.moshi_vram_needed_gb:.0f}GB VRAM)")
+    lines.append("")
+    lines.append(f"🧠 Thinking Engine: {config.thinking_mode.upper()}")
+    lines.append(f"   Model: {config.thinking_model}")
     if config.thinking_mode == "local":
-        print(f"   VRAM: {config.thinking_vram_needed_gb:.0f}GB")
-    print()
-    print(f"🔍 Embeddings: {config.embedding_mode.upper()}")
-    print(f"   Model: {config.embedding_model}")
-    print()
+        lines.append(f"   VRAM: {config.thinking_vram_needed_gb:.0f}GB")
+    lines.append("")
+    lines.append(f"🔍 Embeddings: {config.embedding_mode.upper()}")
+    lines.append(f"   Model: {config.embedding_model}")
+    lines.append("")
     if config.total_vram_needed_gb > 0:
-        print(f"Total VRAM: {config.total_vram_needed_gb:.0f}GB")
-    print()
-    print(f"💡 {config.recommendation}")
-    print("=" * 60)
+        lines.append(f"Total VRAM: {config.total_vram_needed_gb:.0f}GB")
+    lines.append("")
+    lines.append(f"💡 {config.recommendation}")
+    lines.append("=" * 60)
+    return "\n".join(lines)

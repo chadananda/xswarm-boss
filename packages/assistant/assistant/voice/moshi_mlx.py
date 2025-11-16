@@ -167,39 +167,40 @@ class MoshiBridge:
             tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
         # Load text tokenizer
-        print(f"📝 Loading text tokenizer...")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.debug("Loading text tokenizer...")
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
-        print(f"✓ Text tokenizer loaded")
+        logger.debug("Text tokenizer loaded")
 
         # Load Mimi audio codec (Rust implementation)
-        print(f"🎵 Loading Mimi audio codec...")
+        logger.debug("Loading Mimi audio codec...")
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
-        print(f"✓ Mimi codec loaded")
+        logger.debug("Mimi codec loaded")
 
         # Load Moshi language model
-        print(f"🧠 Initializing Moshi model...")
+        logger.debug("Initializing Moshi model...")
         mx.random.seed(299792458)
         lm_config = models.config_v0_1()
         self.model = models.Lm(lm_config)
         self.model.set_dtype(mx.bfloat16)
-        print(f"✓ Model structure initialized")
+        logger.debug("Model structure initialized")
 
         if quantized is not None:
-            print(f"🔧 Quantizing model to {quantized}-bit...")
+            logger.debug(f"Quantizing model to {quantized}-bit...")
             group_size = 32 if quantized == 4 else 64
             nn.quantize(self.model, bits=quantized, group_size=group_size)
-            print(f"✓ Model quantized")
+            logger.debug("Model quantized")
 
         # Load weights - strict=True works with quantized checkpoints
         # The reference implementation uses strict=True successfully
-        print(f"⏳ Loading model weights (~{self.quality}, ~14GB)...")
-        print(f"   This uses Apple Silicon Metal GPU and may take 10-30s...")
+        logger.debug(f"Loading model weights (~{self.quality}, ~14GB)...")
         self.model.load_weights(model_file, strict=True)
-        print(f"✓ Weights loaded")
+        logger.debug("Weights loaded")
 
-        print(f"🔥 Warming up GPU...")
+        logger.debug("Warming up GPU...")
         self.model.warmup()
-        print(f"✓ Model ready!")
+        logger.debug("Model ready!")
 
         # Amplitude tracking
         self.mic_amplitude = 0.0

@@ -204,38 +204,56 @@ class VoiceBridgeOrchestrator:
                 self._set_state(ConversationState.LISTENING)
     async def generate_response(self, text: str) -> Optional[Dict[str, Any]]:
         """
-        Generate AI response from text (for text-based testing).
+        Generate AI response from text (for text-based testing or greeting generation).
 
         Args:
-            text: User text input
+            text: User text input or prompt
 
         Returns:
             Dict with response_text or None if error
         """
-        # This is a simplified version for text-only interaction
-        # In full implementation, this would call an LLM API
-        # For now, just store in memory and return placeholder
+        # Store user input in memory
         await self.memory_manager.store_message(
             user_id=self.user_id,
             message=text,
             role="user"
         )
-        # Build system prompt
+
+        # Build system prompt with history
         history = await self.memory_manager.get_conversation_history(
             self.user_id,
             limit=10
         )
         system_prompt = self._build_prompt_with_history(history)
-        # TODO: Call LLM API here (OpenAI, Anthropic, etc.)
-        # For now, return echo response
-        response_text = f"[{self.current_persona.name}]: I heard you say: {text}"
-        # Store response
+
+        # Generate AI response if client is available
+        if self.ai_client and self.ai_client.is_available():
+            try:
+                # Build messages for AI client
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": text}
+                ]
+
+                # Call AI client to generate response
+                response_text = await self.ai_client.chat(messages, max_tokens=150)
+
+            except Exception as e:
+                print(f"⚠️  AI client error: {e}")
+                # Fallback to simple greeting if AI fails
+                response_text = f"Hello! I'm {self.current_persona.name}. How can I assist you today?"
+        else:
+            # Fallback if no AI client available (no API keys configured)
+            response_text = f"Hello! I'm {self.current_persona.name}. How can I assist you today?"
+
+        # Store response in memory
         await self.memory_manager.store_message(
             user_id=self.user_id,
             message=response_text,
             role="assistant",
             metadata={"persona": self.current_persona.name}
         )
+
         return {"response_text": response_text}
     def get_audio_stream(self) -> AsyncGenerator[np.ndarray, None]:
         """

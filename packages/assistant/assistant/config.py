@@ -126,10 +126,13 @@ class Config(BaseModel):
             if os.getenv("OPENROUTER_API_KEY"):
                 config.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 
-            print("✓ Loaded API keys from .env (debug mode)")
+            if config.is_debug_mode:
+                import logging
+                logging.getLogger(__name__).debug("Loaded API keys from .env")
 
         except ImportError:
-            print("Warning: python-dotenv not installed, cannot load .env file")
+            import logging
+            logging.getLogger(__name__).warning("python-dotenv not installed, cannot load .env file")
 
         return config
 
