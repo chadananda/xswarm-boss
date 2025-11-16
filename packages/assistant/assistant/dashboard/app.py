@@ -1431,6 +1431,10 @@ class VoiceAssistantApp(App):
 
         return "\n\n".join(prompt_parts)
 
+    def action_quit(self):
+        """Quit the application (triggered by q/ctrl+q/ctrl+c keybindings)"""
+        self.exit()
+
     def action_copy_activity(self):
         """Copy recent activity messages to clipboard"""
         try:

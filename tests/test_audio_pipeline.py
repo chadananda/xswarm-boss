@@ -111,13 +111,29 @@ def test_2_moshi_audio_generation():
         output_dir.mkdir(exist_ok=True)
         save_wav(synthetic_speech, str(output_dir / "test_input.wav"))
 
-        # Generate Moshi response
+        # Generate Moshi response using working pattern
         print("🔄 Generating Moshi response...")
-        moshi_audio, moshi_text = moshi.generate_response(
-            user_audio=synthetic_speech,
-            text_prompt=None,
-            max_frames=50  # ~4 seconds
-        )
+        lm_gen = moshi.create_lm_generator(max_steps=50)
+
+        # Feed input audio first
+        num_input_frames = len(synthetic_speech) // 1920
+        for i in range(num_input_frames):
+            frame = synthetic_speech[i*1920:(i+1)*1920]
+            moshi.step_frame(lm_gen, frame)
+
+        # Then generate response frames
+        moshi_chunks = []
+        moshi_text_pieces = []
+        for _ in range(50):  # Generate 50 frames (~4 seconds)
+            silence = np.zeros(1920, dtype=np.float32)
+            audio, text = moshi.step_frame(lm_gen, silence)
+            if audio is not None and len(audio) > 0:
+                moshi_chunks.append(audio)
+                if text:
+                    moshi_text_pieces.append(text)
+
+        moshi_audio = np.concatenate(moshi_chunks) if moshi_chunks else None
+        moshi_text = "".join(moshi_text_pieces) if moshi_text_pieces else ""
 
         print(f"📊 Moshi output shape: {moshi_audio.shape if moshi_audio is not None else 'None'}")
         print(f"📊 Moshi output dtype: {moshi_audio.dtype if moshi_audio is not None else 'N/A'}")
@@ -160,12 +176,25 @@ def test_3_full_pipeline_integration():
 
         print(f"📊 Input audio: {samples} samples")
 
-        # Process through Moshi
-        moshi_audio, moshi_text = moshi.generate_response(
-            user_audio=synthetic_speech,
-            text_prompt=None,
-            max_frames=30
-        )
+        # Process through Moshi using working pattern
+        lm_gen = moshi.create_lm_generator(max_steps=30)
+
+        # Feed input audio
+        num_input_frames = len(synthetic_speech) // 1920
+        for i in range(num_input_frames):
+            frame = synthetic_speech[i*1920:(i+1)*1920]
+            moshi.step_frame(lm_gen, frame)
+
+        # Generate response
+        moshi_chunks = []
+        for _ in range(30):
+            silence = np.zeros(1920, dtype=np.float32)
+            audio, text = moshi.step_frame(lm_gen, silence)
+            if audio is not None and len(audio) > 0:
+                moshi_chunks.append(audio)
+
+        moshi_audio = np.concatenate(moshi_chunks) if moshi_chunks else None
+        moshi_text = ""  # Not testing text in this test
 
         assert moshi_audio is not None and len(moshi_audio) > 0, "Moshi returned empty audio"
 

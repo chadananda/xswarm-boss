@@ -27,6 +27,7 @@ from typing import Optional
 from pathlib import Path
 import sentencepiece
 import os
+import time
 
 # CRITICAL: Disable hf_transfer BEFORE importing huggingface_hub
 # hf_transfer auto-enables when installed and ignores local_files_only=True
@@ -221,7 +222,6 @@ class MoshiBridge:
         self.audio_tokenizer.encode(audio)
 
         # Wait for encoding to complete
-        import time
         while True:
             codes = self.audio_tokenizer.get_encoded()
             if codes is not None:
@@ -242,7 +242,6 @@ class MoshiBridge:
         self.audio_tokenizer.decode(codes)
 
         # Wait for decoding to complete
-        import time
         while True:
             audio = self.audio_tokenizer.get_decoded()
             if audio is not None:
