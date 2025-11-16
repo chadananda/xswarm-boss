@@ -127,13 +127,17 @@ class VoiceAssistantApp(App):
         with Horizontal(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
             with Vertical(id="left-column"):
-                # Voice visualizer - small square at top
+                # Voice visualizer - small square at top (initially hidden until voice initialized)
                 viz_panel = VoiceVisualizerPanel(
                     visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
                 )
                 viz_panel.id = "visualizer"
                 viz_panel.simulation_mode = True
+                viz_panel.display = False  # Hidden until voice initialized
                 yield viz_panel
+
+                # Persona name below visualizer (centered)
+                yield Static("", id="persona-name", classes="persona-name-label")
 
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
@@ -339,15 +343,22 @@ class VoiceAssistantApp(App):
         """Initialize on mount"""
         self.set_interval(1/30, self.update_visualizer)  # 30 FPS
 
-        # Start visualizer animation and set initial title
+        # Start visualizer animation and set title to static "xSwarm Assistant"
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
             visualizer.simulation_mode = False  # Ensure we use real audio, not simulation
             visualizer.start_animation()
 
-            # Set initial title based on default persona (before moshi init)
+            # Set title to static "xSwarm Assistant" (not persona-specific)
+            visualizer.border_title = "xSwarm Assistant"
+        except Exception:
+            pass
+
+        # Set persona name label below visualizer
+        try:
             persona_name = self.config.default_persona or "JARVIS"
-            visualizer.border_title = f"xSwarm - {persona_name}"
+            persona_label = self.query_one("#persona-name", Static)
+            persona_label.update(f"◈ {persona_name} ◈")
         except Exception:
             pass
 
@@ -534,12 +545,13 @@ class VoiceAssistantApp(App):
             self.current_persona_name = persona.name
             # Update title
             self.title = f"xSwarm Voice Assistant - {persona.name}"
-            # Update visualizer border title
+            # Update persona name label below visualizer
             try:
-                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                visualizer.border_title = f"xSwarm - {persona.name}"
+                persona_label = self.query_one("#persona-name", Static)
+                persona_label.update(f"◈ {persona.name} ◈")
             except Exception:
                 pass
+            # Keep visualizer title as static "xSwarm Assistant" (don't change it)
 
     def on_unmount(self) -> None:
         """Cleanup on exit"""
@@ -600,6 +612,13 @@ class VoiceAssistantApp(App):
             # Mark as initialized
             self.voice_initialized = True
             self.update_activity("✅ Voice bridge initialized successfully")
+
+            # Show visualizer now that voice is ready
+            try:
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                visualizer.display = True
+            except Exception:
+                pass
 
             # Auto-start conversation for microphone visualization and greeting
             await self.voice_bridge.start_conversation()
@@ -698,10 +717,13 @@ class VoiceAssistantApp(App):
             self.audio_io.start_output()
             self.update_activity("✓ Audio streams started")
 
-            # Update visualizer with persona name
-            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            persona_name = self.config.default_persona or "JARVIS"
-            visualizer.border_title = f"xSwarm - {persona_name}"
+            # Show visualizer now that Moshi is ready
+            try:
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                visualizer.display = True
+                # Keep static title "xSwarm Assistant" (don't change it)
+            except Exception:
+                pass
 
             # Generate greeting immediately
             self.state = "ready"
@@ -870,12 +892,13 @@ class VoiceAssistantApp(App):
         # Log the switch to activity feed
         self.update_activity(f"👤 Switched to persona: {persona.name}")
 
-        # Update visualizer border title
+        # Update persona name label below visualizer
         try:
-            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-            visualizer.border_title = f"xSwarm - {persona.name}"
+            persona_label = self.query_one("#persona-name", Static)
+            persona_label.update(f"◈ {persona.name} ◈")
         except Exception:
             pass
+        # Keep visualizer title as static "xSwarm Assistant" (don't change it)
 
     def update_tools_tree_colors(self):
         """Rebuild tools tree with current theme colors"""
@@ -1104,6 +1127,12 @@ class VoiceAssistantApp(App):
                 amplitudes = self.voice_bridge.get_amplitudes()
                 mic_amp = amplitudes.get("mic_amplitude", 0.0)
                 moshi_amp = amplitudes.get("moshi_amplitude", 0.0)
+
+                # Apply minimal baseline when idle (to show system is alive)
+                if self.state == "idle" or self.state == "ready":
+                    mic_amp = max(mic_amp, 0.05)  # Minimal flat baseline when idle
+                    moshi_amp = max(moshi_amp, 0.05)  # Minimal flat baseline when idle
+
                 # Update visualizer with real amplitudes
                 visualizer.add_mic_sample(mic_amp)
                 visualizer.set_assistant_amplitude(moshi_amp)
@@ -1113,6 +1142,11 @@ class VoiceAssistantApp(App):
                 samples_processed = 0
                 while self._mic_amplitude_queue:
                     amplitude = self._mic_amplitude_queue.pop(0)
+
+                    # Apply minimal baseline when idle
+                    if self.state == "idle" or self.state == "ready":
+                        amplitude = max(amplitude, 0.05)
+
                     visualizer.add_mic_sample(amplitude)
                     samples_processed += 1
             # Legacy amplitude property (kept for compatibility)

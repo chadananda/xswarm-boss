@@ -200,6 +200,17 @@ Footer {
     scrollbar-size: 0 0;
 }
 
+/* Persona name label below visualizer */
+.persona-name-label {
+    width: 100%;
+    height: 1;
+    text-align: center;
+    color: $shade-5;
+    text-style: bold;
+    margin: 1 0;
+    padding: 0 0;
+}
+
 #sidebar {
     layout: vertical;
     width: 100%;
