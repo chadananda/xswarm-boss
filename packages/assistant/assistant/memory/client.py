@@ -384,6 +384,42 @@ class MemoryManager:
         # Fallback to local
         return self.local_cache.get_history(user_id, limit)
 
+    async def get_conversation_history(
+        self,
+        user_id: str,
+        limit: int = 20
+    ) -> str:
+        """
+        Get conversation history formatted for LLM context.
+
+        Args:
+            user_id: User identifier
+            limit: Maximum messages to include
+
+        Returns:
+            Formatted conversation history string
+        """
+        messages = await self.get_context(user_id, limit=limit)
+
+        if not messages:
+            return ""
+
+        history_lines = []
+        for msg in messages:
+            role = msg.get("role", "unknown")
+            text = msg.get("message", "")
+            metadata = msg.get("metadata", {})
+
+            if role == "assistant" and metadata.get("persona"):
+                persona = metadata["persona"]
+                history_lines.append(f"{persona}: {text}")
+            elif role == "user":
+                history_lines.append(f"User: {text}")
+            else:
+                history_lines.append(f"{role}: {text}")
+
+        return "\n".join(history_lines)
+
     async def close(self):
         """Close connections"""
         await self.client.close()
