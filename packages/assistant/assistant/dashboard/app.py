@@ -350,8 +350,8 @@ class VoiceAssistantApp(App):
             # Set title to static "xSwarm Assistant" (not persona-specific)
             visualizer.border_title = "xSwarm Assistant"
 
-            # Initialize with 0 amplitude (flat line) until Moshi loads
-            visualizer.set_assistant_amplitude(0.0)
+            # Initialize with 0 connection_amplitude (not connected yet)
+            visualizer.connection_amplitude = 0
         except Exception:
             pass
 
@@ -616,7 +616,14 @@ class VoiceAssistantApp(App):
             # DON'T set baseline amplitude here - let it stay at 0.0 until actually speaking
             # The greeting generation below will set the amplitude when audio is played
 
-            # NOW start the 30 FPS visualizer update loop (after voice is ready)
+            # Set connection_amplitude to idle (breathing) after voice is ready
+            try:
+                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+                visualizer.connection_amplitude = 1  # Idle/breathing
+            except Exception:
+                pass
+
+            # Start microphone data update timer (30 FPS for smooth mic waveform)
             self.set_interval(1/30, self.update_visualizer)
 
             # Auto-start conversation for microphone visualization and greeting
@@ -831,19 +838,19 @@ class VoiceAssistantApp(App):
         # Queue audio for playback
         self.audio_io.play_audio(audio)
 
-        # Update Moshi amplitude for top circle visualizer during playback
+        # Update connection_amplitude for top circle visualizer during playback
         visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
         for i in range(num_frames):
             frame = audio[i * frame_size:(i + 1) * frame_size]
             self.moshi_bridge.update_moshi_amplitude(frame)
             amplitude = self.moshi_bridge.moshi_amplitude
 
-            # Update top circle with Moshi output amplitude
-            visualizer.set_assistant_amplitude(amplitude)
+            # Update top circle with Moshi output amplitude (map 0-1 to 2-100)
+            visualizer.connection_amplitude = int(amplitude * 98) + 2
             await asyncio.sleep(0.08)  # 80ms per frame
 
-        # Reset Moshi amplitude after playback
-        visualizer.set_assistant_amplitude(0.0)
+        # Reset to idle (breathing) after playback
+        visualizer.connection_amplitude = 1
 
     def rotate_persona(self):
         """Randomly switch to a different persona"""
@@ -1113,54 +1120,53 @@ class VoiceAssistantApp(App):
             pass
 
     def update_visualizer(self):
-        """Update visualizer with real audio data (called at 30 FPS after voice init)"""
+        """Update visualizer with real audio data - just sets reactive state"""
         try:
             visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
 
-            # Step 1: Update the visualizer's animation frame (without refresh)
-            if hasattr(visualizer, '_update_animation'):
-                visualizer._update_animation()
-
-            # Step 2: Update audio data
+            # Update microphone waveform data
             # Use voice bridge amplitudes if available
             if self.voice_initialized and self.voice_bridge:
                 amplitudes = self.voice_bridge.get_amplitudes()
                 mic_amp = amplitudes.get("mic_amplitude", 0.0)
                 moshi_amp = amplitudes.get("moshi_amplitude", 0.0)
 
-                # DON'T apply baseline to moshi_amp - let it be 0.0 when not speaking
-                # Only apply baseline to mic_amp to show microphone is active
+                # Apply minimal baseline to mic_amp to show microphone is active
                 if self.state == "idle" or self.state == "ready":
-                    mic_amp = max(mic_amp, 0.05)  # Minimal flat baseline when idle
+                    mic_amp = max(mic_amp, 0.05)
 
-                # Update visualizer with real amplitudes
+                # Update mic waveform
                 visualizer.add_mic_sample(mic_amp)
-                visualizer.set_assistant_amplitude(moshi_amp)
+
+                # Set connection_amplitude based on voice state
+                if moshi_amp > 0.02:
+                    # Speaking - map amplitude to 2-100 range
+                    visualizer.connection_amplitude = int(moshi_amp * 98) + 2
+                else:
+                    # Idle - breathing animation
+                    visualizer.connection_amplitude = 1
+
             # Fallback to legacy audio callback method
             elif hasattr(self, '_mic_amplitude_queue') and self._mic_amplitude_queue:
-                # Process queued amplitudes with iteration limit to prevent freeze
-                # At 30 FPS, process max 10 samples per update to avoid infinite loop
+                # Process queued amplitudes with iteration limit
                 MAX_SAMPLES_PER_UPDATE = 10
                 samples_processed = 0
                 while self._mic_amplitude_queue and samples_processed < MAX_SAMPLES_PER_UPDATE:
                     amplitude = self._mic_amplitude_queue.pop(0)
 
-                    # Apply minimal baseline when idle (mic is active)
+                    # Apply minimal baseline when idle
                     if self.state == "idle" or self.state == "ready":
                         amplitude = max(amplitude, 0.05)
 
                     visualizer.add_mic_sample(amplitude)
                     samples_processed += 1
 
-                # If queue is still full, drain excess samples to prevent buildup
+                # Drain excess samples if queue is too full
                 if len(self._mic_amplitude_queue) > 100:
-                    self._mic_amplitude_queue = self._mic_amplitude_queue[-50:]  # Keep only recent 50 samples
-
-            # Step 3: Single refresh call at the end (prevents dual-refresh race condition)
-            visualizer.refresh()
+                    self._mic_amplitude_queue = self._mic_amplitude_queue[-50:]
 
         except Exception as e:
-            # Log exception to help debug freezes
+            # Log exception to help debug issues
             self.update_activity(f"Visualizer update error: {e}")
 
     def _on_voice_state_change(self, new_state: ConversationState):

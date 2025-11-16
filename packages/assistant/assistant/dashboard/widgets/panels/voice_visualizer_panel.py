@@ -15,6 +15,7 @@ import random
 from dataclasses import dataclass, field
 from rich.text import Text
 from textual.widgets import Static
+from textual.reactive import reactive
 
 
 class VisualizationStyle(Enum):
@@ -73,6 +74,10 @@ class VoiceVisualizerPanel(Static):
         self.mic_waveform: List[tuple[str, str]] = []  # Scrolling waveform data (char, color)
         self.assistant_amplitude: float = 0.0  # Current assistant speaking amplitude
 
+        # Reactive state property - single source of truth for animation
+        # 0 = Not connected, 1 = Idle (breathing), 2-100 = Speaking (amplitude)
+        self.connection_amplitude = reactive(0)
+
         # Smoothed amplitudes for stable animation
         self._smooth_assistant_amplitude: float = 0.0
         self.smoothing_factor: float = 0.3  # 0.0 = no smoothing, 1.0 = instant
@@ -98,9 +103,9 @@ class VoiceVisualizerPanel(Static):
         """Start the visualization animation at 20 FPS."""
         if not self.is_animating:
             self.is_animating = True
-            # DON'T start internal timer - controlled by app.py's 30 FPS timer instead
-            # This prevents dual-timer race condition that causes TUI freeze
-            # self._animation_timer = self.set_interval(1 / self.fps, self._update_animation)
+            # Widget self-animates based on connection_amplitude state
+            if not self.simulation_mode:
+                self._animation_timer = self.set_interval(1 / self.fps, self._update_animation)
 
     def stop_animation(self):
         """Stop the visualization animation."""
@@ -109,25 +114,26 @@ class VoiceVisualizerPanel(Static):
             self.is_animating = False
 
     def _update_animation(self):
-        """
-        Animation update callback (called manually from app.py at 30 FPS).
-        NO internal timer - controlled externally to prevent race conditions.
-        Does NOT call refresh() - that's done once per frame by app.py.
-        """
-        # Always increment animation frame for smooth scrolling
+        """Animation update callback (20 FPS) - driven by connection_amplitude state."""
         self.animation_frame += 1
 
-        # In simulation mode, generate fake audio data
-        if self.simulation_mode:
-            self._update_simulated_audio()
+        if self.connection_amplitude == 0:
+            # Not connected - no animation
+            self._smooth_assistant_amplitude = 0.0
+        elif self.connection_amplitude == 1:
+            # Connected but idle - gentle breathing effect
+            breath = math.sin(self.animation_frame * 0.05) * 0.1 + 0.15  # 0.05-0.25
+            self._smooth_assistant_amplitude = breath
         else:
-            # Real audio mode: smooth the assistant amplitude
+            # Speaking - use actual amplitude (2-100 mapped to 0.0-1.0)
+            target = (self.connection_amplitude - 2) / 98.0  # Map 2-100 → 0-1
+            # Apply smoothing for stable animation
             self._smooth_assistant_amplitude = (
-                self.smoothing_factor * self.assistant_amplitude +
+                self.smoothing_factor * target +
                 (1 - self.smoothing_factor) * self._smooth_assistant_amplitude
             )
 
-        # DON'T refresh here - app.py calls refresh() once per frame to prevent dual-refresh race condition
+        self.refresh()
 
     def _update_simulated_audio(self):
         """Generate simulated audio data for testing."""
