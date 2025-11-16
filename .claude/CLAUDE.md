@@ -316,6 +316,8 @@ TEXTUAL_ANIMATIONS=none pytest tests/ -v
 ❌ Reporting back before all todos are complete
 ❌ **Creating header/footer links without creating the actual pages** (causes 404s)
 ❌ **Not verifying all links work with tester** (always test navigation!)
+❌ **RUNNING TUI IN ORCHESTRATOR TERMINAL** - corrupts terminal with dangling mouse events
+❌ **Running TUI in background (&)** - still corrupts terminal even in background
 
 ## ✅ Success Looks Like
 
@@ -326,6 +328,8 @@ TEXTUAL_ANIMATIONS=none pytest tests/ -v
 - Zero fallbacks or workarounds used
 - **ALL header/footer links have actual pages created** (zero 404 errors)
 - **Tester verifies ALL navigation links work** with Playwright
+- **TUI never run in orchestrator terminal** - user tests manually in fresh terminal
+- **Orchestrator terminal stays clean** - no corruption, no dangling processes
 
 ---
 
