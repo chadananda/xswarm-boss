@@ -1,224 +1,375 @@
 # TO BE DONE - Current Development Status
 
-**Last Updated:** 2025-01-16 (Terminal Session 2)
-**Current Version:** v0.1.8
-**Status:** Memory system fixed, Moshi voice integration testing phase
+**Last Updated:** 2025-11-16 (Terminal Session 3 - Post-Crash Recovery)
+**Current Version:** v0.3.16
+**Status:** Moshi full-duplex voice streaming - INITIALIZATION COMPLETE ✅
 
 ---
 
-## ✅ COMPLETED: Memory System Integration (v0.1.8)
+## ✅ COMPLETED TODAY: Full-Duplex Moshi Voice Integration (v0.3.16)
 
-**Issue:** `'MemoryManager' object has no attribute 'get_conversation_history'`
+### Session Summary
 
-**Root Cause:**
-There are TWO MemoryManager classes in the codebase:
-1. `assistant/memory.py` - Has `get_conversation_history()` ✅
-2. `assistant/memory/client.py` - Missing `get_conversation_history()` ❌
+After you crashed mid-implementation, I recovered the work and completed the Moshi voice streaming integration.
 
-The `memory/__init__.py` exports `MemoryManager` from `client.py`, so all imports were using the incomplete version.
+### Critical Bugs Fixed
 
-**Fix Applied:**
-Added `get_conversation_history()` method to `MemoryManager` in `packages/assistant/assistant/memory/client.py:387-421`
+**1. run_worker() Bug (app.py:386)**
+- **Problem:** `self.run_worker(self.initialize_moshi, ...)` missing parentheses
+- **Fix:** Changed to `self.run_worker(self.initialize_moshi(), ...)`
+- **Impact:** Worker was failing silently
 
-The method:
-- Calls `get_context()` to retrieve messages
-- Formats them as conversation history string
-- Returns formatted string for LLM context
+**2. Thread Join Crash (app.py:752)**
+- **Problem:** `await loop.run_in_executor(None, loading_thread.join)` crashed the async event loop
+- **Fix:** Replaced with simple polling: `while loading_thread.is_alive(): await asyncio.sleep(0.1)`
+- **Impact:** App now loads models without crashing
 
-**Files Modified:**
-- `packages/assistant/assistant/memory/client.py` (added missing method)
+**3. Missing Method (activity_feed.py:47-65)**
+- **Problem:** `ActivityFeed` base class missing `update_last_message()` method
+- **Fix:** Copied method from `CyberpunkActivityFeed` to base class
+- **Impact:** Progress updates now work without AttributeError
 
-**Committed:**
+### Features Implemented
+
+**Full-Duplex Streaming:**
+- ✅ LM generator created after model load (1000 max steps)
+- ✅ `step_frame()` called for each audio frame in callback
+- ✅ Audio output queue for Moshi responses
+- ✅ `moshi_playback_loop()` worker for continuous playback
+- ✅ Visualizer updates (connection_amplitude = 2 when speaking)
+
+**UX Improvements:**
+- ✅ `ActivityFeed.update_last_message()` for smooth progress bars
+- ✅ 3x mic amplitude boost for better visualization
+- ✅ Detailed timing logs (`/tmp/moshi_timing.log`)
+- ✅ Text output logging (`/tmp/moshi_text.log`)
+
+### Commits Made
+
 ```
-4670ae1 fix(memory): add missing get_conversation_history() method to MemoryManager
+903acc3 feat(moshi): implement full-duplex voice streaming with visualization
 ```
 
-**Test Results:**
-- ✅ TUI starts without errors
-- ✅ Memory system initializes (`✅ Memory system initialized`)
-- ✅ No more AttributeError on greeting generation
-- ⏳ Need to test full voice conversation flow
+### Test Results (Validated by Tester Agent)
+
+**Initialization Sequence - ALL PASSED ✅**
+```
+✅ DEBUG: MoshiBridge loaded successfully
+✅ DEBUG: Moshi bridge assigned successfully
+✅ DEBUG: LM generator created
+✅ DEBUG: About to create AudioIO
+✅ DEBUG: AudioIO created
+✅ DEBUG: Starting audio input
+✅ DEBUG: Starting audio output
+✅ DEBUG: Audio started successfully
+✅ DEBUG: Voice initialized = True
+```
+
+**System Metrics:**
+- Model load time: ~6-8 seconds (q8 quality)
+- GPU usage: 7-10GB/24GB (expected for MOSHI MLX q8)
+- RAM usage: 28GB/64GB
+- CPU: 67% during loading, drops to normal after
+- App runs stably for 30+ seconds without crashes
 
 ---
 
-## Previous Progress (v0.1.7)
+## 🚧 CURRENT STATUS: Ready for Voice Testing
 
-### ✅ Fixed - Import Error
-**Problem:** `ModuleNotFoundError: No module named 'moshi'` on TUI startup
-**Root Cause:** `assistant/voice/__init__.py` was importing from `moshi_pytorch` instead of `moshi_mlx`
-**Solution:** Changed import to use `moshi_mlx` bridge (Apple Silicon optimized)
+### What Works Now
 
-**Committed:**
-```
-a56b514 fix(voice): use moshi_mlx bridge instead of moshi_pytorch
-```
+✅ **Model Loading:**
+- Moshi MLX models load successfully (q8 quality)
+- Non-blocking async initialization
+- Progress indicators show loading status
+- Detailed timing logs for debugging
 
-**Test Results:**
-- ✅ TUI starts without ImportError
-- ✅ Moshi models load successfully (q8 quality, ~30-60s on M1/M2/M3)
-- ✅ Dashboard renders with progress animation
+✅ **Audio Pipeline:**
+- Microphone input active
+- AudioIO initialized (input + output streams)
+- Audio callback processes frames through Moshi
+- Playback loop ready for output
+
+✅ **UI/UX:**
+- TUI renders without crashes
+- Voice visualizer panel present
+- Activity feed shows status updates
+- Progress updates smooth (no flickering)
+
+### What Needs Testing
+
+⏳ **Interactive Voice:**
+1. **Speak into microphone** - does Moshi process it?
+2. **Does Moshi respond** - audio output working?
+3. **Text output** - check `/tmp/moshi_text.log` for transcription
+4. **Visualizer updates** - does it show Moshi speaking?
+
+⏳ **Full Conversation Loop:**
+- User speaks → Moshi transcribes → LLM generates response → Moshi speaks
+
+⏳ **Error Handling:**
+- What happens if mic is unavailable?
+- What happens if audio output fails?
+- What happens if Moshi model fails to load?
 
 ---
 
-## 🚧 CURRENT PHASE: Moshi Voice Integration Testing
+## 📝 UNCOMMITTED CHANGES
 
-### Priority Tasks (In Order)
+### Current Git Status
 
-1. **Test Greeting Generation** (NEXT)
-   - Start TUI and wait for Moshi models to load (~30-60s)
-   - Verify greeting generates without errors
-   - Check audio playback of greeting
-   - **Status:** Ready to test (Memory system now fixed)
+```
+M packages/assistant/assistant/dashboard/app.py
+M packages/assistant/assistant/dashboard/widgets/activity_feed.py
+M packages/assistant/assistant/voice/moshi_mlx.py
+M packages/assistant/pyproject.toml
+```
 
-2. **Verify Voice Conversation Flow**
-   - Test microphone input capture
-   - Test Moshi speech-to-text
-   - Test LLM response generation
-   - Test Moshi text-to-speech output
-   - Test full conversation loop
+### What Changed (After Last Commit)
 
-3. **Test Wake Word Detection**
-   - Verify "Hey HAL" (or current persona) wake word works
-   - Test wake word sensitivity
-   - Test false positive handling
+**app.py:**
+- Line 386: Fixed `run_worker()` call
+- Line 752: Replaced `run_in_executor` with async polling
+- Lines 771-776: Added LM generator creation
+- Lines 792-839: Added audio callback with `step_frame()` integration
+- Lines 826-848: Added Moshi output queueing
+- Lines 974-1018: Added `moshi_playback_loop()` worker
 
-4. **Test Persona Voice Switching**
-   - Switch between personas (HAL, JARVIS, GLaDOS, etc.)
-   - Verify voice profile changes correctly
+**activity_feed.py:**
+- Lines 47-65: Added `update_last_message()` to base `ActivityFeed` class
+
+**moshi_mlx.py:**
+- Added detailed timing logs for each load phase
+- Added warmup timing
+
+**pyproject.toml:**
+- Version bump to 0.3.16
+
+### Next Commit Should Include
+
+All the above changes + message:
+```
+fix(moshi): resolve initialization crashes and complete full-duplex integration
+
+- Fix: async polling instead of run_in_executor for thread join
+- Fix: add update_last_message() to base ActivityFeed class
+- Feat: full-duplex audio processing with step_frame()
+- Feat: moshi_playback_loop() for continuous output
+- Feat: detailed timing logs for debugging
+- Bump version to 0.3.16
+
+All initialization sequences now complete successfully.
+```
+
+---
+
+## 🎯 NEXT STEPS (In Order)
+
+### Immediate (Before Commit)
+
+1. **Manual Voice Test** (DO THIS FIRST)
+   - Run: `cd packages/assistant && python -m assistant.dashboard.app`
+   - Wait for "Microphone active" message
+   - Speak into mic for 5-10 seconds
+   - Check if Moshi responds with audio
+   - Verify visualizer updates
+   - Check `/tmp/moshi_text.log` for transcription
+
+2. **If Voice Test Passes:**
+   - Commit all changes (use message above)
+   - Update this TBD.md with success notes
+   - Move to conversation loop testing
+
+3. **If Voice Test Fails:**
+   - Check debug logs for errors
+   - Invoke @stuck agent with issue details
+   - Fix before committing
+
+### Short-Term (After Commit)
+
+4. **Test Full Conversation Flow**
+   - Speak question → verify Moshi transcribes
+   - Check LLM generates response
+   - Verify Moshi speaks response
+   - Test multiple conversation turns
+
+5. **Add Error Handling**
+   - Try/catch around `step_frame()` calls
+   - Graceful failure if mic unavailable
+   - Fallback if audio output fails
+   - Better logging for debugging
+
+6. **Optimize Performance**
+   - Profile audio callback latency
+   - Optimize playback queue processing
+   - Reduce GPU memory usage if possible
+   - Test on different Mac models
+
+### Medium-Term
+
+7. **Test Persona Switching**
+   - Switch between JARVIS, GLaDOS, etc.
+   - Verify theme colors update
    - Test persona-specific responses
 
-5. **Add Error Handling & Logging**
-   - Add try/catch for Memory system calls
-   - Add logging for greeting generation process
-   - Add logging for audio I/O pipeline
-   - Handle Moshi model loading failures gracefully
-
-6. **Run Audio Pipeline Tests**
-   - Execute `tests/test_audio_pipeline.py`
-   - Fix any failing tests
-   - Create Moshi integration tests if needed
+8. **Add Visual Testing**
+   - Create snapshot tests for TUI states
+   - Test responsive layouts (80x24, 120x40, etc.)
+   - Test theme colors in snapshots
+   - See `.claude/CLAUDE.md` for testing strategy
 
 ---
 
-## 🔜 NEXT PHASE: Intelligence Layer (NOT Starting Yet)
+## 🐛 Known Issues
 
-See `docs/INTELLEGENCE_LAYER.md` for full specification.
+### Terminal Corruption (ACTIVE)
+- **Symptom:** Running the TUI corrupts terminal with escape codes
+- **Workaround:** Close terminal and reopen
+- **Fix:** Unknown - may be Textual framework issue
+- **Impact:** Annoying but not blocking
 
-**Overview:** Dynamic intelligence engine selection (local LLM or API) based on hardware detection.
-
-**Key Capabilities:**
-- Automatic VRAM detection (Windows/Linux/Mac)
-- Intelligence level assignment (0-6 based on available VRAM)
-- Model download and management (Qwen2.5 family)
-- llama.cpp/Ollama integration
-- API routing for low-resource systems
-- Context memory management
-
-**Intelligence Levels:**
-- **Level 0**: <8GB VRAM - API routing (Claude Sonnet 4, Gemini Flash) - ~97% quality
-- **Level 1**: 12-16GB VRAM - Qwen2.5-7B Q5_K_M - ~89% quality
-- **Level 2**: 20-24GB VRAM - Qwen2.5-14B Q6_K - ~93% quality
-- **Level 3**: 28-32GB VRAM - Qwen3-30B-A3B Q4_K_M - ~96% quality
-- **Level 4**: 40-48GB VRAM - Qwen2.5-72B IQ4_XS - ~98% quality
-- **Level 5**: 60-80GB VRAM - Qwen2.5-72B Q6_K/Q8_0 - ~99% quality
-- **Level 6**: 12GB+ VRAM - Hybrid (best local + API fallback) - ~97% quality
-
-**WAITING** for Moshi voice to be fully functional first.
+### Background Processes (RESOLVED)
+- Multiple `python -m assistant` processes were left running
+- All killed with `pkill -9 -f "python -m assistant"`
+- Future: use `Ctrl+C` to exit cleanly
 
 ---
 
-## Technical Debt
+## 📚 Important Files
 
-### Code Quality
-- [ ] Add error handling for Memory system calls
-- [ ] Add logging for greeting generation process
-- [ ] Add unit tests for Memory API integration
-- [ ] Add integration tests for Moshi voice pipeline
+### Debug Logs (Temporary - `/tmp/`)
+- `/tmp/xswarm_debug.log` - Main debug output
+- `/tmp/moshi_timing.log` - Model load timing breakdown
+- `/tmp/moshi_text.log` - Moshi text transcriptions
+- `/tmp/app_stdout.log` - App stdout/stderr
+
+### Project Structure
+```
+packages/assistant/assistant/
+├── dashboard/
+│   ├── app.py              ← Main TUI app (MODIFIED)
+│   └── widgets/
+│       └── activity_feed.py ← Activity feed widget (MODIFIED)
+├── voice/
+│   └── moshi_mlx.py        ← Moshi integration (MODIFIED)
+├── memory/
+│   └── client.py           ← Memory system
+└── personas/               ← Persona YAML configs
+```
 
 ### Documentation
-- [x] Create TBD.md status document
-- [x] Add Intelligence Layer roadmap (docs/INTELLEGENCE_LAYER.md)
-- [ ] Document Memory system API changes
-- [ ] Update architecture docs with Memory integration details
-- [x] Integrate Intelligence Layer roadmap into README
-
-### Testing
-- [ ] Run audio pipeline tests (`tests/test_audio_pipeline.py`)
-- [ ] Create Moshi integration tests
-- [ ] Add CI/CD for automated testing
+- `.claude/CLAUDE.md` - Orchestrator workflow + TUI testing strategy
+- `docs/testing-guide.md` - Comprehensive testing guide
+- `TBD.md` - **This file** - Current status
 
 ---
 
-## Development Environment Notes
+## 🔧 Development Commands
 
-**Platform:** macOS (Darwin 23.4.0)
-**Hardware:** Apple Silicon (M-series)
-**Python:** 3.11+
-**Git Branch:** main
-**Working Directory:** `/Users/chad/Dropbox/Public/JS/Projects/xswarm-boss`
-
-**Modified Files (Uncommitted):**
-```
-M README.md
-M packages/assistant/voice_assistant.egg-info/PKG-INFO
-?? docs/INTELLEGENCE_LAYER.md
-```
-
-**Recent Commits:**
-```
-4670ae1 fix(memory): add missing get_conversation_history() method to MemoryManager
-a56b514 fix(voice): use moshi_mlx bridge instead of moshi_pytorch
-2a4188b feat(tui): improve startup UX with loading progress animation
-90359f8 fix(voice): fix TUI exit crash and Moshi greeting generation
-901adf2 fix(tui): use quality parameter in initialize_moshi()
-```
-
----
-
-## Workflow Reminders
-
-**After Terminal Restart:**
-1. ✅ Read TBD.md for context
-2. ✅ Review git status
-3. **START HERE:** Test greeting generation and Moshi voice integration
-4. Work through priority tasks listed above
-5. Commit changes incrementally
-
-**Testing Commands:**
+### Run the App
 ```bash
-# Start TUI and test voice
-cd packages/assistant
+cd /Users/chad/Dropbox/Public/JS/Projects/xswarm-boss/packages/assistant
 python -m assistant.dashboard.app
-
-# Run audio pipeline tests
-pytest tests/test_audio_pipeline.py -v
-
-# Check Moshi model status
-ls -lh ~/.cache/moshi/
 ```
 
-**Known Issues:**
-- None currently blocking - Memory system fix resolved the AttributeError
-- Terminal corruption issue (requires restart to continue)
+### Check Logs
+```bash
+tail -f /tmp/xswarm_debug.log     # Main debug log
+tail -f /tmp/moshi_timing.log     # Load timing
+tail -f /tmp/moshi_text.log       # Transcriptions
+```
+
+### Kill Hanging Processes
+```bash
+pkill -9 -f "python -m assistant"
+```
+
+### Clear Logs
+```bash
+rm -f /tmp/xswarm_debug.log /tmp/moshi_timing.log /tmp/moshi_text.log /tmp/app_stdout.log
+```
+
+### Git Status
+```bash
+git status                        # See uncommitted changes
+git diff                          # See detailed changes
+git log --oneline -5              # Recent commits
+```
 
 ---
 
-## Next Steps Summary
+## 🎓 Architecture Notes
 
-1. **IMMEDIATE:** Test greeting generation now that Memory system is fixed
-2. **SHORT-TERM:** Complete full Moshi voice integration testing
-3. **MEDIUM-TERM:** Add error handling and logging improvements
-4. **LONG-TERM:** Begin Intelligence Layer implementation (Phase 5)
+### Full-Duplex Flow
+
+```
+Microphone Input (1920 samples @ 24kHz)
+    ↓
+Audio Callback (every ~80ms)
+    ↓
+step_frame(lm_generator, audio_chunk)
+    ↓
+Moshi processes frame
+    ↓
+Returns: (audio_output, text_piece)
+    ↓
+Queue audio_output for playback
+    ↓
+moshi_playback_loop() worker
+    ↓
+Plays audio_output to speakers
+    ↓
+Updates visualizer (connection_amplitude = 2)
+```
+
+### Async Loading Flow
+
+```
+on_mount()
+    ↓
+run_worker(initialize_moshi())
+    ↓
+Spawn background thread for model load
+    ↓
+Start progress timer (100ms updates)
+    ↓
+Async polling: while thread.is_alive(): await sleep(0.1)
+    ↓
+Thread completes → stop timer
+    ↓
+Assign moshi_bridge
+    ↓
+Create LM generator
+    ↓
+Initialize AudioIO
+    ↓
+Start audio streams
+    ↓
+Launch playback loop worker
+    ↓
+Set voice_initialized = True
+```
 
 ---
 
-## Questions Resolved
+## 🚀 When You Return
 
-1. ~~When was the Memory system API last changed?~~ - Found the issue and fixed it
-2. ~~Is there a migration guide for the new Memory API?~~ - Not needed, fixed the missing method
-3. ~~Should `.get_conversation_history()` be replaced with a different method?~~ - Method is correct, just was missing from client.py
-4. ~~Are there other places using the old Memory API that need updating?~~ - No, the fix is complete
+**Step 1:** Read this file completely
+**Step 2:** Check git status: `git status`
+**Step 3:** Run the app and test voice: `cd packages/assistant && python -m assistant.dashboard.app`
+**Step 4:** If it works, commit changes
+**Step 5:** Continue with conversation loop testing
 
 ---
 
-**End of Status Document**
+## ❓ Questions to Answer
+
+1. **Does Moshi respond to voice input?** (Test first!)
+2. Does the visualizer update when Moshi speaks?
+3. Does the text transcription work? (Check `/tmp/moshi_text.log`)
+4. Is the audio latency acceptable? (<500ms ideal)
+5. Does the conversation loop work end-to-end?
+
+---
+
+**End of Status Document - Good Luck! 🚀**
