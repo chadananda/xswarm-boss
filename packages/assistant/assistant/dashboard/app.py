@@ -354,10 +354,10 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-        # Set persona name as visualizer subtitle (bottom border)
+        # Set persona name inside visualizer (will be rendered above divider line)
         try:
             persona_name = self.config.default_persona or "JARVIS"
-            visualizer.border_subtitle = f"◈ {persona_name} ◈"
+            visualizer.persona_name = persona_name
         except Exception:
             pass
 
@@ -544,10 +544,10 @@ class VoiceAssistantApp(App):
             self.current_persona_name = persona.name
             # Update title
             self.title = f"xSwarm Voice Assistant - {persona.name}"
-            # Update persona name as visualizer subtitle (bottom border)
+            # Update persona name inside visualizer (rendered above divider line)
             try:
                 viz_panel = self.query_one("#visualizer", VoiceVisualizerPanel)
-                viz_panel.border_subtitle = f"◈ {persona.name} ◈"
+                viz_panel.persona_name = persona.name
             except Exception:
                 pass
             # Keep visualizer title as static "xSwarm Assistant" (don't change it)
@@ -612,13 +612,8 @@ class VoiceAssistantApp(App):
             self.voice_initialized = True
             self.update_activity("✅ Voice bridge initialized successfully")
 
-            # Update visualizer to show baseline amplitude now that voice is ready
-            try:
-                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                # Start showing minimal baseline animation (0.05) instead of flat line (0.0)
-                visualizer.set_assistant_amplitude(0.05)
-            except Exception:
-                pass
+            # DON'T set baseline amplitude here - let it stay at 0.0 until actually speaking
+            # The greeting generation below will set the amplitude when audio is played
 
             # Auto-start conversation for microphone visualization and greeting
             await self.voice_bridge.start_conversation()
@@ -717,14 +712,8 @@ class VoiceAssistantApp(App):
             self.audio_io.start_output()
             self.update_activity("✓ Audio streams started")
 
-            # Update visualizer to show baseline amplitude now that Moshi is ready
-            try:
-                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                # Start showing minimal baseline animation (0.05) instead of flat line (0.0)
-                visualizer.set_assistant_amplitude(0.05)
-                # Keep static title "xSwarm Assistant" (don't change it)
-            except Exception:
-                pass
+            # DON'T set baseline amplitude here - let it stay at 0.0 until greeting is played
+            # The generate_greeting() call below will set amplitude when audio is played
 
             # Generate greeting immediately
             self.state = "ready"
@@ -893,10 +882,10 @@ class VoiceAssistantApp(App):
         # Log the switch to activity feed
         self.update_activity(f"👤 Switched to persona: {persona.name}")
 
-        # Update persona name as visualizer subtitle (bottom border)
+        # Update persona name inside visualizer (rendered above divider line)
         try:
             viz_panel = self.query_one("#visualizer", VoiceVisualizerPanel)
-            viz_panel.border_subtitle = f"◈ {persona.name} ◈"
+            viz_panel.persona_name = persona.name
         except Exception:
             pass
         # Keep visualizer title as static "xSwarm Assistant" (don't change it)
@@ -1129,27 +1118,33 @@ class VoiceAssistantApp(App):
                 mic_amp = amplitudes.get("mic_amplitude", 0.0)
                 moshi_amp = amplitudes.get("moshi_amplitude", 0.0)
 
-                # Apply minimal baseline when idle (to show system is alive)
+                # DON'T apply baseline to moshi_amp - let it be 0.0 when not speaking
+                # Only apply baseline to mic_amp to show microphone is active
                 if self.state == "idle" or self.state == "ready":
                     mic_amp = max(mic_amp, 0.05)  # Minimal flat baseline when idle
-                    moshi_amp = max(moshi_amp, 0.05)  # Minimal flat baseline when idle
 
                 # Update visualizer with real amplitudes
                 visualizer.add_mic_sample(mic_amp)
                 visualizer.set_assistant_amplitude(moshi_amp)
             # Fallback to legacy audio callback method
             elif hasattr(self, '_mic_amplitude_queue') and self._mic_amplitude_queue:
-                # Process all queued amplitudes
+                # Process queued amplitudes with iteration limit to prevent freeze
+                # At 30 FPS, process max 10 samples per update to avoid infinite loop
+                MAX_SAMPLES_PER_UPDATE = 10
                 samples_processed = 0
-                while self._mic_amplitude_queue:
+                while self._mic_amplitude_queue and samples_processed < MAX_SAMPLES_PER_UPDATE:
                     amplitude = self._mic_amplitude_queue.pop(0)
 
-                    # Apply minimal baseline when idle
+                    # Apply minimal baseline when idle (mic is active)
                     if self.state == "idle" or self.state == "ready":
                         amplitude = max(amplitude, 0.05)
 
                     visualizer.add_mic_sample(amplitude)
                     samples_processed += 1
+
+                # If queue is still full, drain excess samples to prevent buildup
+                if len(self._mic_amplitude_queue) > 100:
+                    self._mic_amplitude_queue = self._mic_amplitude_queue[-50:]  # Keep only recent 50 samples
             # Legacy amplitude property (kept for compatibility)
             visualizer.amplitude = self.amplitude
         except Exception as e:

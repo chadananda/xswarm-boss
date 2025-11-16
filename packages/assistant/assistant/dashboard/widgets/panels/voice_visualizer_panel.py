@@ -90,6 +90,9 @@ class VoiceVisualizerPanel(Static):
         self.simulation_mode = False
         self._simulation_phase = 0.0
 
+        # Persona name (rendered above divider line)
+        self.persona_name = "JARVIS"  # Default persona name
+
     def start_animation(self):
         """Start the visualization animation at 20 FPS."""
         if not self.is_animating:
@@ -713,15 +716,22 @@ class VoiceVisualizerPanel(Static):
         """
         result = Text()
 
+        # SAFETY: Prevent render if size is invalid (prevents freeze)
+        if self.size.width < 5 or self.size.height < 5:
+            return Text("Loading...", style="dim")
+
         # Calculate available space
         widget_width = max(self.size.width, 20)
         widget_height = max(self.size.height, 8)
         content_width = widget_width
         available_lines = widget_height
 
-        # Reserve 2 lines for waveform section at bottom (mic label + waveform)
-        waveform_lines = 2
-        circular_viz_lines = available_lines - waveform_lines
+        # Reserve 4 lines for bottom section: persona name + divider + mic icon + waveform
+        # Persona name: 1 line
+        # Divider: 1 line
+        # Mic waveform: 1 line
+        bottom_section_lines = 3
+        circular_viz_lines = available_lines - bottom_section_lines
 
         if circular_viz_lines < 4:
             # Too small, just show waveform
@@ -774,6 +784,12 @@ class VoiceVisualizerPanel(Static):
                 style = shade_3  # shade-3 (medium) - Dimmer at edges
 
             result.append(line + "\n", style=style)
+
+        # Render persona name above divider line (centered)
+        persona_text = f"◈ {self.persona_name} ◈"
+        persona_padding = (content_width - len(persona_text)) // 2
+        persona_line = " " * persona_padding + persona_text
+        result.append(persona_line + "\n", style=shade_5)
 
         # Separator with subtle shade
         result.append("─" * content_width + "\n", style=shade_3)  # shade-3
