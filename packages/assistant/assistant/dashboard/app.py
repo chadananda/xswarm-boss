@@ -716,34 +716,36 @@ class VoiceAssistantApp(App):
                 f.flush()
 
 
-            # Use call_later for non-blocking progress updates
-            progress_dots = [0]  # Mutable container for closure
+            # Use set_interval for non-blocking progress updates
+            progress_counter = 0
 
-            def update_progress():
-                """Update loading progress without blocking event loop"""
-                if not loading_complete.is_set():
-                    # Update progress every second with animated indicator
-                    elapsed_seconds = progress_dots[0] // 10
-                    dots = "." * ((progress_dots[0] // 5) % 4)
-                    spaces = " " * (3 - ((progress_dots[0] // 5) % 4))
-                    bar_chars = "▁▂▃▄▅▆▇█"
-                    bar_idx = (progress_dots[0] // 3) % len(bar_chars)
+            def update_progress_tick():
+                """Update loading progress on each timer tick"""
+                nonlocal progress_counter
+                if loading_complete.is_set():
+                    return  # Stop updating when complete
 
-                    self.update_activity(
-                        f"{bar_chars[bar_idx]} Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} "
-                        f"{elapsed_seconds}s elapsed - please wait..."
-                    )
-                    progress_dots[0] += 1
-                    # Schedule next update ONLY if still loading
-                    if not loading_complete.is_set():
-                        self.call_later(0.1, update_progress)
+                elapsed_seconds = progress_counter // 10
+                dots = "." * ((progress_counter // 5) % 4)
+                spaces = " " * (3 - ((progress_counter // 5) % 4))
+                bar_chars = "▁▂▃▄▅▆▇█"
+                bar_idx = (progress_counter // 3) % len(bar_chars)
 
-            # Start progress updates
-            update_progress()
+                self.update_activity(
+                    f"{bar_chars[bar_idx]} Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} "
+                    f"{elapsed_seconds}s elapsed - please wait..."
+                )
+                progress_counter += 1
+
+            # Start repeating timer for progress updates (every 100ms)
+            progress_timer = self.set_interval(0.1, update_progress_tick)
 
             # Wait for loading to complete using run_in_executor (truly non-blocking)
             loop = asyncio.get_event_loop()
             await loop.run_in_executor(None, loading_complete.wait)
+
+            # Stop progress timer
+            progress_timer.stop()
 
             # Check result
             if isinstance(moshi_bridge_result[0], Exception):
