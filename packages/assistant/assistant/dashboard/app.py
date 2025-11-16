@@ -740,9 +740,9 @@ class VoiceAssistantApp(App):
             # Start repeating timer for progress updates (every 100ms)
             progress_timer = self.set_interval(0.1, update_progress_tick)
 
-            # Wait for loading to complete using run_in_executor (truly non-blocking)
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, loading_complete.wait)
+            # Wait for loading to complete using async polling (truly non-blocking)
+            while not loading_complete.is_set():
+                await asyncio.sleep(0.1)
 
             # Stop progress timer
             progress_timer.stop()
