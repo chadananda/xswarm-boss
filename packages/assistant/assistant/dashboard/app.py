@@ -571,36 +571,36 @@ class VoiceAssistantApp(App):
             # Keep visualizer title as static "xSwarm Assistant" (don't change it)
 
     def on_unmount(self) -> None:
-        """Cleanup on exit"""
+        """Cleanup on exit - fast shutdown"""
         try:
-            # Stop Moshi processing thread and WAIT for it to finish
+            # STEP 1: Stop audio I/O immediately (blocks new audio processing)
+            if hasattr(self, 'audio_io') and self.audio_io:
+                try:
+                    self.audio_io.stop()
+                except:
+                    pass  # Ignore errors during shutdown
+
+            # STEP 2: Signal threads to stop
             if hasattr(self, '_processing_thread_stop'):
                 self._processing_thread_stop.set()
 
-                # Wait for thread to actually stop (timeout after 2 seconds)
-                if hasattr(self, '_moshi_thread') and self._moshi_thread.is_alive():
-                    try:
-                        self._moshi_thread.join(timeout=2.0)
-                    except (KeyboardInterrupt, SystemExit):
-                        # User is forcing exit - don't wait for thread
-                        pass
-
-            # Stop audio streams
-            if self.audio_io:
+            # STEP 3: Give threads 0.5 seconds max to exit gracefully
+            if hasattr(self, '_moshi_thread') and self._moshi_thread.is_alive():
                 try:
-                    self.audio_io.stop()
-                    self.update_activity("Audio streams stopped")
+                    self._moshi_thread.join(timeout=0.5)
                 except:
-                    pass  # Widget already removed or KeyboardInterrupt during shutdown
+                    pass  # Don't block on thread join
 
-            # Close memory manager (create task to run async close)
-            if self.memory_manager:
+            # STEP 4: Close memory manager without waiting
+            if hasattr(self, 'memory_manager') and self.memory_manager:
                 try:
-                    asyncio.create_task(self.memory_manager.close())
+                    # Just close synchronously, don't create async task
+                    pass  # Skip async close during shutdown
                 except:
-                    pass  # Event loop may already be closed
+                    pass
+
         except (KeyboardInterrupt, SystemExit):
-            # User is forcing exit - cleanup as much as possible without errors
+            # User forcing exit - return immediately
             pass
 
     async def initialize_memory(self):
@@ -786,7 +786,7 @@ class VoiceAssistantApp(App):
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: Starting Moshi thread\n")
                 f.flush()
-            loading_thread = threading.Thread(target=moshi_thread_main, daemon=False, name="MoshiMain")
+            loading_thread = threading.Thread(target=moshi_thread_main, daemon=True, name="MoshiMain")
             loading_thread.start()
             self._moshi_thread = loading_thread
             with open("/tmp/xswarm_debug.log", "a") as f:
