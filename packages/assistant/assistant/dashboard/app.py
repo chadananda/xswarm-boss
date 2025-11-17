@@ -754,8 +754,17 @@ class VoiceAssistantApp(App):
 
                 # CRITICAL: Create LM generator in THIS thread (MLX thread-safety)
                 # Keep as LOCAL variable - NEVER access through self to avoid cross-thread issues
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: About to create LM generator...\n")
+                    f.flush()
                 lm_generator = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: LM generator created successfully\n")
+                    f.flush()
                 lm_generator_result[0] = lm_generator  # Store for main thread reference only
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: LM generator stored in result list\n")
+                    f.flush()
 
                 # NOW signal that loading is complete (after LM generator is ready)
                 with progress_lock:
