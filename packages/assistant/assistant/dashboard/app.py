@@ -572,25 +572,36 @@ class VoiceAssistantApp(App):
 
     def on_unmount(self) -> None:
         """Cleanup on exit"""
-        # Stop Moshi processing thread and WAIT for it to finish
-        if hasattr(self, '_processing_thread_stop'):
-            self._processing_thread_stop.set()
+        try:
+            # Stop Moshi processing thread and WAIT for it to finish
+            if hasattr(self, '_processing_thread_stop'):
+                self._processing_thread_stop.set()
 
-            # Wait for thread to actually stop (timeout after 2 seconds)
-            if hasattr(self, '_moshi_thread') and self._moshi_thread.is_alive():
-                self._moshi_thread.join(timeout=2.0)
+                # Wait for thread to actually stop (timeout after 2 seconds)
+                if hasattr(self, '_moshi_thread') and self._moshi_thread.is_alive():
+                    try:
+                        self._moshi_thread.join(timeout=2.0)
+                    except (KeyboardInterrupt, SystemExit):
+                        # User is forcing exit - don't wait for thread
+                        pass
 
-        # Stop audio streams
-        if self.audio_io:
-            self.audio_io.stop()
-            try:
-                self.update_activity("Audio streams stopped")
-            except:
-                pass  # Widget already removed during shutdown
+            # Stop audio streams
+            if self.audio_io:
+                try:
+                    self.audio_io.stop()
+                    self.update_activity("Audio streams stopped")
+                except:
+                    pass  # Widget already removed or KeyboardInterrupt during shutdown
 
-        # Close memory manager (create task to run async close)
-        if self.memory_manager:
-            asyncio.create_task(self.memory_manager.close())
+            # Close memory manager (create task to run async close)
+            if self.memory_manager:
+                try:
+                    asyncio.create_task(self.memory_manager.close())
+                except:
+                    pass  # Event loop may already be closed
+        except (KeyboardInterrupt, SystemExit):
+            # User is forcing exit - cleanup as much as possible without errors
+            pass
 
     async def initialize_memory(self):
         """Initialize memory manager for conversation history"""
@@ -1694,7 +1705,18 @@ class VoiceAssistantApp(App):
         if not self.voice_initialized:
             self.run_worker(self.initialize_voice)
             return
-        # Toggle conversation state
+
+        # NEW architecture (direct Moshi integration): Voice is always active
+        # The toggle just shows a message since Moshi is always listening
+        if self.voice_bridge is None:
+            # New architecture - voice is always active after initialization
+            if self.state == "ready":
+                self.update_activity("🎙️  Voice is active - I'm listening...")
+            else:
+                self.update_activity(f"🎙️  Voice state: {self.state}")
+            return
+
+        # OLD architecture (VoiceBridge): Toggle conversation state
         if self.voice_bridge.get_conversation_state() == ConversationState.IDLE:
             self.run_worker(self._start_voice)
         else:
