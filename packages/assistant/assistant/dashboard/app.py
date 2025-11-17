@@ -572,6 +572,10 @@ class VoiceAssistantApp(App):
 
     def on_unmount(self) -> None:
         """Cleanup on exit"""
+        # Stop Moshi processing thread
+        if hasattr(self, '_processing_thread_stop'):
+            self._processing_thread_stop.set()
+
         # Stop audio streams
         if self.audio_io:
             self.audio_io.stop()
@@ -1066,13 +1070,16 @@ class VoiceAssistantApp(App):
 
                     # Process through Moshi (MLX operations safe in this dedicated thread)
                     # CRITICAL: Use local parameters, NOT self.lm_generator or self.moshi_bridge
-                    with open("/tmp/xswarm_debug.log", "a") as f:
-                        f.write("DEBUG: About to call moshi_bridge.step_frame()\n")
-                        f.flush()
                     audio_chunk, text_piece = moshi_bridge.step_frame(lm_generator, audio_frame)
-                    with open("/tmp/xswarm_debug.log", "a") as f:
-                        f.write("DEBUG: step_frame() completed successfully\n")
-                        f.flush()
+
+                    # Debug: Log if audio was generated
+                    if audio_chunk is not None and len(audio_chunk) > 0:
+                        with open("/tmp/xswarm_debug.log", "a") as f:
+                            f.write(f"DEBUG: Generated audio chunk, length={len(audio_chunk)}\n")
+                            f.flush()
+                    else:
+                        # Moshi is listening but not generating output (normal until it decides to speak)
+                        pass
 
                     # Queue output audio for playback
                     if audio_chunk is not None and len(audio_chunk) > 0:

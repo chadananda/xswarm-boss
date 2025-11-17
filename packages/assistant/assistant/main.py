@@ -131,7 +131,10 @@ class VoiceAssistant:
         """Handle shutdown signals"""
         print(f"\nReceived signal {signum}, shutting down...")
         self.is_running = False
-        sys.exit(0)
+        # Don't call sys.exit() here - let the app shut down naturally
+        # This avoids threading exceptions during shutdown
+        if self.app:
+            self.app.exit()
 
     async def cleanup(self):
         """Cleanup resources"""
