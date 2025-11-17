@@ -32,6 +32,9 @@ class ActivityFeed(Static):
         Args:
             message: The message text
             msg_type: Type of message (info, success, warning, error, system)
+
+        Returns:
+            int: The message ID (for tracking/updating later)
         """
         timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]  # Include milliseconds
         self._message_counter += 1
@@ -43,6 +46,7 @@ class ActivityFeed(Static):
             "type": msg_type
         })
         self.refresh()
+        return self._message_counter
 
     def update_last_message(self, message: str, msg_type: str = None):
         """Update the last message instead of adding a new one (useful for progress updates)"""
@@ -63,6 +67,29 @@ class ActivityFeed(Static):
             "type": msg_type
         }
         self.refresh()
+
+    def update_message_by_id(self, message_id: int, message: str, msg_type: str = None):
+        """Update a specific message by its ID (useful for tracking specific progress messages)"""
+        # Find message with this ID
+        for i, msg in enumerate(self.messages):
+            if msg["id"] == message_id:
+                # Auto-detect type if not specified
+                if msg_type is None:
+                    msg_type = self._detect_message_type(message)
+
+                # Update message in place
+                self.messages[i] = {
+                    "id": msg["id"],  # Keep same ID
+                    "timestamp": msg["timestamp"],  # Keep original timestamp
+                    "message": message,
+                    "type": msg_type
+                }
+                self.refresh()
+                return True
+
+        # Message ID not found - add as new message
+        self.add_message(message, msg_type)
+        return False
 
     def _detect_message_type(self, message: str) -> str:
         """Auto-detect message type from keywords"""

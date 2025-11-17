@@ -672,7 +672,10 @@ class VoiceAssistantApp(App):
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: initialize_moshi() called\n")
                 f.flush()
-            self.update_activity("Initializing voice models...")
+            # Add initial progress message and capture its ID
+            activity = self.query_one("#activity", ActivityFeed)
+            progress_message_id = activity.add_message("Initializing voice models...", "system")
+
             device = self.config.detect_device()
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write(f"DEBUG: Device detected: {device}\n")
@@ -801,10 +804,9 @@ class VoiceAssistantApp(App):
 
                 progress_msg = f"[{bar}] {pct}% - Loading MOSHI ({moshi_quality}) - {elapsed_seconds}s"
 
-                # ALWAYS update last message (replaces "Initializing voice models...")
-                # Never add_message() - that creates duplicates
+                # Update the SPECIFIC progress message by ID (allows other messages in between)
                 activity = self.query_one("#activity", ActivityFeed)
-                activity.update_last_message(progress_msg, "system")
+                activity.update_message_by_id(progress_message_id, progress_msg, "system")
 
                 progress_counter += 1
 
