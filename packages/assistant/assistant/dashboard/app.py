@@ -572,9 +572,13 @@ class VoiceAssistantApp(App):
 
     def on_unmount(self) -> None:
         """Cleanup on exit"""
-        # Stop Moshi processing thread
+        # Stop Moshi processing thread and WAIT for it to finish
         if hasattr(self, '_processing_thread_stop'):
             self._processing_thread_stop.set()
+
+            # Wait for thread to actually stop (timeout after 2 seconds)
+            if hasattr(self, '_processing_thread') and self._processing_thread.is_alive():
+                self._processing_thread.join(timeout=2.0)
 
         # Stop audio streams
         if self.audio_io:
