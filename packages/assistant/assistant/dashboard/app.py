@@ -738,8 +738,9 @@ class VoiceAssistantApp(App):
                     f.flush()
 
                 # CRITICAL: Create LM generator in THIS thread (MLX thread-safety)
-                # Store in result list to avoid triggering attribute access on main thread
-                lm_generator_result[0] = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
+                # Keep as LOCAL variable - NEVER access through self to avoid cross-thread issues
+                lm_generator = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
+                lm_generator_result[0] = lm_generator  # Store for main thread reference only
                 with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write("DEBUG: LM generator created in Moshi thread\n")
                     f.flush()
@@ -755,8 +756,8 @@ class VoiceAssistantApp(App):
                     f.write("DEBUG: Moshi thread entering processing loop\n")
                     f.flush()
 
-                # Processing loop (runs until app closes)
-                self._moshi_processing_thread()
+                # Processing loop (runs until app closes) - pass lm_generator as parameter
+                self._moshi_processing_thread(lm_generator, moshi_bridge_result[0])
 
             # Start dedicated Moshi thread (NOT daemon - we need it to stay alive)
             with open("/tmp/xswarm_debug.log", "a") as f:
@@ -1025,7 +1026,7 @@ class VoiceAssistantApp(App):
             self.update_activity(f"Error generating greeting: {e}")
             self.state = "idle"
 
-    def _moshi_processing_thread(self):
+    def _moshi_processing_thread(self, lm_generator, moshi_bridge):
         """
         Dedicated thread for Moshi processing. Runs independently of:
         - Audio callback thread (avoids segfaults)
@@ -1033,6 +1034,10 @@ class VoiceAssistantApp(App):
 
         This is the ONLY thread that calls MLX operations (thread-safe design).
         Consumes from _moshi_input_queue, produces to _moshi_output_queue.
+
+        Args:
+            lm_generator: The LM generator (created in this thread, passed as parameter)
+            moshi_bridge: The MoshiBridge instance (created in this thread, passed as parameter)
         """
         import time
 
@@ -1059,13 +1064,14 @@ class VoiceAssistantApp(App):
                     audio_frame = self._moshi_input_queue.pop(0)
 
                     # Process through Moshi (MLX operations safe in this dedicated thread)
-                    audio_chunk, text_piece = self.moshi_bridge.step_frame(self.lm_generator, audio_frame)
+                    # CRITICAL: Use local parameters, NOT self.lm_generator or self.moshi_bridge
+                    audio_chunk, text_piece = moshi_bridge.step_frame(lm_generator, audio_frame)
 
                     # Queue output audio for playback
                     if audio_chunk is not None and len(audio_chunk) > 0:
                         self._moshi_output_queue.append(audio_chunk)
-                        # Update Moshi amplitude for visualization
-                        self.moshi_bridge.update_moshi_amplitude(audio_chunk)
+                        # Update Moshi amplitude for visualization (use local parameter)
+                        moshi_bridge.update_moshi_amplitude(audio_chunk)
 
                     # Log text output (for debugging)
                     if text_piece and text_piece.strip():
