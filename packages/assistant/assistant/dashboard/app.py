@@ -577,8 +577,8 @@ class VoiceAssistantApp(App):
             self._processing_thread_stop.set()
 
             # Wait for thread to actually stop (timeout after 2 seconds)
-            if hasattr(self, '_processing_thread') and self._processing_thread.is_alive():
-                self._processing_thread.join(timeout=2.0)
+            if hasattr(self, '_moshi_thread') and self._moshi_thread.is_alive():
+                self._moshi_thread.join(timeout=2.0)
 
         # Stop audio streams
         if self.audio_io:
@@ -802,10 +802,10 @@ class VoiceAssistantApp(App):
                 # First tick: add message, subsequent ticks: update it
                 activity = self.query_one("#activity", ActivityFeed)
                 if not progress_message_added:
-                    activity.add_message(progress_msg)
+                    activity.add_message(progress_msg, "system")  # Explicit type to avoid auto-detection
                     progress_message_added = True
                 else:
-                    activity.update_last_message(progress_msg)
+                    activity.update_last_message(progress_msg, "system")  # Keep same type
 
                 progress_counter += 1
 
