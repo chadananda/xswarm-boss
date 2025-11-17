@@ -11,7 +11,6 @@ Brings together all components:
 """
 
 import asyncio
-import signal
 import sys
 from pathlib import Path
 from typing import Optional
@@ -115,26 +114,13 @@ class VoiceAssistant:
         """Run the application"""
         self.is_running = True
 
-        # Setup signal handlers
-        signal.signal(signal.SIGINT, self._signal_handler)
-        signal.signal(signal.SIGTERM, self._signal_handler)
-
         try:
-            # Run TUI dashboard
+            # Run TUI dashboard (Textual handles SIGINT/SIGTERM internally)
             await self.app.run_async()
         except KeyboardInterrupt:
             print("\nShutting down...")
         finally:
             await self.cleanup()
-
-    def _signal_handler(self, signum, frame):
-        """Handle shutdown signals"""
-        print(f"\nReceived signal {signum}, shutting down...")
-        self.is_running = False
-        # Don't call sys.exit() here - let the app shut down naturally
-        # This avoids threading exceptions during shutdown
-        if self.app:
-            self.app.exit()
 
     async def cleanup(self):
         """Cleanup resources"""
