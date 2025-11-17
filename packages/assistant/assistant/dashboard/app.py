@@ -925,10 +925,10 @@ class VoiceAssistantApp(App):
             except Exception:
                 pass
 
-            # Generate greeting immediately
+            # SKIP greeting for Moshi to avoid concurrent MLX access
+            # TODO: Implement greeting queue system for Moshi processing thread
             self.state = "ready"
-            self.update_activity(f"✓ Voice assistant ready on {device}")
-            await self.generate_greeting()
+            self.update_activity(f"✓ Voice assistant ready on {device} - listening...")
 
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
@@ -1062,10 +1062,19 @@ class VoiceAssistantApp(App):
                         f.flush()
                     # Get next audio frame
                     audio_frame = self._moshi_input_queue.pop(0)
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: Popped audio frame, shape: {audio_frame.shape}\n")
+                        f.flush()
 
                     # Process through Moshi (MLX operations safe in this dedicated thread)
                     # CRITICAL: Use local parameters, NOT self.lm_generator or self.moshi_bridge
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write("DEBUG: About to call moshi_bridge.step_frame()\n")
+                        f.flush()
                     audio_chunk, text_piece = moshi_bridge.step_frame(lm_generator, audio_frame)
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write("DEBUG: step_frame() completed successfully\n")
+                        f.flush()
 
                     # Queue output audio for playback
                     if audio_chunk is not None and len(audio_chunk) > 0:
