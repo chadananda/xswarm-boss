@@ -677,9 +677,8 @@ class VoiceAssistantApp(App):
             import asyncio
             import threading
 
-            # Show loading progress with animation
+            # Loading progress will be shown by the progress bar below
             moshi_quality = getattr(self.config, 'moshi_quality', 'q4')
-            self.update_activity(f"Loading MOSHI MLX models ({moshi_quality}, ~30-60s on M1/M2/M3)...")
 
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
@@ -925,8 +924,7 @@ class VoiceAssistantApp(App):
             except Exception:
                 pass
 
-            # SKIP greeting for Moshi to avoid concurrent MLX access
-            # TODO: Implement greeting queue system for Moshi processing thread
+            # SKIP greeting until Moshi responds to mic input
             self.state = "ready"
             self.update_activity(f"✓ Voice assistant ready on {device} - listening...")
 
