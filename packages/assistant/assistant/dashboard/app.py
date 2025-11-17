@@ -685,6 +685,7 @@ class VoiceAssistantApp(App):
             moshi_bridge_result = [None]  # List to store result from thread
             loading_complete = threading.Event()  # Signal when loading done
             loading_progress = [0]  # Shared progress: 0-100%
+            progress_lock = threading.Lock()  # Protect progress updates
 
             def moshi_thread_main():
                 """
@@ -702,12 +703,18 @@ class VoiceAssistantApp(App):
                         f.flush()
 
                     # Load with progress reporting
-                    loading_progress[0] = 10  # Starting
+                    def safe_progress_callback(pct):
+                        with progress_lock:
+                            loading_progress[0] = pct
+
+                    with progress_lock:
+                        loading_progress[0] = 10  # Starting
                     moshi_bridge_result[0] = MoshiBridge(
                         quality=moshi_quality,
-                        progress_callback=lambda pct: loading_progress.__setitem__(0, pct)
+                        progress_callback=safe_progress_callback
                     )
-                    loading_progress[0] = 100  # Complete
+                    with progress_lock:
+                        loading_progress[0] = 100  # Complete
 
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write("DEBUG: MoshiBridge loaded successfully\n")
@@ -762,8 +769,9 @@ class VoiceAssistantApp(App):
                 nonlocal progress_counter, progress_message_added
                 elapsed_seconds = progress_counter // 10
 
-                # Get current progress percentage
-                pct = loading_progress[0]
+                # Get current progress percentage (thread-safe)
+                with progress_lock:
+                    pct = loading_progress[0]
 
                 # Create progress bar: [████████░░░░░░░░░░] 43%
                 bar_width = 20
