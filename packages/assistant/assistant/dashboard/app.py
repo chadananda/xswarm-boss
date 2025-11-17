@@ -782,11 +782,11 @@ class VoiceAssistantApp(App):
 
             # Use set_interval for non-blocking progress updates
             progress_counter = 0
-            progress_message_added = False
 
             def update_progress_tick():
                 """Update loading progress bar on each timer tick"""
-                nonlocal progress_counter, progress_message_added
+                nonlocal progress_counter
+
                 elapsed_seconds = progress_counter // 10
 
                 # Get current progress percentage (thread-safe)
@@ -801,13 +801,10 @@ class VoiceAssistantApp(App):
 
                 progress_msg = f"[{bar}] {pct}% - Loading MOSHI ({moshi_quality}) - {elapsed_seconds}s"
 
-                # First tick: add message, subsequent ticks: update it
+                # ALWAYS update last message (replaces "Initializing voice models...")
+                # Never add_message() - that creates duplicates
                 activity = self.query_one("#activity", ActivityFeed)
-                if not progress_message_added:
-                    activity.add_message(progress_msg, "system")  # Explicit type to avoid auto-detection
-                    progress_message_added = True
-                else:
-                    activity.update_last_message(progress_msg, "system")  # Keep same type
+                activity.update_last_message(progress_msg, "system")
 
                 progress_counter += 1
 
