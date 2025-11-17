@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Optional
 import argparse
 import os
+import atexit
 
 from .config import Config
 from .dashboard.app import VoiceAssistantApp
@@ -23,6 +24,46 @@ from .dashboard.screens import WizardScreen
 from .personas import PersonaManager
 from .memory import MemoryManager
 from .wake_word import WakeWordDetector
+
+
+class SingletonLock:
+    """Ensures only one instance of the assistant runs at a time"""
+
+    def __init__(self, lockfile: Path):
+        self.lockfile = lockfile
+        self.locked = False
+
+    def acquire(self) -> bool:
+        """Try to acquire lock. Returns True if successful, False if already locked."""
+        if self.lockfile.exists():
+            # Check if the process is actually running
+            try:
+                pid = int(self.lockfile.read_text().strip())
+                # Check if process exists
+                os.kill(pid, 0)  # Doesn't actually kill, just checks existence
+                # Process exists - lock is valid
+                return False
+            except (OSError, ValueError):
+                # Process doesn't exist or invalid PID - stale lock
+                self.lockfile.unlink()
+
+        # Create lock file with current PID
+        self.lockfile.parent.mkdir(parents=True, exist_ok=True)
+        self.lockfile.write_text(str(os.getpid()))
+        self.locked = True
+
+        # Register cleanup on exit
+        atexit.register(self.release)
+        return True
+
+    def release(self):
+        """Release the lock"""
+        if self.locked and self.lockfile.exists():
+            try:
+                self.lockfile.unlink()
+            except:
+                pass  # Ignore errors during cleanup
+            self.locked = False
 
 
 class VoiceAssistant:
@@ -195,6 +236,18 @@ Configuration:
     )
 
     args = parser.parse_args()
+
+    # Ensure only one instance runs at a time
+    config_dir = Path.home() / ".config" / "xswarm"
+    lockfile = config_dir / "assistant.lock"
+    lock = SingletonLock(lockfile)
+
+    if not lock.acquire():
+        # Another instance is already running
+        pid = lockfile.read_text().strip()
+        print(f"❌ Voice assistant is already running (PID {pid})")
+        print("💡 Use 'pkill -f assistant.main' to kill the running instance if needed")
+        sys.exit(1)
 
     # Get personas directory
     personas_dir = Path(__file__).parent.parent.parent / "personas"
