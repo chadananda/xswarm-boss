@@ -722,8 +722,6 @@ class VoiceAssistantApp(App):
                         quality=moshi_quality,
                         progress_callback=safe_progress_callback
                     )
-                    with progress_lock:
-                        loading_progress[0] = 100  # Complete
 
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write("DEBUG: MoshiBridge loaded successfully\n")
@@ -735,19 +733,23 @@ class VoiceAssistantApp(App):
                         f.write(traceback.format_exc())
                         f.flush()
                     moshi_bridge_result[0] = e
+                    with progress_lock:
+                        loading_progress[0] = 100  # Mark complete even on error
                     loading_complete.set()  # Signal loading done (even on error)
                     return  # Exit thread on load failure
-
-                # Signal that loading is complete
-                loading_complete.set()
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("DEBUG: Loading complete signal set\n")
-                    f.flush()
 
                 # CRITICAL: Create LM generator in THIS thread (MLX thread-safety)
                 # Keep as LOCAL variable - NEVER access through self to avoid cross-thread issues
                 lm_generator = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
                 lm_generator_result[0] = lm_generator  # Store for main thread reference only
+
+                # NOW signal that loading is complete (after LM generator is ready)
+                with progress_lock:
+                    loading_progress[0] = 100  # Complete
+                loading_complete.set()
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Loading complete signal set\n")
+                    f.flush()
                 with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write("DEBUG: LM generator created in Moshi thread\n")
                     f.flush()
