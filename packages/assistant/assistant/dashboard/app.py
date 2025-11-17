@@ -683,6 +683,7 @@ class VoiceAssistantApp(App):
 
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
+            lm_generator_result = [None]  # List to store LM generator from thread
             loading_complete = threading.Event()  # Signal when loading done
             loading_progress = [0]  # Shared progress: 0-100%
             progress_lock = threading.Lock()  # Protect progress updates
@@ -736,7 +737,8 @@ class VoiceAssistantApp(App):
                     f.flush()
 
                 # CRITICAL: Create LM generator in THIS thread (MLX thread-safety)
-                self.lm_generator = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
+                # Store in result list to avoid triggering attribute access on main thread
+                lm_generator_result[0] = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
                 with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write("DEBUG: LM generator created in Moshi thread\n")
                     f.flush()
@@ -821,9 +823,11 @@ class VoiceAssistantApp(App):
                 f.flush()
             self.update_activity("✓ MOSHI MLX models loaded")
 
-            # LM generator will be created in the Moshi thread (MLX thread-safety)
+            # LM generator created in Moshi thread, just assign reference here
+            # NEVER use self.lm_generator on main thread - only in Moshi thread!
+            self.lm_generator = lm_generator_result[0]
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Waiting for Moshi thread to create LM generator...\n")
+                f.write("DEBUG: LM generator assigned (created in Moshi thread)\n")
                 f.flush()
             self.update_activity("✓ Full-duplex stream ready")
 
