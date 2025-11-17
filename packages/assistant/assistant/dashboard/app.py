@@ -383,10 +383,60 @@ class VoiceAssistantApp(App):
         with open("/tmp/xswarm_debug.log", "a") as f:
             f.write("DEBUG: on_mount() - before run_worker(initialize_moshi)\n")
             f.flush()
-        self.run_worker(self.initialize_moshi(), exclusive=True, group="moshi_init")
+
+        # Start model loading and chain audio initialization after completion
+        asyncio.create_task(self._complete_voice_initialization())
+
         with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write("DEBUG: on_mount() - after run_worker(initialize_moshi)\n")
+            f.write("DEBUG: on_mount() - after scheduling voice initialization\n")
             f.flush()
+
+    async def _complete_voice_initialization(self):
+        """Complete voice initialization: load models then initialize audio"""
+        # Run model loading worker
+        worker = self.run_worker(self.initialize_moshi(), exclusive=True, group="moshi_init", exit_on_error=False)
+
+        # Wait for worker to complete
+        await worker.wait()
+
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Model loading worker completed, starting audio initialization\n")
+            f.flush()
+
+        # Check if models loaded successfully
+        if self.moshi_bridge is None or self.lm_generator is None:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Model loading failed, skipping audio initialization\n")
+                f.flush()
+            return
+
+        # Create AudioIO in thread pool to avoid event loop blocking
+        # The AudioIO constructor blocks when called from Textual async context
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Creating AudioIO in thread pool...\n")
+            f.flush()
+
+        def create_audio_io_in_thread():
+            """Create AudioIO - runs in thread pool, no Textual methods allowed!"""
+            from assistant.voice.audio_io import AudioIO
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Thread pool: Creating AudioIO...\n")
+                f.flush()
+            audio = AudioIO(sample_rate=24000, frame_size=1920, channels=1)
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: Thread pool: AudioIO created\n")
+                f.flush()
+            return audio
+
+        loop = asyncio.get_event_loop()
+        self.audio_io = await loop.run_in_executor(None, create_audio_io_in_thread)
+
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: AudioIO creation completed, now finishing initialization\n")
+            f.flush()
+
+        # Complete initialization with Textual methods (safe in async context)
+        await self._finish_audio_initialization()
 
 
     def add_dummy_chat_messages(self):
@@ -690,9 +740,17 @@ class VoiceAssistantApp(App):
             # Loading progress will be shown by the progress bar below
             moshi_quality = getattr(self.config, 'moshi_quality', 'q4')
 
+            # Initialize queues BEFORE starting processing thread (to avoid race condition)
+            self._audio_callback_counter = 0  # For debug logging
+            self._mic_amplitude_queue = []  # Queue for thread-safe amplitude updates
+            self._smoothed_amplitude = 0.0  # Smoothed amplitude to prevent jitter
+            self._moshi_input_queue = []  # Queue for incoming audio frames to process
+            self._moshi_output_queue = []  # Queue for Moshi output audio chunks
+
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
             lm_generator_result = [None]  # List to store LM generator from thread
+            processing_thread_result = [None]  # List to store processing thread handle
             loading_complete = threading.Event()  # Signal when loading done
             self._processing_ready_event = threading.Event()  # Signal when processing can start
             loading_progress = [0]  # Shared progress: 0-100%
@@ -700,8 +758,8 @@ class VoiceAssistantApp(App):
 
             def moshi_thread_main():
                 """
-                Dedicated Moshi thread - loads model then processes frames.
-                This thread owns ALL MLX operations (loading + processing).
+                Dedicated Moshi thread - loads model then creates processing thread.
+                Threading works fine HERE (not in async context), so create everything here.
                 """
                 with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write("DEBUG: Moshi thread started - loading model\n")
@@ -754,30 +812,52 @@ class VoiceAssistantApp(App):
                     f.write("DEBUG: LM generator stored in result list\n")
                     f.flush()
 
-                # NOW signal that loading is complete (after LM generator is ready)
+                # PHASE 2: Create processing thread (threading works fine in this background thread!)
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Creating processing thread stop event in background thread...\n")
+                    f.flush()
+
+                # Create stop event for processing thread (works fine here, not in async context)
+                stop_event = threading.Event()
+                self._processing_thread_stop = stop_event
+
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Stop event created successfully\n")
+                    f.write("DEBUG: Creating processing thread...\n")
+                    f.flush()
+
+                # Create processing thread
+                processing_thread = threading.Thread(
+                    target=self._moshi_processing_thread,
+                    args=(lm_generator, moshi_bridge_result[0]),
+                    daemon=False,
+                    name="MoshiProcessing"
+                )
+
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Processing thread created, starting...\n")
+                    f.flush()
+
+                processing_thread.start()
+                processing_thread_result[0] = processing_thread
+
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Processing thread started successfully\n")
+                    f.flush()
+
+                # NOW signal that loading is complete (after processing thread is running)
                 with progress_lock:
                     loading_progress[0] = 100  # Complete
                 loading_complete.set()
                 with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write("DEBUG: Loading complete signal set\n")
                     f.flush()
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("DEBUG: LM generator created in Moshi thread\n")
-                    f.flush()
-
-                # PHASE 2: Process frames (after model loads)
-                # Wait for signal that processing should start (no cross-thread attribute access)
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("DEBUG: Waiting for processing_ready signal...\n")
-                    f.flush()
-                self._processing_ready_event.wait()  # Block until main thread signals ready
 
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("DEBUG: Moshi thread entering processing loop\n")
+                    f.write("DEBUG: Model loading phase complete, processing thread running\n")
                     f.flush()
 
-                # Processing loop (runs until app closes) - pass lm_generator as parameter
-                self._moshi_processing_thread(lm_generator, moshi_bridge_result[0])
+                # Loading complete - this thread exits, but processing thread keeps running
 
             # Start dedicated Moshi thread (non-daemon for clean shutdown and data persistence)
             with open("/tmp/xswarm_debug.log", "a") as f:
@@ -821,30 +901,15 @@ class VoiceAssistantApp(App):
             # Start repeating timer for progress updates (every 100ms)
             progress_timer = self.set_interval(0.1, update_progress_tick)
 
-            # Wait for loading to complete (thread stays alive for processing)
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: initialize_moshi() waiting for loading_complete...\n")
+                f.write("DEBUG: initialize_moshi() waiting for thread to complete using join()...\n")
                 f.flush()
 
-            # Poll the event with timeout to avoid deadlock
-            max_wait = 60  # 60 seconds max
-            waited = 0
-            while not loading_complete.is_set() and waited < max_wait:
-                await asyncio.sleep(0.5)
-                waited += 0.5
-                if waited % 5 == 0:
-                    with open("/tmp/xswarm_debug.log", "a") as f:
-                        f.write(f"DEBUG: Still waiting for loading_complete ({waited}s)...\n")
-                        f.flush()
-
-            if not loading_complete.is_set():
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"DEBUG: TIMEOUT waiting for loading_complete after {waited}s!\n")
-                    f.flush()
-                raise TimeoutError(f"Moshi loading timed out after {waited} seconds")
+            # Wait for thread to complete (blocks this worker, but progress timer keeps UI responsive)
+            loading_thread.join()
 
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: loading_complete detected! Continuing...\n")
+                f.write("DEBUG: Thread joined successfully, loading complete\n")
                 f.flush()
 
             # Stop progress timer
@@ -856,7 +921,7 @@ class VoiceAssistantApp(App):
                 self.update_activity(f"❌ ERROR loading Moshi: {error}")
                 import traceback
                 traceback.print_exc()
-                raise error
+                return
 
             self.moshi_bridge = moshi_bridge_result[0]
             with open("/tmp/xswarm_debug.log", "a") as f:
@@ -865,112 +930,119 @@ class VoiceAssistantApp(App):
             self.update_activity("✓ MOSHI MLX models loaded")
 
             # LM generator created in Moshi thread, just assign reference here
-            # NEVER use self.lm_generator on main thread - only in Moshi thread!
             self.lm_generator = lm_generator_result[0]
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: LM generator assigned (created in Moshi thread)\n")
                 f.flush()
             self.update_activity("✓ Full-duplex stream ready")
 
-            # Initialize audio I/O
+            # Processing thread also created in Moshi thread, just store reference here
+            self._moshi_processing_thread_handle = processing_thread_result[0]
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: About to create AudioIO\n")
+                f.write("DEBUG: Processing thread handle assigned (created in Moshi thread)\n")
                 f.flush()
-            self.update_activity("Starting audio streams...")
-            self.audio_io = AudioIO(
-                sample_rate=24000,
-                frame_size=1920,
-                channels=1
-            )
-            with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: AudioIO created\n")
-                f.flush()
-
-            # Start audio input with callback for full-duplex Moshi processing
-            self._audio_callback_counter = 0  # For debug logging
-            self._mic_amplitude_queue = []  # Queue for thread-safe amplitude updates
-            self._smoothed_amplitude = 0.0  # Smoothed amplitude to prevent jitter
-            self._moshi_input_queue = []  # Queue for incoming audio frames to process
-            self._moshi_output_queue = []  # Queue for Moshi output audio chunks
-
-            def audio_callback(audio):
-                """
-                Audio callback runs in separate thread - ONLY queue data, NO processing.
-                MLX operations are NOT thread-safe and will cause segfaults if called here.
-                CRITICAL: Do NOT access self.moshi_bridge here - it was created in Moshi thread!
-                """
-                # Calculate mic amplitude directly (thread-safe numpy operations)
-                import numpy as np
-                rms = np.sqrt(np.mean(audio ** 2))
-                raw_amplitude = float(np.clip(rms * 4, 0, 1))
-
-                # Boost mic amplitude by 3x for better low-level visibility
-                boosted_amplitude = min(raw_amplitude * 3.0, 1.0)  # Cap at 1.0
-
-                # Apply exponential smoothing to prevent jitter
-                # Higher alpha = more responsive but jittery, lower alpha = smoother but laggy
-                alpha = 0.3  # Balance between responsiveness and smoothness
-                self._smoothed_amplitude = alpha * boosted_amplitude + (1 - alpha) * self._smoothed_amplitude
-
-                self._audio_callback_counter += 1
-
-                # Queue smoothed amplitude for main thread to process
-                self._mic_amplitude_queue.append(self._smoothed_amplitude)
-                # Keep queue small to avoid memory buildup
-                if len(self._mic_amplitude_queue) > 100:
-                    self._mic_amplitude_queue.pop(0)
-
-                # CRITICAL: Only queue audio, do NOT call step_frame() here
-                # MLX GPU operations must run on main thread to avoid segfaults
-                self._moshi_input_queue.append(audio.copy())  # Copy to avoid data race
-                # Keep queue small to avoid latency buildup
-                if len(self._moshi_input_queue) > 10:
-                    self._moshi_input_queue.pop(0)  # Drop oldest frame if queue backs up
+            self.update_activity("✓ Processing thread ready")
 
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Starting audio input\n")
-                f.flush()
-            self.audio_io.start_input(callback=audio_callback)
-            with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Starting audio output\n")
-                f.flush()
-            self.audio_io.start_output()
-            with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Audio started successfully\n")
+                f.write("DEBUG: Model loading worker complete, will initialize audio outside worker\n")
                 f.flush()
 
-            # Signal Moshi thread to start processing (it's been waiting after model load)
-            self._processing_thread_stop = threading.Event()
-            self._processing_ready_event.set()  # Signal Moshi thread to start processing loop
-
-            # Playback loop: consumes output queue, plays audio to speakers
-            self.run_worker(self.moshi_playback_loop(), exclusive=False, group="moshi_playback")
-
-            self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
-
-            # Set voice as initialized so visualizer can show mic input
-            self.voice_initialized = True
-            with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: Voice initialized = True\n")
-                f.flush()
-
-            # Set connection_amplitude to idle (breathing) after voice is ready
-            try:
-                visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
-                visualizer.connection_amplitude = 1  # Idle/breathing
-                # Set callback so widget can pull data from app during its own animation timer
-                visualizer.data_callback = self.get_visualizer_data
-            except Exception:
-                pass
-
-            # SKIP greeting until Moshi responds to mic input
-            self.state = "ready"
-            self.update_activity(f"✓ Voice assistant ready on {device} - listening...")
+            # Worker complete - audio initialization will happen via call_next()
+            return True  # Signal success
 
         except Exception as e:
             self.update_activity(f"Error loading voice models: {e}")
             self.state = "error"
             # Don't overwrite visualizer title - keep the default persona name that was set in on_mount()
+
+    async def _finish_audio_initialization(self):
+        """Finish audio initialization after AudioIO is created (async so threading works)"""
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Finishing audio initialization...\n")
+            f.flush()
+
+        self.update_activity("Starting audio streams...")
+
+        # Queues already initialized in initialize_moshi() before processing thread started
+        # Just set up the audio callback
+
+        def audio_callback(audio):
+            """
+            Audio callback runs in separate thread - ONLY queue data, NO processing.
+            MLX operations are NOT thread-safe and will cause segfaults if called here.
+            CRITICAL: Do NOT access self.moshi_bridge here - it was created in Moshi thread!
+            """
+            # Calculate mic amplitude directly (thread-safe numpy operations)
+            import numpy as np
+            rms = np.sqrt(np.mean(audio ** 2))
+            raw_amplitude = float(np.clip(rms * 4, 0, 1))
+
+            # Boost mic amplitude by 3x for better low-level visibility
+            boosted_amplitude = min(raw_amplitude * 3.0, 1.0)  # Cap at 1.0
+
+            # Apply exponential smoothing to prevent jitter
+            # Higher alpha = more responsive but jittery, lower alpha = smoother but laggy
+            alpha = 0.3  # Balance between responsiveness and smoothness
+            self._smoothed_amplitude = alpha * boosted_amplitude + (1 - alpha) * self._smoothed_amplitude
+
+            self._audio_callback_counter += 1
+
+            # Queue smoothed amplitude for main thread to process
+            self._mic_amplitude_queue.append(self._smoothed_amplitude)
+            # Keep queue small to avoid memory buildup
+            if len(self._mic_amplitude_queue) > 100:
+                self._mic_amplitude_queue.pop(0)
+
+            # CRITICAL: Only queue audio, do NOT call step_frame() here
+            # MLX GPU operations must run on main thread to avoid segfaults
+            self._moshi_input_queue.append(audio.copy())  # Copy to avoid data race
+            # Keep queue small to avoid latency buildup
+            if len(self._moshi_input_queue) > 10:
+                self._moshi_input_queue.pop(0)  # Drop oldest frame if queue backs up
+
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Starting audio input\n")
+            f.flush()
+        self.audio_io.start_input(callback=audio_callback)
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Starting audio output\n")
+            f.flush()
+        self.audio_io.start_output()
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Audio started successfully\n")
+            f.flush()
+
+        # Processing thread already created and started in moshi_thread_main()
+        # Just verify it's running
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: Processing thread already running (handle={self._moshi_processing_thread_handle})\n")
+            f.write(f"DEBUG: Processing thread alive: {self._moshi_processing_thread_handle.is_alive()}\n")
+            f.flush()
+
+        # Playback loop: consumes output queue, plays audio to speakers
+        self.run_worker(self.moshi_playback_loop(), exclusive=False, group="moshi_playback")
+
+        self.update_activity("🎙️  Microphone active - speak naturally, I'm listening...")
+
+        # Set voice as initialized so visualizer can show mic input
+        self.voice_initialized = True
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Voice initialized = True\n")
+            f.flush()
+
+        # Set connection_amplitude to idle (breathing) after voice is ready
+        try:
+            visualizer = self.query_one("#visualizer", VoiceVisualizerPanel)
+            visualizer.connection_amplitude = 1  # Idle/breathing
+            # Set callback so widget can pull data from app during its own animation timer
+            visualizer.data_callback = self.get_visualizer_data
+        except Exception:
+            pass
+
+        # SKIP greeting until Moshi responds to mic input
+        self.state = "ready"
+        device = self.config.audio_device or "default device"
+        self.update_activity(f"✓ Voice assistant ready on {device} - listening...")
 
     async def generate_greeting(self, re_introduction: bool = False):
         """
