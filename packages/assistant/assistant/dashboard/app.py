@@ -1067,10 +1067,14 @@ class VoiceAssistantApp(App):
             f.write("DEBUG: Entering processing loop\n")
             f.flush()
 
+        iteration_count = 0
         while not self._processing_thread_stop.is_set():
             try:
+                iteration_count += 1
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("DEBUG: Loop iteration start\n")
+                    f.write(f"DEBUG: Loop iteration #{iteration_count} start\n")
+                    f.write(f"DEBUG: Input queue size: {len(self._moshi_input_queue)}\n")
+                    f.write(f"DEBUG: Stop event is_set: {self._processing_thread_stop.is_set()}\n")
                     f.flush()
 
                 # Check if there's audio to process
@@ -1086,7 +1090,13 @@ class VoiceAssistantApp(App):
 
                     # Process through Moshi (MLX operations safe in this dedicated thread)
                     # CRITICAL: Use local parameters, NOT self.lm_generator or self.moshi_bridge
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write("DEBUG: About to call moshi_bridge.step_frame()\n")
+                        f.flush()
                     audio_chunk, text_piece = moshi_bridge.step_frame(lm_generator, audio_frame)
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write("DEBUG: step_frame() returned successfully\n")
+                        f.flush()
 
                     # Debug: Log if audio was generated
                     if audio_chunk is not None and len(audio_chunk) > 0:
@@ -1113,18 +1123,29 @@ class VoiceAssistantApp(App):
                             f.flush()
 
                     # No sleep needed - processing naturally takes time
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: Iteration #{iteration_count} complete (processed frame)\n")
+                        f.flush()
                 else:
                     # No frames to process, sleep briefly
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: No frames, sleeping (iteration #{iteration_count})\n")
+                        f.flush()
                     time.sleep(0.001)  # 1ms when idle
 
             except Exception as e:
                 # Log errors but keep thread running
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"ERROR in moshi_processing_thread: {e}\n")
+                    f.write(f"ERROR in moshi_processing_thread (iteration #{iteration_count}): {e}\n")
                     import traceback
                     f.write(traceback.format_exc())
                     f.flush()
                 time.sleep(0.1)
+
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: Processing loop EXITED after {iteration_count} iterations\n")
+            f.write(f"DEBUG: Stop event is_set: {self._processing_thread_stop.is_set()}\n")
+            f.flush()
 
     async def moshi_playback_loop(self):
         """Continuous loop to play Moshi output audio from queue"""
