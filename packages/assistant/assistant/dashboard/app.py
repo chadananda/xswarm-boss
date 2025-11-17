@@ -685,6 +685,7 @@ class VoiceAssistantApp(App):
             moshi_bridge_result = [None]  # List to store result from thread
             lm_generator_result = [None]  # List to store LM generator from thread
             loading_complete = threading.Event()  # Signal when loading done
+            self._processing_ready_event = threading.Event()  # Signal when processing can start
             loading_progress = [0]  # Shared progress: 0-100%
             progress_lock = threading.Lock()  # Protect progress updates
 
@@ -744,10 +745,11 @@ class VoiceAssistantApp(App):
                     f.flush()
 
                 # PHASE 2: Process frames (after model loads)
-                # Wait for signal that processing should start
-                import time
-                while not hasattr(self, '_moshi_thread_ready'):
-                    time.sleep(0.1)
+                # Wait for signal that processing should start (no cross-thread attribute access)
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Waiting for processing_ready signal...\n")
+                    f.flush()
+                self._processing_ready_event.wait()  # Block until main thread signals ready
 
                 with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write("DEBUG: Moshi thread entering processing loop\n")
@@ -900,7 +902,7 @@ class VoiceAssistantApp(App):
 
             # Signal Moshi thread to start processing (it's been waiting after model load)
             self._processing_thread_stop = threading.Event()
-            self._moshi_thread_ready = True  # Signal to start processing loop
+            self._processing_ready_event.set()  # Signal Moshi thread to start processing loop
 
             # Playback loop: consumes output queue, plays audio to speakers
             self.run_worker(self.moshi_playback_loop(), exclusive=False, group="moshi_playback")
@@ -1038,10 +1040,21 @@ class VoiceAssistantApp(App):
             f.write("DEBUG: Moshi processing thread started\n")
             f.flush()
 
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write("DEBUG: Entering processing loop\n")
+            f.flush()
+
         while not self._processing_thread_stop.is_set():
             try:
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Loop iteration start\n")
+                    f.flush()
+
                 # Check if there's audio to process
                 if len(self._moshi_input_queue) > 0:
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write("DEBUG: Processing audio frame\n")
+                        f.flush()
                     # Get next audio frame
                     audio_frame = self._moshi_input_queue.pop(0)
 
