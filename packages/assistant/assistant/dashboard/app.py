@@ -782,11 +782,11 @@ class VoiceAssistantApp(App):
                 # Processing loop (runs until app closes) - pass lm_generator as parameter
                 self._moshi_processing_thread(lm_generator, moshi_bridge_result[0])
 
-            # Start dedicated Moshi thread (NOT daemon - we need it to stay alive)
+            # Start dedicated Moshi thread (non-daemon for clean shutdown and data persistence)
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: Starting Moshi thread\n")
                 f.flush()
-            loading_thread = threading.Thread(target=moshi_thread_main, daemon=True, name="MoshiMain")
+            loading_thread = threading.Thread(target=moshi_thread_main, daemon=False, name="MoshiMain")
             loading_thread.start()
             self._moshi_thread = loading_thread
             with open("/tmp/xswarm_debug.log", "a") as f:
