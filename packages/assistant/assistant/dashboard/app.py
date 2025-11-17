@@ -683,6 +683,7 @@ class VoiceAssistantApp(App):
 
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
+            loading_complete = threading.Event()  # Signal when loading done
 
             def moshi_thread_main():
                 """
@@ -709,7 +710,14 @@ class VoiceAssistantApp(App):
                         f.write(traceback.format_exc())
                         f.flush()
                     moshi_bridge_result[0] = e
+                    loading_complete.set()  # Signal loading done (even on error)
                     return  # Exit thread on load failure
+
+                # Signal that loading is complete
+                loading_complete.set()
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: Loading complete signal set\n")
+                    f.flush()
 
                 # PHASE 2: Process frames (after model loads)
                 # Wait for signal that processing should start
@@ -767,8 +775,8 @@ class VoiceAssistantApp(App):
             # Start repeating timer for progress updates (every 100ms)
             progress_timer = self.set_interval(0.1, update_progress_tick)
 
-            # Wait for loading thread to complete using async polling
-            while loading_thread.is_alive():
+            # Wait for loading to complete (thread stays alive for processing)
+            while not loading_complete.is_set():
                 await asyncio.sleep(0.1)
 
             # Stop progress timer
