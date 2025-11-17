@@ -571,33 +571,21 @@ class VoiceAssistantApp(App):
             # Keep visualizer title as static "xSwarm Assistant" (don't change it)
 
     def on_unmount(self) -> None:
-        """Cleanup on exit - fast shutdown"""
+        """Cleanup on exit - IMMEDIATE shutdown, no waiting"""
         try:
-            # STEP 1: Stop audio I/O immediately (blocks new audio processing)
+            # STEP 1: Signal threads to stop (but don't wait)
+            if hasattr(self, '_processing_thread_stop'):
+                self._processing_thread_stop.set()
+
+            # STEP 2: Stop audio I/O immediately
             if hasattr(self, 'audio_io') and self.audio_io:
                 try:
                     self.audio_io.stop()
                 except:
-                    pass  # Ignore errors during shutdown
-
-            # STEP 2: Signal threads to stop
-            if hasattr(self, '_processing_thread_stop'):
-                self._processing_thread_stop.set()
-
-            # STEP 3: Give threads 0.5 seconds max to exit gracefully
-            if hasattr(self, '_moshi_thread') and self._moshi_thread.is_alive():
-                try:
-                    self._moshi_thread.join(timeout=0.5)
-                except:
-                    pass  # Don't block on thread join
-
-            # STEP 4: Close memory manager without waiting
-            if hasattr(self, 'memory_manager') and self.memory_manager:
-                try:
-                    # Just close synchronously, don't create async task
-                    pass  # Skip async close during shutdown
-                except:
                     pass
+
+            # STEP 3: DON'T wait for threads - let OS clean up
+            # The threads will die when the process exits
 
         except (KeyboardInterrupt, SystemExit):
             # User forcing exit - return immediately
@@ -834,8 +822,30 @@ class VoiceAssistantApp(App):
             progress_timer = self.set_interval(0.1, update_progress_tick)
 
             # Wait for loading to complete (thread stays alive for processing)
-            while not loading_complete.is_set():
-                await asyncio.sleep(0.1)
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: initialize_moshi() waiting for loading_complete...\n")
+                f.flush()
+
+            # Poll the event with timeout to avoid deadlock
+            max_wait = 60  # 60 seconds max
+            waited = 0
+            while not loading_complete.is_set() and waited < max_wait:
+                await asyncio.sleep(0.5)
+                waited += 0.5
+                if waited % 5 == 0:
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: Still waiting for loading_complete ({waited}s)...\n")
+                        f.flush()
+
+            if not loading_complete.is_set():
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"DEBUG: TIMEOUT waiting for loading_complete after {waited}s!\n")
+                    f.flush()
+                raise TimeoutError(f"Moshi loading timed out after {waited} seconds")
+
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write("DEBUG: loading_complete detected! Continuing...\n")
+                f.flush()
 
             # Stop progress timer
             progress_timer.stop()

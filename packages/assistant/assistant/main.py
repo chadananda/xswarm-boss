@@ -34,15 +34,35 @@ class SingletonLock:
         self.locked = False
 
     def acquire(self) -> bool:
-        """Try to acquire lock. Returns True if successful, False if already locked."""
+        """Try to acquire lock. Kills existing instance if found."""
+        import signal
+        import time
+
         if self.lockfile.exists():
             # Check if the process is actually running
             try:
                 pid = int(self.lockfile.read_text().strip())
                 # Check if process exists
                 os.kill(pid, 0)  # Doesn't actually kill, just checks existence
-                # Process exists - lock is valid
-                return False
+
+                # Process exists - kill it to free GPU
+                print(f"Found existing instance (PID {pid}). Killing...")
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    time.sleep(0.5)
+                    # If still alive, force kill
+                    try:
+                        os.kill(pid, 0)
+                        os.kill(pid, signal.SIGKILL)
+                        time.sleep(0.2)
+                    except OSError:
+                        pass  # Already dead
+                except OSError:
+                    pass  # Process already gone
+
+                # Remove stale lock
+                self.lockfile.unlink()
+
             except (OSError, ValueError):
                 # Process doesn't exist or invalid PID - stale lock
                 self.lockfile.unlink()
