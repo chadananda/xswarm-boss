@@ -856,11 +856,12 @@ class VoiceAssistantApp(App):
                 """
                 Audio callback runs in separate thread - ONLY queue data, NO processing.
                 MLX operations are NOT thread-safe and will cause segfaults if called here.
-                Processing happens in moshi_processing_loop() on the main async event loop.
+                CRITICAL: Do NOT access self.moshi_bridge here - it was created in Moshi thread!
                 """
-                # Update mic amplitude for bottom waveform visualizer
-                self.moshi_bridge.update_mic_amplitude(audio)
-                raw_amplitude = self.moshi_bridge.mic_amplitude
+                # Calculate mic amplitude directly (thread-safe numpy operations)
+                import numpy as np
+                rms = np.sqrt(np.mean(audio ** 2))
+                raw_amplitude = float(np.clip(rms * 4, 0, 1))
 
                 # Boost mic amplitude by 3x for better low-level visibility
                 boosted_amplitude = min(raw_amplitude * 3.0, 1.0)  # Cap at 1.0
@@ -1675,7 +1676,8 @@ class VoiceAssistantApp(App):
 
     def start_listening(self):
         """Start voice input - begin capturing audio"""
-        if not self.audio_io or not self.moshi_bridge:
+        # CRITICAL: Never access self.moshi_bridge from main thread (MLX thread-safety)
+        if not self.audio_io or not self.voice_initialized:
             self.update_activity("Voice models not loaded yet")
             return
 
