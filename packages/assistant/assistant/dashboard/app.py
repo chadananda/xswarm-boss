@@ -684,6 +684,7 @@ class VoiceAssistantApp(App):
             # Load Moshi in background thread to allow progress updates
             moshi_bridge_result = [None]  # List to store result from thread
             loading_complete = threading.Event()  # Signal when loading done
+            loading_progress = [0]  # Shared progress: 0-100%
 
             def moshi_thread_main():
                 """
@@ -699,7 +700,15 @@ class VoiceAssistantApp(App):
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write(f"DEBUG: Starting MoshiBridge({moshi_quality})...\n")
                         f.flush()
-                    moshi_bridge_result[0] = MoshiBridge(quality=moshi_quality)
+
+                    # Load with progress reporting
+                    loading_progress[0] = 10  # Starting
+                    moshi_bridge_result[0] = MoshiBridge(
+                        quality=moshi_quality,
+                        progress_callback=lambda pct: loading_progress.__setitem__(0, pct)
+                    )
+                    loading_progress[0] = 100  # Complete
+
                     with open("/tmp/xswarm_debug.log", "a") as f:
                         f.write("DEBUG: MoshiBridge loaded successfully\n")
                         f.flush()
@@ -749,18 +758,20 @@ class VoiceAssistantApp(App):
             progress_message_added = False
 
             def update_progress_tick():
-                """Update loading progress on each timer tick"""
+                """Update loading progress bar on each timer tick"""
                 nonlocal progress_counter, progress_message_added
                 elapsed_seconds = progress_counter // 10
-                dots = "." * ((progress_counter // 5) % 4)
-                spaces = " " * (3 - ((progress_counter // 5) % 4))
-                bar_chars = "▁▂▃▄▅▆▇█"
-                bar_idx = (progress_counter // 3) % len(bar_chars)
 
-                progress_msg = (
-                    f"{bar_chars[bar_idx]} Loading MOSHI MLX models ({moshi_quality}){dots}{spaces} "
-                    f"{elapsed_seconds}s elapsed - please wait..."
-                )
+                # Get current progress percentage
+                pct = loading_progress[0]
+
+                # Create progress bar: [████████░░░░░░░░░░] 43%
+                bar_width = 20
+                filled = int(bar_width * pct / 100)
+                empty = bar_width - filled
+                bar = "█" * filled + "░" * empty
+
+                progress_msg = f"[{bar}] {pct}% - Loading MOSHI ({moshi_quality}) - {elapsed_seconds}s"
 
                 # First tick: add message, subsequent ticks: update it
                 activity = self.query_one("#activity", ActivityFeed)

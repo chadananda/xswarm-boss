@@ -96,7 +96,8 @@ class MoshiBridge:
         quantized: Optional[int] = None,  # Auto-selected if None
         max_steps: int = 500,  # Max generation steps (~40s at 12.5 Hz)
         sample_rate: int = 24000,
-        quality: str = "auto"  # "auto", "bf16", "q8", "q4"
+        quality: str = "auto",  # "auto", "bf16", "q8", "q4"
+        progress_callback: Optional[callable] = None  # Progress reporting callback
     ):
         """
         Initialize MLX Moshi bridge with automatic quality selection.
@@ -107,8 +108,16 @@ class MoshiBridge:
             max_steps: Maximum generation steps
             sample_rate: Audio sample rate (24kHz)
             quality: Quality preset ("auto" detects from GPU, or "bf16"/"q8"/"q4")
+            progress_callback: Optional callback(percentage: int) for progress updates
         """
         print(f"🚀 Starting Moshi initialization (quality={quality})...")
+
+        # Helper for progress reporting
+        def report_progress(pct: int):
+            if progress_callback:
+                progress_callback(pct)
+
+        report_progress(5)  # Starting
 
         # Auto-select quality based on GPU capability
         if quality == "auto":
@@ -152,6 +161,8 @@ class MoshiBridge:
         print(f"📦 Checking for cached model files...")
         download = _create_download_with_retry()
 
+        report_progress(10)  # Files check starting
+
         # Try cached versions first for all files
         print(f"🔍 Looking for {self.hf_repo}/{default_file}...")
         try:
@@ -166,6 +177,8 @@ class MoshiBridge:
             mimi_file = download(self.hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
             tokenizer_file = download(self.hf_repo, "tokenizer_spm_32k_3.model")
 
+        report_progress(15)  # Files ready
+
         # Load text tokenizer
         import time
         timing_log = open("/tmp/moshi_timing.log", "a")
@@ -175,6 +188,7 @@ class MoshiBridge:
         self.text_tokenizer = sentencepiece.SentencePieceProcessor(tokenizer_file)
         timing_log.write(f"✓ Text tokenizer loaded ({time.time()-t0:.1f}s)\n")
         timing_log.flush()
+        report_progress(20)  # Text tokenizer loaded
 
         # Load Mimi audio codec (Rust implementation)
         t0 = time.time()
@@ -183,6 +197,7 @@ class MoshiBridge:
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
         timing_log.write(f"✓ Mimi codec loaded ({time.time()-t0:.1f}s)\n")
         timing_log.flush()
+        report_progress(35)  # Mimi codec loaded
 
         # Load Moshi language model
         t0 = time.time()
@@ -194,6 +209,7 @@ class MoshiBridge:
         self.model.set_dtype(mx.bfloat16)
         timing_log.write(f"✓ Model architecture created ({time.time()-t0:.1f}s)\n")
         timing_log.flush()
+        report_progress(50)  # Model architecture created
 
         if quantized is not None:
             t0 = time.time()
@@ -203,6 +219,7 @@ class MoshiBridge:
             nn.quantize(self.model, bits=quantized, group_size=group_size)
             timing_log.write(f"✓ Model quantized ({time.time()-t0:.1f}s)\n")
             timing_log.flush()
+            report_progress(65)  # Model quantized
 
         # Load weights - strict=True works with quantized checkpoints
         # The reference implementation uses strict=True successfully
@@ -212,6 +229,7 @@ class MoshiBridge:
         self.model.load_weights(model_file, strict=True)
         timing_log.write(f"✓ Weights loaded ({time.time()-t0:.1f}s)\n")
         timing_log.flush()
+        report_progress(85)  # Weights loaded
 
         t0 = time.time()
         timing_log.write(f"⏱️  Warming up MLX model (compiling kernels for Metal GPU)...\n")
@@ -220,6 +238,7 @@ class MoshiBridge:
         timing_log.write(f"✓ Model warmed up ({time.time()-t0:.1f}s)\n")
         timing_log.flush()
         timing_log.close()
+        report_progress(100)  # Complete!
 
         # Amplitude tracking
         self.mic_amplitude = 0.0
