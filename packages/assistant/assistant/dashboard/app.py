@@ -1079,6 +1079,9 @@ class VoiceAssistantApp(App):
                     # Queue output audio for playback
                     if audio_chunk is not None and len(audio_chunk) > 0:
                         self._moshi_output_queue.append(audio_chunk)
+                        # Limit queue size to prevent latency buildup (max 5 chunks = ~400ms)
+                        while len(self._moshi_output_queue) > 5:
+                            self._moshi_output_queue.pop(0)  # Drop oldest if backing up
                         # Update Moshi amplitude for visualization (use local parameter)
                         moshi_bridge.update_moshi_amplitude(audio_chunk)
 
@@ -1114,7 +1117,7 @@ class VoiceAssistantApp(App):
                     # Get next chunk
                     audio_chunk = self._moshi_output_queue.pop(0)
 
-                    # Play it
+                    # Play it (blocking until played to maintain timing)
                     self.audio_io.play_audio(audio_chunk)
 
                     # Update visualizer to show Moshi is speaking
@@ -1124,8 +1127,9 @@ class VoiceAssistantApp(App):
                     except Exception:
                         pass
 
-                    # Small delay to prevent tight loop
-                    await asyncio.sleep(0.01)
+                    # NO SLEEP - let audio playback control timing naturally
+                    # Yield to event loop but continue immediately
+                    await asyncio.sleep(0)
                 else:
                     # No audio, idle state
                     try:
@@ -1136,7 +1140,7 @@ class VoiceAssistantApp(App):
                         pass
 
                     # Longer delay when idle to save CPU
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.02)  # 20ms when idle
 
             except Exception as e:
                 # Log errors but keep loop running
