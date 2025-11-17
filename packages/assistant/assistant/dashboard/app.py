@@ -735,6 +735,12 @@ class VoiceAssistantApp(App):
                     f.write("DEBUG: Loading complete signal set\n")
                     f.flush()
 
+                # CRITICAL: Create LM generator in THIS thread (MLX thread-safety)
+                self.lm_generator = moshi_bridge_result[0].create_lm_generator(max_steps=1000)
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("DEBUG: LM generator created in Moshi thread\n")
+                    f.flush()
+
                 # PHASE 2: Process frames (after model loads)
                 # Wait for signal that processing should start
                 import time
@@ -815,10 +821,9 @@ class VoiceAssistantApp(App):
                 f.flush()
             self.update_activity("✓ MOSHI MLX models loaded")
 
-            # Create LM generator for full-duplex streaming
-            self.lm_generator = self.moshi_bridge.create_lm_generator(max_steps=1000)
+            # LM generator will be created in the Moshi thread (MLX thread-safety)
             with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write("DEBUG: LM generator created\n")
+                f.write("DEBUG: Waiting for Moshi thread to create LM generator...\n")
                 f.flush()
             self.update_activity("✓ Full-duplex stream ready")
 
