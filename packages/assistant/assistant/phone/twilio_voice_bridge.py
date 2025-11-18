@@ -11,7 +11,7 @@ import numpy as np
 from typing import Optional, Callable
 from pathlib import Path
 
-from ..voice.moshi_pytorch import MoshiBridge
+from ..voice.moshi_mlx import MoshiBridge
 from ..personas.manager import PersonaManager
 from ..personas.config import PersonaConfig
 from ..memory import MemoryManager

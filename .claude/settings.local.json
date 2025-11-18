@@ -41,7 +41,9 @@
       "Skill(project-cleanup)",
       "Skill(security-scan)",
       "WebFetch(domain:piapi.ai)",
-      "Skill(tui-viewer)"
+      "Skill(tui-viewer)",
+      "WebFetch(domain:ml-explore.github.io)",
+      "WebFetch(domain:docs.pytorch.org)"
     ],
     "deny": [],
     "ask": []

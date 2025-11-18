@@ -11,7 +11,7 @@ from datetime import datetime
 # Core components
 from .vad import VoiceActivityDetector
 from .audio_io import AudioIO
-from .moshi_pytorch import MoshiBridge
+from .moshi_mlx import MoshiBridge
 from ..personas.manager import PersonaManager
 from ..memory import MemoryManager
 from ..memory.memory_orchestrator import MemoryOrchestrator

@@ -67,7 +67,6 @@ assistant/voice/bridge.py
 assistant/voice/conversation.py
 assistant/voice/download_models.py
 assistant/voice/moshi_mlx.py
-assistant/voice/moshi_pytorch.py
 assistant/voice/parallel_download.py
 assistant/voice/robust_download.py
 assistant/voice/vad.py
