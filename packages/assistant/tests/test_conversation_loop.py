@@ -22,7 +22,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from assistant.voice.conversation import ConversationLoop, ConversationTurn, AIClient
-from assistant.voice.moshi_mlx import MoshiBridge
+from assistant.voice.moshi_pytorch import MoshiBridge
 from assistant.personas.manager import PersonaManager
 from assistant.personas.config import PersonaConfig
 from assistant.memory import MemoryManager

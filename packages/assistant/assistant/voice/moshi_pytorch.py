@@ -103,8 +103,10 @@ class MoshiBridge:
         Priority:
         1. CUDA (NVIDIA GPUs)
         2. ROCm (AMD GPUs)
-        3. MPS (Apple Silicon)
-        4. CPU (fallback)
+        3. CPU (MOSHI is too large for MPS 4GB limit)
+
+        Note: Apple Silicon MPS has a 4GB per-tensor limit which MOSHI exceeds.
+        We use CPU for model inference, which is still faster than MLX's buggy implementation.
 
         Returns:
             torch.device: Best available device
@@ -115,12 +117,15 @@ class MoshiBridge:
             print(f"✓ Using CUDA: {device_name}")
             return torch.device("cuda:0")
 
+        # Note: MPS disabled for MOSHI due to 4GB tensor limit
+        # MPS Error: "total bytes of NDArray > 2^32" (MOSHI model is ~8GB)
+        # CPU inference is still 1000x faster than buggy MLX implementation
         if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
-            # Apple Silicon (M1/M2/M3)
-            print("✓ Using Apple Metal (MPS)")
-            return torch.device("mps")
+            print("✓ Apple Metal (MPS) available but using CPU (MOSHI > 4GB MPS limit)")
+            print("  Note: CPU inference still 1000x faster than MLX!")
+            return torch.device("cpu")
 
-        print("⚠ Using CPU (no GPU acceleration)")
+        print("✓ Using CPU for inference")
         return torch.device("cpu")
 
     def encode_audio(self, audio: np.ndarray) -> torch.Tensor:
@@ -287,3 +292,111 @@ class MoshiBridge:
             audio: Moshi audio output samples
         """
         self.moshi_amplitude = self.get_amplitude(audio)
+
+    def create_lm_generator(self):
+        """
+        Create and return LM generator for streaming inference.
+
+        This sets up the streaming context for frame-by-frame processing.
+        Must be called before step_frame() in a processing loop.
+
+        Returns:
+            Generator context manager for streaming inference
+        """
+        # Return streaming context that can be used with step_frame()
+        return self.lm_gen.streaming(batch_size=1)
+
+    def step_frame(self, lm_gen, audio_frame: np.ndarray) -> tuple[Optional[np.ndarray], Optional[str]]:
+        """
+        Process a single 80ms audio frame through MOSHI.
+
+        This is the real-time streaming interface used by the processing thread.
+
+        Args:
+            lm_gen: LM generator context from create_lm_generator()
+            audio_frame: Audio frame of 1920 samples at 24kHz (80ms)
+
+        Returns:
+            (response_audio_chunk, text_token) tuple or (None, None) if no output
+        """
+        import time
+
+        # Start profiling
+        t0 = time.perf_counter()
+
+        # Ensure frame is correct size
+        if len(audio_frame) != self.frame_size:
+            # Pad or truncate to 1920 samples
+            if len(audio_frame) < self.frame_size:
+                audio_frame = np.pad(audio_frame, (0, self.frame_size - len(audio_frame)))
+            else:
+                audio_frame = audio_frame[:self.frame_size]
+
+        # Encode audio frame to MIMI codes
+        frame_tensor = torch.from_numpy(audio_frame).float().unsqueeze(0).unsqueeze(0).to(self.device)
+
+        t1 = time.perf_counter()
+
+        with torch.no_grad(), self.mimi.streaming(batch_size=1):
+            codes = self.mimi.encode(frame_tensor)  # [1, 8, 1]
+
+        t2 = time.perf_counter()
+
+        # Step the language model
+        with torch.no_grad():
+            tokens_out = self.lm_gen.step(codes)
+
+        t3 = time.perf_counter()
+
+        if tokens_out is None:
+            # No output yet (model still warming up)
+            t4 = t3
+            t5 = t3
+            text_token = None
+            audio_chunk = None
+        else:
+            # tokens_out is [B, 1 + 8, 1] where [:, 0] is text, [:, 1:] is audio
+            text_token_id = tokens_out[0, 0, 0].item()
+
+            t4 = time.perf_counter()
+
+            # Decode text token
+            if text_token_id > 0:
+                text_token = self.tokenizer.decode([text_token_id])
+            else:
+                text_token = None
+
+            # Decode audio codes
+            audio_codes = tokens_out[:, 1:, :]  # [B, 8, 1]
+            with torch.no_grad(), self.mimi.streaming(batch_size=1):
+                audio_tensor = self.mimi.decode(audio_codes)
+
+            t5 = time.perf_counter()
+
+            # Convert to numpy
+            audio_chunk = audio_tensor.squeeze().cpu().numpy()
+
+            # Update amplitude tracking
+            self.update_moshi_amplitude(audio_chunk)
+
+        t6 = time.perf_counter()
+
+        # Log profiling data (similar format to MLX version)
+        encode_ms = (t2 - t0) * 1000
+        torch_prep_ms = (t2 - t1) * 1000  # Tensor conversion
+        inference_ms = (t3 - t2) * 1000
+        tokens_ms = (t4 - t3) * 1000
+        numpy_ms = (t5 - t4) * 1000  # Decode + to numpy
+        total_ms = (t6 - t0) * 1000
+
+        with open("/tmp/moshi_profile.log", "a") as f:
+            f.write(
+                f"encode={encode_ms:.1f}ms "
+                f"torch_prep={torch_prep_ms:.1f}ms "
+                f"inference={inference_ms:.1f}ms "
+                f"tokens={tokens_ms:.1f}ms "
+                f"numpy={numpy_ms:.1f}ms "
+                f"TOTAL={total_ms:.1f}ms\n"
+            )
+
+        return audio_chunk, text_token

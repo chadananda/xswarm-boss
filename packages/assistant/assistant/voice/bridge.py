@@ -13,7 +13,7 @@ from enum import Enum
 from typing import Optional, AsyncGenerator, Dict, Any
 from pathlib import Path
 # Import core dependencies
-from .moshi_mlx import MoshiBridge
+from .moshi_pytorch import MoshiBridge
 from .conversation import ConversationLoop, AIClient, ConversationTurn
 from ..personas.manager import PersonaManager
 from ..personas.config import PersonaConfig
