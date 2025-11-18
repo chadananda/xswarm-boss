@@ -85,12 +85,12 @@ def select_services(gpu: GPUCapability) -> ServiceConfig:
 
     Examples:
         M3 24GB (score ~19):
-        - Moshi: Q8 local (12GB)
-        - Thinking: Anthropic cloud
-        - Hybrid: True
+        - Moshi: Q4 local (8GB) - real-time optimized
+        - Thinking: Ollama 13B local (10GB)
+        - Hybrid: False (all local)
 
         96GB GPU (score ~75):
-        - Moshi: BF16 local (20GB)
+        - Moshi: Q4 local (8GB) - real-time optimized
         - Thinking: Ollama 70B local (50GB)
         - Hybrid: False (all local)
 
@@ -103,19 +103,13 @@ def select_services(gpu: GPUCapability) -> ServiceConfig:
     total_vram = gpu.vram_total_gb
 
     # ===== MOSHI SELECTION =====
-    # Try highest quality first, fallback to lower quality or cloud
+    # For REAL-TIME VOICE: Prioritize speed over quality
+    # Q4 is the sweet spot for real-time conversation on Apple Silicon
+    # Q8/BF16 are too slow for interactive voice (but great for offline processing)
     # Base decision on total VRAM capacity, not current free memory
-    if score >= MOSHI_BF16_MIN_SCORE and total_vram >= 48:
+    if score >= MOSHI_Q4_MIN_SCORE and total_vram >= 12:
         moshi_mode = "local"
-        moshi_quality = "bf16"
-        moshi_vram = 20.0
-    elif score >= MOSHI_Q8_MIN_SCORE and total_vram >= 24:
-        moshi_mode = "local"
-        moshi_quality = "q8"
-        moshi_vram = 12.0
-    elif score >= MOSHI_Q4_MIN_SCORE and total_vram >= 12:
-        moshi_mode = "local"
-        moshi_quality = "q4"
+        moshi_quality = "q4"  # Real-time optimized (2-3x faster than Q8)
         moshi_vram = 8.0
     else:
         moshi_mode = "cloud"
