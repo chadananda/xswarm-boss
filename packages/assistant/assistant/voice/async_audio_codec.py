@@ -1,59 +1,47 @@
 """
-Async Audio Codec - Runs rustymimi in separate process for non-blocking encode/decode.
+Async Audio Codec - Runs rustymimi in separate thread for non-blocking encode/decode.
 
 This replicates the official MOSHI CLI architecture where the audio codec
-runs in a separate process with async I/O, allowing encode/decode operations
-to overlap with ML inference on the GPU.
+runs asynchronously, allowing encode/decode operations to overlap with
+ML inference on the GPU.
 
 Key Architecture:
-- Codec process: Handles rustymimi encode/decode operations
-- Main process: Runs MLX inference on Metal GPU
-- Communication: Multiprocessing queues for non-blocking I/O
-- Result: Parallel execution instead of serial (20x speedup!)
+- Codec thread: Handles rustymimi encode/decode operations
+- Main thread: Runs MLX inference on Metal GPU
+- Communication: Thread-safe queues for non-blocking I/O
+- Result: Parallel execution instead of serial
 """
 
-import asyncio
-import multiprocessing
 import queue
+import threading
 import time
 import numpy as np
 from typing import Optional
-import platform
 import rustymimi
-
-# Use spawn context on macOS to avoid "bad value(s) in fds_to_keep" error
-# This is safer and avoids issues with forking in multithreaded programs
-if platform.system() == "Darwin":
-    mp_context = multiprocessing.get_context("spawn")
-else:
-    mp_context = multiprocessing
 
 
 def _codec_worker_loop(
-    mimi_file: str,
-    encode_requests: multiprocessing.Queue,
-    decode_requests: multiprocessing.Queue,
-    encoded_results: multiprocessing.Queue,
-    decoded_results: multiprocessing.Queue,
-    shutdown_event: multiprocessing.Event
+    codec: rustymimi.StreamTokenizer,
+    encode_requests: queue.Queue,
+    decode_requests: queue.Queue,
+    encoded_results: queue.Queue,
+    decoded_results: queue.Queue,
+    shutdown_event: threading.Event
 ):
     """
-    Codec worker that runs in separate process.
+    Codec worker that runs in separate thread.
 
     Handles encode/decode requests asynchronously without blocking
-    the main process that runs MLX inference.
+    the main thread that runs MLX inference.
 
     Args:
-        mimi_file: Path to Mimi model weights
+        codec: Initialized rustymimi StreamTokenizer
         encode_requests: Queue for incoming encode requests
         decode_requests: Queue for incoming decode requests
         encoded_results: Queue for encoded audio codes
         decoded_results: Queue for decoded audio samples
         shutdown_event: Event to signal worker shutdown
     """
-    # Initialize codec in worker process
-    codec = rustymimi.StreamTokenizer(mimi_file)
-
     # Track pending operations
     encode_pending = False
     decode_pending = False
@@ -95,7 +83,7 @@ def _codec_worker_loop(
 
 class AsyncAudioCodec:
     """
-    Async wrapper for rustymimi codec that runs in separate process.
+    Async wrapper for rustymimi codec that runs in separate thread.
 
     Provides non-blocking encode/decode operations that can overlap
     with MLX inference, replicating the official MOSHI CLI architecture.
@@ -104,41 +92,44 @@ class AsyncAudioCodec:
         codec = AsyncAudioCodec(mimi_file)
 
         # Non-blocking encode (returns immediately, processes in background)
-        codes = await codec.encode_async(audio_frame)
+        codec.encode_async(audio_frame)
 
         # While encoding happens, we can run inference on GPU
         # Then decode the result (also non-blocking)
-        audio_out = await codec.decode_async(audio_codes)
+        codec.decode_async(audio_codes)
     """
 
     def __init__(self, mimi_file: str):
         """
-        Initialize async codec with separate worker process.
+        Initialize async codec with separate worker thread.
 
         Args:
             mimi_file: Path to Mimi model weights
         """
         self.mimi_file = mimi_file
 
-        # Create communication queues using spawn context on macOS
-        self.encode_requests = mp_context.Queue()
-        self.decode_requests = mp_context.Queue()
-        self.encoded_results = mp_context.Queue()
-        self.decoded_results = mp_context.Queue()
-        self.shutdown_event = mp_context.Event()
+        # Initialize codec in main thread (must be done before starting worker)
+        self._codec = rustymimi.StreamTokenizer(mimi_file)
 
-        # Start worker process using spawn context on macOS
-        self.worker = mp_context.Process(
+        # Create communication queues (thread-safe)
+        self.encode_requests = queue.Queue()
+        self.decode_requests = queue.Queue()
+        self.encoded_results = queue.Queue()
+        self.decoded_results = queue.Queue()
+        self.shutdown_event = threading.Event()
+
+        # Start worker thread
+        self.worker = threading.Thread(
             target=_codec_worker_loop,
             args=(
-                mimi_file,
+                self._codec,
                 self.encode_requests,
                 self.decode_requests,
                 self.encoded_results,
                 self.decoded_results,
                 self.shutdown_event
             ),
-            daemon=True  # Auto-cleanup on main process exit
+            daemon=True  # Auto-cleanup on main thread exit
         )
         self.worker.start()
 
