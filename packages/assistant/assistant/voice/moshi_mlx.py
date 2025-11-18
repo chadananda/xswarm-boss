@@ -132,8 +132,8 @@ class MoshiBridge:
         # Use official pre-quantized checkpoints that are optimized for M3 Metal
         quality_map = {
             "bf16": ("kyutai/moshiko-mlx-bf16", None, "model.safetensors"),
-            "q8": ("kyutai/moshiko-mlx-q8", None, "model.safetensors"),  # Pre-quantized 8-bit
-            "q4": ("kyutai/moshiko-mlx-q4", None, "model.safetensors"),  # Pre-quantized 4-bit
+            "q8": ("kyutai/moshiko-mlx-q8", None, "model.q8.safetensors"),  # Pre-quantized 8-bit
+            "q4": ("kyutai/moshiko-mlx-q4", None, "model.q4.safetensors"),  # Pre-quantized 4-bit
         }
 
         if quality not in quality_map:
