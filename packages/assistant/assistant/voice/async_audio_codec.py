@@ -18,7 +18,15 @@ import queue
 import time
 import numpy as np
 from typing import Optional
+import platform
 import rustymimi
+
+# Use spawn context on macOS to avoid "bad value(s) in fds_to_keep" error
+# This is safer and avoids issues with forking in multithreaded programs
+if platform.system() == "Darwin":
+    mp_context = multiprocessing.get_context("spawn")
+else:
+    mp_context = multiprocessing
 
 
 def _codec_worker_loop(
@@ -112,15 +120,15 @@ class AsyncAudioCodec:
         """
         self.mimi_file = mimi_file
 
-        # Create communication queues
-        self.encode_requests = multiprocessing.Queue()
-        self.decode_requests = multiprocessing.Queue()
-        self.encoded_results = multiprocessing.Queue()
-        self.decoded_results = multiprocessing.Queue()
-        self.shutdown_event = multiprocessing.Event()
+        # Create communication queues using spawn context on macOS
+        self.encode_requests = mp_context.Queue()
+        self.decode_requests = mp_context.Queue()
+        self.encoded_results = mp_context.Queue()
+        self.decoded_results = mp_context.Queue()
+        self.shutdown_event = mp_context.Event()
 
-        # Start worker process
-        self.worker = multiprocessing.Process(
+        # Start worker process using spawn context on macOS
+        self.worker = mp_context.Process(
             target=_codec_worker_loop,
             args=(
                 mimi_file,
