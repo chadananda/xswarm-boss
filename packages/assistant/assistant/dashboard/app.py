@@ -732,7 +732,7 @@ class VoiceAssistantApp(App):
 
 
             # Initialize MOSHI bridge (MLX for Apple Silicon)
-            from ..voice.moshi_pytorch import MoshiBridge
+            from ..voice.moshi_mlx import MoshiBridge
             from ..voice.audio_io import AudioIO
             import asyncio
             import threading
