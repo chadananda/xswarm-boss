@@ -28,6 +28,7 @@ from .theme import generate_palette, get_theme_preset, THEME_PRESETS
 from ..personas.manager import PersonaManager
 from ..voice.bridge import VoiceBridgeOrchestrator, ConversationState
 from ..memory import MemoryManager
+from ..thinking_engine import ThinkingEngine
 import re
 import random
 
@@ -72,6 +73,7 @@ class VoiceAssistantApp(App):
         self.chat_history = []  # Store chat messages (user + assistant)
         self.memory_manager: Optional[MemoryManager] = None  # Memory manager for persistence
         self.user_id = "local-user"  # Default user ID
+        self.thinking_engine: Optional[ThinkingEngine] = None  # Thinking engine for tool/memory decisions
         # Voice bridge orchestrator (initialized later)
         self.voice_bridge: Optional[VoiceBridgeOrchestrator] = None
         self.voice_initialized = False
@@ -784,6 +786,27 @@ class VoiceAssistantApp(App):
         # Start processing loops
         self.run_worker(self._voice_client_recv_loop(), exclusive=False, group="voice_recv")
         self.run_worker(self._voice_amplitude_loop(), exclusive=False, group="voice_amplitude")
+
+        # Initialize thinking engine
+        self.thinking_engine = ThinkingEngine(
+            voice_client=self.voice_client,
+            memory_manager=self.memory_manager,
+            user_id=self.user_id
+        )
+
+        # Set callbacks for thinking engine events
+        def on_injection(context):
+            self.update_activity(f"💭 Injected context: {context[:50]}...")
+
+        def on_tool_result(tool_name, result):
+            self.update_activity(f"🔧 Tool '{tool_name}' executed")
+
+        self.thinking_engine.on_injection = on_injection
+        self.thinking_engine.on_tool_result = on_tool_result
+
+        # Start thinking engine
+        await self.thinking_engine.start()
+        self.update_activity("✓ Thinking engine started")
 
         self.voice_initialized = True
         self.update_activity("✓ Voice system ready")
@@ -1833,6 +1856,12 @@ class VoiceAssistantApp(App):
                     role=role,
                     metadata=metadata
                 )
+            )
+
+        # Notify thinking engine of user input
+        if role == "user" and self.thinking_engine:
+            asyncio.create_task(
+                self.thinking_engine.process_user_input(message)
             )
 
         # Update chat display
