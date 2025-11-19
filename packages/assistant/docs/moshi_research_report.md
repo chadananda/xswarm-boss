@@ -11,6 +11,88 @@ Moshi has **strong support for context/prompt injection and fine-grained control
 
 ---
 
+## Our Implementation
+
+We've built a complete personal assistant by wrapping Moshi with external systems for personality, memory, thinking, and tools.
+
+### Architecture
+
+```
+User (voice) ←→ Moshi MLX ←→ Voice Server ←→ ThinkingEngine ←→ Tools
+                   ↑                              ↓
+                   └──── Context Injection ←──────┘
+```
+
+### Voice Server (`voice_server.py`)
+
+ZeroMQ daemon running Moshi MLX in separate process:
+
+- **Port 5555**: Commands (REQ/REP) - persona, context, history, transcript
+- **Port 5556**: Audio in (PUSH/PULL) - mic samples to Moshi
+- **Port 5557**: Audio out (PUB/SUB) - Moshi audio + text + amplitudes
+
+Key APIs:
+- `inject_context(text)` - Add text to Moshi's context window
+- `inject_tool_result(tool, result)` - Inject tool output
+- `get_new_text()` - Poll for Moshi's speech output
+- `set_persona(name, prompt, traits)` - Configure personality
+
+### ThinkingEngine (`thinking_engine.py`)
+
+Background system monitoring conversations and deciding on actions:
+
+**Two-step architecture:**
+1. **Claude Haiku** - Fast decision: search memory? execute tool? inject context?
+2. **Claude Sonnet 4.5** - Smart summarization for Moshi's ~3000 token limit
+
+**Monitors:**
+- User input (via `process_user_input()`)
+- Moshi output (via polling `get_new_text()`)
+
+**Actions:**
+- Search memory → summarize → inject as context
+- Execute tool → summarize result → inject
+- Inject direct context (reminders, preferences)
+
+### Tool System (`tools/`)
+
+ToolRegistry with async handlers:
+
+- **send_email** - SendGrid integration
+- **make_call** - Twilio integration
+- **search_memory** - Query conversation history
+- **change_theme** - Switch TUI colors
+
+Results are summarized to 2-3 sentences before injection.
+
+### Context Management
+
+Moshi has a small ~3000 token context window. We manage this by:
+
+1. Tracking token usage via `get_context_usage()`
+2. Summarizing all injections to be terse (max 150 tokens)
+3. Clearing old context when needed
+4. Using system prompt efficiently
+
+### Example Flow
+
+```
+User: "What did we talk about yesterday?"
+         ↓
+ThinkingEngine (Haiku): Decide to search memory
+         ↓
+MemoryManager: Query last 24h conversations
+         ↓
+ThinkingEngine (Sonnet): Summarize to "Yesterday: discussed project deadlines,
+                          you preferred morning meetings, asked about weather"
+         ↓
+voice_server.inject_context(summary)
+         ↓
+Moshi: "Yesterday we talked about your project deadlines and meeting preferences..."
+```
+
+---
+
 ## 1. CONTEXT & PROMPT INJECTION
 
 ### 1.1 Conditioner System (Primary Control Point)

@@ -1,10 +1,60 @@
-# Voice Assistant - Python/PyTorch Implementation
+# Voice Assistant - Moshi + ThinkingEngine
 
-Cross-platform voice assistant with MOSHI, Textual TUI, and flexible persona system.
+A complete voice-first personal assistant that uses **Moshi MLX** as the real-time voice interface, enhanced with **personality**, **memory**, **thinking**, and **tools** to create a full-featured AI assistant.
 
-## Status: Phase 7 Complete ✅
+## Architecture Overview
 
-All 7 phases completed! The assistant is now fully integrated and ready for testing.
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        TUI Dashboard                            │
+│  (Textual app with visualizer, chat, activity feed)             │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          │                       │
+          ▼                       ▼
+┌─────────────────┐    ┌─────────────────────────┐
+│  Voice Server   │    │   Thinking Engine       │
+│  (ZeroMQ daemon)│    │   (Claude Haiku/Sonnet) │
+│                 │    │                         │
+│  • Moshi MLX    │◄───┤  • Decision making      │
+│  • Audio I/O    │    │  • Memory search        │
+│  • Transcript   │────►  • Tool execution       │
+│  • Context      │    │  • Context injection    │
+└─────────────────┘    └─────────────────────────┘
+         │                        │
+         │                        ▼
+         │              ┌─────────────────┐
+         │              │  Tool Registry  │
+         │              │  • Email        │
+         │              │  • Phone        │
+         │              │  • Memory       │
+         │              └─────────────────┘
+         │
+         ▼
+   ┌───────────┐
+   │   User    │
+   │  (voice)  │
+   └───────────┘
+```
+
+### How It Works
+
+1. **Moshi** handles real-time voice conversation (listen + speak simultaneously)
+2. **ThinkingEngine** monitors both user input and Moshi's output
+3. When action is needed, **Claude Haiku** decides what to do (search memory, call tool, inject context)
+4. **Claude Sonnet 4.5** summarizes results tersely for Moshi's small ~3000 token context
+5. Context is injected back into Moshi to inform its responses
+
+### Key Components
+
+- **Voice Server** (`voice_server.py`): ZeroMQ daemon running Moshi MLX in separate process for Metal GPU
+- **ThinkingEngine** (`thinking_engine.py`): Background system monitoring conversations, deciding on actions
+- **Tool Registry** (`tools/`): Email, phone, memory search, theme changes
+- **Persona System** (`personas/`): YAML-based personality configs with traits and system prompts
+- **Memory Manager** (`memory.py`): Conversation history with server fallback
+
+---
 
 ## Quick Start
 
@@ -304,103 +354,250 @@ These are **optional** for power users. Base version is amazing without them:
 
 ## What's Implemented
 
-### Phase 1: Project Structure ✅
-- ✅ Project structure created (`packages/assistant/`)
-- ✅ Rust code archived to `packages/core-rust-archive/`
-- ✅ Dependencies defined (PyTorch, Textual, Vosk, etc.)
-- ✅ Cross-platform architecture (Mac M3 MPS, AMD ROCm, CPU fallback)
-- ✅ Module structure ready for implementation
+### Core: Voice Server (ZeroMQ + Moshi MLX) ✅
+- ✅ ZeroMQ daemon for Moshi MLX (`assistant/voice_server.py`)
+- ✅ Separate process for Metal GPU utilization
+- ✅ Three-port architecture (commands, audio in, audio out)
+- ✅ Real-time duplex audio streaming
+- ✅ Transcript monitoring with polling API
+- ✅ Context injection for persona/memory/tools
+- ✅ VoiceServerClient for easy integration
 
-### Phase 2: PyTorch MOSHI Integration ✅
-- ✅ MOSHI bridge (`assistant/voice/moshi_pytorch.py`)
-- ✅ Audio I/O with sounddevice
-- ✅ Voice Activity Detection (VAD)
-- ✅ Audio resampling (24kHz ↔ 16kHz)
-- ✅ Integration with dashboard visualizer
+### Core: Thinking Engine ✅
+- ✅ ThinkingEngine class (`assistant/thinking_engine.py`)
+- ✅ Two-step architecture: Haiku (decision) + Sonnet (summarization)
+- ✅ Monitors user input and Moshi output
+- ✅ Automatic memory search when relevant
+- ✅ Tool execution with result injection
+- ✅ Terse summarization for Moshi's small context
+- ✅ Callbacks for UI notifications
 
-### Phase 3: Textual Dashboard ✅
+### Core: Tool System ✅
+- ✅ ToolRegistry with JSON schema generation (`assistant/tools/registry.py`)
+- ✅ Email tool via SendGrid (`assistant/tools/email_tool.py`)
+- ✅ Phone tool via Twilio (`assistant/tools/phone_tool.py`)
+- ✅ Theme change tool (`assistant/tools/theme_tool.py`)
+- ✅ Memory search tool (built into ThinkingEngine)
+- ✅ Async handlers with structured results
+
+### Dashboard: Textual TUI ✅
 - ✅ Main TUI application (`assistant/dashboard/app.py`)
-- ✅ **Pulsing circle visualizer** (`assistant/dashboard/widgets/visualizer.py`) ⭐
-- ✅ Status widget with device/state/server info
+- ✅ Voice visualizer with dual circles (mic/output)
 - ✅ Activity feed with timestamps
-- ✅ Textual CSS styling
-- ✅ Test script with amplitude simulation
+- ✅ Chat panel with history
+- ✅ Settings screen
+- ✅ Multiple tab views (status, settings, tools, chat, projects, schedule, workers)
+- ✅ Persona theme integration
 - ✅ 30 FPS smooth animations
-- ✅ Keyboard controls (SPACE, Q)
 
-See [Phase 3 Implementation Details](docs/phase3-dashboard-implementation.md)
-
-### Phase 4: Persona System ✅
+### Persona System ✅
 - ✅ PersonaConfig with Pydantic models (`assistant/personas/config.py`)
-- ✅ PersonaManager for loading/switching personas (`assistant/personas/manager.py`)
+- ✅ PersonaManager for loading/switching (`assistant/personas/manager.py`)
 - ✅ Big Five personality traits + custom dimensions
-- ✅ External YAML configuration system
-- ✅ Directory-based persona discovery
-- ✅ Hot-reloading support
-- ✅ Jarvis example persona (testing only)
+- ✅ External YAML configuration
 - ✅ System prompt generation from traits
+- ✅ Theme colors per persona
 
-### Phase 5: Wake Word Detection ✅
-- ✅ Vosk-based offline wake word detection (`assistant/wake_word/detector.py`)
-- ✅ Model download script (`scripts/download_vosk_model.py`)
-- ✅ Test script with microphone input (`examples/test_wake_word.py`)
-- ✅ Optional VAD integration for efficiency
-- ✅ Per-persona wake word customization
-- ✅ Deterministic recognition (no AI hallucinations)
-- ✅ <100ms latency
+### Memory Integration ✅
+- ✅ MemoryManager with server fallback (`assistant/memory.py`)
+- ✅ Conversation history storage
+- ✅ Context retrieval for LLM
+- ✅ Local cache for offline operation
 
-### Phase 6: Memory Integration ✅
-- ✅ Async HTTP memory client (`assistant/memory/client.py`)
-- ✅ MemoryManager with automatic fallback (`assistant/memory/client.py`)
-- ✅ LocalMemoryCache for offline operation
-- ✅ Server health checks and error handling
-- ✅ Test script (`examples/test_memory.py`)
-- ✅ Environment configuration (`.env.example`)
-- ✅ Integration with Node.js server API
+### Wake Word Detection ✅
+- ✅ Vosk-based offline detection (`assistant/wake_word/detector.py`)
+- ✅ Multiple wake words (all persona names + common phrases)
+- ✅ <100ms latency, deterministic
 
-### Phase 7: Main Entry Point and Integration Testing ✅
-- ✅ Main application entry point (`assistant/main.py`)
-- ✅ CLI argument parsing and configuration
-- ✅ Component integration and lifecycle management
-- ✅ Integration tests (`tests/test_integration.py`)
-- ✅ Dashboard widget tests (`tests/test_dashboard.py`)
-- ✅ PyProject.toml with CLI entry points
-- ✅ Comprehensive documentation
-- ✅ Graceful shutdown and signal handling
+### Infrastructure ✅
+- ✅ Hardware detection (GPU type, memory)
+- ✅ Service selection based on capabilities
+- ✅ Singleton lock for single instance
+- ✅ Graceful shutdown
 
 ## Architecture
 
-### Voice Backend: PyTorch + ROCm/MPS
-- Mac M3: PyTorch MPS (Metal)
-- AMD Strix Halo: PyTorch ROCm
-- Fallback: CPU
+### Voice Backend: Moshi MLX
+- **Mac M-series**: Moshi MLX on Metal GPU (primary)
+- Runs in separate process for GPU isolation
+- Quantized models: Q4 (fast), Q8 (balanced), BF16 (quality)
+- Real-time full-duplex audio (listen + speak simultaneously)
+
+### AI Models
+- **Moshi**: Voice conversation (MLX, local)
+- **Claude Haiku**: Quick decisions in ThinkingEngine
+- **Claude Sonnet 4.5**: Smart summarization for context injection
 
 ### TUI Framework: Textual ✅
 - Modern async/await
-- **Pulsing circle audio visualizer** (IMPLEMENTED)
-- Real-time dashboard (IMPLEMENTED)
-- 30 FPS animations (IMPLEMENTED)
+- Voice visualizer with dual amplitude circles
+- Real-time activity feed
+- 30 FPS animations
+- Multi-tab navigation
 
 ### Persona System: External YAML configs ✅
 - Directory-based (`packages/personas/`)
 - Hot-reloadable
-- Not hardcoded (Jarvis is just test persona)
 - Pydantic models for validation
 - Big Five + custom personality traits
+- Theme colors and system prompts
+
+### Tool System ✅
+- Registry with JSON schema for LLM
+- Email (SendGrid), Phone (Twilio)
+- Memory search
+- Extensible async handlers
 
 ### Wake Word Detection: Vosk ✅
 - Offline (no API calls)
 - Lightweight (~40MB model)
-- Deterministic (no false positives)
-- Low latency (<100ms)
-- Custom wake words per persona
+- <100ms latency
+- Multiple wake words per session
 
-### Memory Integration: HTTP Client + Local Cache ✅
+### Memory Integration ✅
 - Async httpx client for Node.js server
 - Automatic fallback to local cache
-- Conversation history storage
-- Semantic memory search
-- User preferences management
+- Conversation history for ThinkingEngine
+
+---
+
+## Voice Server (ZeroMQ)
+
+The voice server runs Moshi MLX in a separate process for proper Metal GPU utilization. Communication happens over ZeroMQ sockets.
+
+### Architecture
+
+```
+┌─────────────┐     ZeroMQ      ┌──────────────┐
+│   TUI App   │ ◄─────────────► │ Voice Server │
+│             │   Port 5555     │              │
+│ VoiceServer │   (commands)    │  Moshi MLX   │
+│   Client    │                 │  Audio I/O   │
+│             │   Port 5556     │  Transcript  │
+│             │ ◄─────────────► │              │
+│             │   (audio in)    │              │
+│             │                 │              │
+│             │   Port 5557     │              │
+│             │ ◄─────────────► │              │
+└─────────────┘   (audio out)   └──────────────┘
+```
+
+### Server API
+
+The voice server exposes these commands via ZeroMQ:
+
+```python
+from assistant.voice_server import VoiceServerClient
+
+client = VoiceServerClient()
+
+# Persona & Context
+client.set_persona(name, system_prompt, traits)
+client.inject_context("User prefers dark themes")
+client.inject_tool_result("email", "Sent to chad@example.com")
+
+# Conversation History
+client.get_history()
+client.inject_history([...])
+client.clear_history()
+
+# Transcript Monitoring
+client.get_transcript()      # Full conversation
+client.get_new_text()        # New text since last call (for polling)
+client.clear_transcript()
+
+# Context Management
+client.get_context_usage()   # Track ~3000 token budget
+
+# Audio Streaming
+client.send_audio(samples)   # Mic input to Moshi
+client.recv_audio()          # Moshi output + amplitudes
+```
+
+### Starting the Server
+
+The server is started automatically by `main.py` before launching the TUI:
+
+```python
+from assistant.voice_server import start_server_process
+
+# Start in separate process
+process = start_server_process(quality="q4")  # or "q8", "bf16"
+
+# Server runs on localhost:5555 (commands), 5556 (audio in), 5557 (audio out)
+```
+
+---
+
+## Thinking Engine
+
+The ThinkingEngine monitors conversations and decides when to use tools, search memory, or inject context.
+
+### Two-Step Architecture
+
+1. **Decision (Claude Haiku)** - Fast, cheap
+   - Analyzes recent conversation
+   - Decides: search memory? execute tool? inject context? do nothing?
+
+2. **Summarization (Claude Sonnet 4.5)** - Smart, quality
+   - Takes raw data from tools/memory
+   - Creates terse 2-3 sentence summaries
+   - Max 150 tokens to fit Moshi's ~3000 token context
+
+### How It Works
+
+```python
+from assistant.thinking_engine import ThinkingEngine
+
+engine = ThinkingEngine(
+    voice_client=client,
+    memory_manager=memory,
+    user_id="user-123"
+)
+
+# Callbacks for UI updates
+engine.on_injection = lambda ctx: print(f"Injected: {ctx}")
+engine.on_tool_result = lambda name, result: print(f"Tool: {name}")
+
+await engine.start()
+
+# Engine now monitors:
+# - User input (via process_user_input())
+# - Moshi output (via polling get_new_text())
+```
+
+### Available Tools
+
+The ThinkingEngine can execute these tools:
+
+- **send_email** - Send email via SendGrid
+- **make_call** - Make phone call via Twilio
+- **search_memory** - Search conversation history
+- **change_theme** - Switch TUI color theme
+
+### Example Flow
+
+```
+User: "Email me the status update"
+         │
+         ▼
+ThinkingEngine (Haiku): "action: tool_call, tool: send_email"
+         │
+         ▼
+ToolRegistry: execute send_email(subject, content)
+         │
+         ▼
+ThinkingEngine (Sonnet): Summarize result
+         │
+         ▼
+"Email sent to chad@example.com. Subject: Status Update"
+         │
+         ▼
+voice_client.inject_tool_result("email", summary)
+         │
+         ▼
+Moshi: "I've sent you that status update email."
+```
 
 ---
 
@@ -842,28 +1039,28 @@ assistant --device cuda  # Use NVIDIA/AMD
 
 ## Current Status
 
-**Completed**: ALL 7 phases! 🎉
+**Version**: 0.3.90
 
-- ✅ Phase 1: Project structure
-- ✅ Phase 2: PyTorch MOSHI integration
-- ✅ Phase 3: Textual dashboard (with beautiful pulsing circle!)
-- ✅ Phase 4: Persona system (external YAML configs)
-- ✅ Phase 5: Wake word detection (Vosk offline)
-- ✅ Phase 6: Memory integration (HTTP client + local cache)
-- ✅ Phase 7: Main entry point and integration testing
+**Core Systems**:
+- ✅ ZeroMQ voice server with Moshi MLX
+- ✅ ThinkingEngine with Haiku/Sonnet two-step
+- ✅ Tool system (email, phone, memory)
+- ✅ Textual TUI dashboard
+- ✅ Persona system
+- ✅ Memory integration
 
-**Total Lines of Code**: ~4,000 LOC across 7 phases
-
-- Phase 1: ~470 LOC (config, structure)
-- Phase 2: ~600 LOC (MOSHI bridge, audio I/O, VAD)
-- Phase 3: ~530 LOC (dashboard, visualizer, widgets, tests)
-- Phase 4: ~500 LOC (persona models, manager, example persona)
-- Phase 5: ~800 LOC (wake word detector, scripts, tests, docs)
-- Phase 6: ~800 LOC (memory client, manager, cache, tests)
-- Phase 7: ~300 LOC (main entry point, integration tests, CLI)
+**In Progress**:
+- 🔄 End-to-end testing with real Moshi models
+- 🔄 Additional tools (calendar, reminders)
 
 ---
 
-**The assistant is now complete and ready for user testing!** 🎉
+**Run the assistant:**
 
-Run `assistant` to launch the interactive TUI and complete the first-run setup wizard!
+```bash
+cd packages/assistant
+pip install -e .
+assistant
+```
+
+The voice server starts automatically, ThinkingEngine monitors the conversation, and tools are executed as needed.
