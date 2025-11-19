@@ -59,13 +59,14 @@ class VoiceAssistantApp(App):
 
     CSS_PATH = "styles.tcss"
 
-    def __init__(self, config: Config, personas_dir: Path, moshi_server_info=None):
+    def __init__(self, config: Config, personas_dir: Path, voice_server_process=None):
         super().__init__()
         self.config = config
         self.personas_dir = personas_dir
-        self.moshi_server_info = moshi_server_info  # (process, client_to_server, server_to_client, status_queue)
-        self.moshi_bridge: Optional[object] = None
-        self.moshi_client: Optional[object] = None  # New client for server-based architecture
+        self.voice_server_process = voice_server_process  # subprocess.Popen from start_server_process()
+        self.voice_client: Optional[object] = None  # VoiceServerClient for ZeroMQ communication
+        self.moshi_bridge: Optional[object] = None  # Deprecated: kept for backwards compatibility
+        self.moshi_client: Optional[object] = None  # Deprecated: kept for backwards compatibility
         self.audio_io: Optional[object] = None
         self.audio_buffer = []  # Buffer for capturing audio during listening
         self.chat_history = []  # Store chat messages (user + assistant)
@@ -717,12 +718,87 @@ class VoiceAssistantApp(App):
             self.voice_initialized = False
             return False
 
+    async def _initialize_with_voice_server(self):
+        """
+        Initialize using the ZeroMQ voice server.
+
+        This uses VoiceServerClient to communicate with the pre-started
+        voice server process for MLX inference.
+        """
+        from ..voice_server import VoiceServerClient, is_server_running
+        from ..voice.audio_io import AudioIO
+        import time
+
+        activity = self.query_one("#activity", ActivityFeed)
+
+        # Wait for server to be ready
+        activity.add_message("Connecting to voice server...", "system")
+
+        max_wait = 30  # seconds
+        start_time = time.time()
+        while not is_server_running() and time.time() - start_time < max_wait:
+            await asyncio.sleep(0.5)
+
+        if not is_server_running():
+            self.update_activity("❌ Voice server not responding")
+            return
+
+        # Create client
+        self.voice_client = VoiceServerClient()
+        self.update_activity("✓ Connected to voice server")
+
+        # Initialize audio I/O
+        self.audio_io = AudioIO(
+            input_callback=self._on_audio_input,
+            output_callback=self._on_audio_output_request
+        )
+        self.audio_io.start()
+        self.update_activity("✓ Audio I/O initialized")
+
+        # Configure persona
+        persona = self.persona_manager.get_current_persona()
+        if persona:
+            traits = getattr(persona, 'traits', {})
+            self.voice_client.set_persona(persona.name, persona.system_prompt, traits)
+            self.update_activity(f"✓ Persona set: {persona.name}")
+
+        # Start audio processing loops
+        self._voice_output_queue = []  # Queue for audio from server
+        self.run_worker(self._voice_client_recv_loop(), exclusive=False, group="voice_recv")
+        self.run_worker(self._voice_playback_loop(), exclusive=False, group="voice_playback")
+
+        self.voice_initialized = True
+        self.update_activity("✓ Voice system ready")
+
+    async def _voice_client_recv_loop(self):
+        """Receive audio and text from voice server."""
+        while self.voice_initialized:
+            # Poll for audio from server (non-blocking)
+            # TODO: Implement proper async receive from ZeroMQ
+            await asyncio.sleep(0.01)
+
+    async def _voice_playback_loop(self):
+        """Play audio from voice server."""
+        while self.voice_initialized:
+            if len(self._voice_output_queue) > 0:
+                audio_chunk = self._voice_output_queue.pop(0)
+                # Play through audio_io
+                # TODO: Implement actual playback
+            await asyncio.sleep(0.001)
+
     async def initialize_moshi(self):
         """Load voice models and initialize audio"""
         try:
             with open("/tmp/xswarm_debug.log", "a") as f:
                 f.write("DEBUG: initialize_moshi() called\n")
                 f.flush()
+
+            # Check if we have a pre-started voice server (ZeroMQ-based)
+            if self.voice_server_process:
+                await self._initialize_with_voice_server()
+                return True
+
+            # Fall back to old direct loading (will fail with fds_to_keep on macOS)
             # Add initial progress message and capture its ID
             activity = self.query_one("#activity", ActivityFeed)
             progress_message_id = activity.add_message("Initializing voice models...", "system")

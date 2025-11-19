@@ -92,10 +92,10 @@ class VoiceAssistant:
     Integrates all components into cohesive system.
     """
 
-    def __init__(self, config: Config, personas_dir: Path, moshi_server_info=None):
+    def __init__(self, config: Config, personas_dir: Path, voice_server_process=None):
         self.config = config
         self.personas_dir = personas_dir
-        self.moshi_server_info = moshi_server_info  # (process, client_to_server, server_to_client, status_queue)
+        self.voice_server_process = voice_server_process  # subprocess.Popen from start_server_process()
         self.app: Optional[VoiceAssistantApp] = None
         self.persona_manager: Optional[PersonaManager] = None
         self.memory_manager: Optional[MemoryManager] = None
@@ -170,7 +170,7 @@ class VoiceAssistant:
                 pass  # Continue with local cache only
 
         # 3. Initialize dashboard (TUI)
-        self.app = VoiceAssistantApp(self.config, self.personas_dir, moshi_server_info=self.moshi_server_info)
+        self.app = VoiceAssistantApp(self.config, self.personas_dir, voice_server_process=self.voice_server_process)
 
     async def run(self):
         """Run the application"""
@@ -314,23 +314,23 @@ Configuration:
     elif args.debug and not (args.config or Config.get_config_path().exists()):
         config = Config()
 
-    # Start Moshi server process BEFORE Textual to avoid multiprocessing issues
+    # Start Moshi voice server BEFORE Textual to avoid multiprocessing issues
     # The server runs MLX inference in a separate process for proper Metal GPU utilization
-    moshi_server_info = None
+    voice_server_process = None
     if service_config.moshi_mode == "local":
-        print(f"🚀 Starting Moshi server (quality={service_config.moshi_quality})...")
+        print(f"🚀 Starting voice server (quality={service_config.moshi_quality})...")
         try:
-            from .voice.moshi_server import start_moshi_server
-            moshi_server_info = start_moshi_server(quality=service_config.moshi_quality)
-            print("✅ Moshi server process started")
+            from .voice_server import start_server_process
+            voice_server_process = start_server_process(quality=service_config.moshi_quality)
+            print("✅ Voice server process started")
         except Exception as e:
-            print(f"⚠️  Failed to start Moshi server: {e}")
+            print(f"⚠️  Failed to start voice server: {e}")
             if args.debug:
                 import traceback
                 traceback.print_exc()
 
     # Create and run assistant
-    assistant = VoiceAssistant(config, personas_dir, moshi_server_info=moshi_server_info)
+    assistant = VoiceAssistant(config, personas_dir, voice_server_process=voice_server_process)
 
     try:
         asyncio.run(assistant.initialize())
@@ -342,12 +342,10 @@ Configuration:
             traceback.print_exc()
         sys.exit(1)
     finally:
-        # Cleanup Moshi server
-        if moshi_server_info:
-            process, client_to_server, _, _ = moshi_server_info
-            client_to_server.put(None)  # Shutdown signal
-            process.terminate()
-            process.join(timeout=2)
+        # Cleanup voice server
+        if voice_server_process:
+            voice_server_process.terminate()
+            voice_server_process.join(timeout=2)
 
 
 if __name__ == "__main__":

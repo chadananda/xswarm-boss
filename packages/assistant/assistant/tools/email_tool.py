@@ -8,7 +8,7 @@ import os
 from typing import Dict, Any
 from pathlib import Path
 from .registry import Tool, ToolParameter
-from ..email.persona_mailer import PersonaMailer
+from ..mailer.persona_mailer import PersonaMailer
 from ..personas.manager import PersonaManager
 
 
