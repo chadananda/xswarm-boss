@@ -787,8 +787,9 @@ def is_server_running(port: int = COMMAND_PORT) -> bool:
     try:
         ctx = zmq.Context()
         socket = ctx.socket(zmq.REQ)
-        socket.setsockopt(zmq.RCVTIMEO, 1000)
-        socket.setsockopt(zmq.SNDTIMEO, 1000)
+        socket.setsockopt(zmq.RCVTIMEO, 500)  # 500ms timeout
+        socket.setsockopt(zmq.SNDTIMEO, 500)
+        socket.setsockopt(zmq.LINGER, 0)  # Don't wait on close
         socket.connect(f"tcp://localhost:{port}")
 
         socket.send(msgpack.packb({"method": "ping"}))
@@ -799,6 +800,11 @@ def is_server_running(port: int = COMMAND_PORT) -> bool:
 
         return response.get("status") == "ok"
     except:
+        try:
+            socket.close()
+            ctx.term()
+        except:
+            pass
         return False
 
 
