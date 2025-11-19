@@ -137,6 +137,10 @@ class VoiceServer:
         self.mic_amplitude = 0.0
         self.output_amplitude = 0.0
 
+        # Transcript - accumulated text output for monitoring
+        self.transcript = ""  # Full transcript
+        self.transcript_since_last_read = ""  # New text since last read
+
         # Callbacks
         self.text_callbacks = []
         self.audio_callbacks = []
@@ -364,6 +368,20 @@ class VoiceServer:
                     "output_amplitude": self.output_amplitude,
                 }}
 
+            elif method == "get_transcript":
+                return {"status": "ok", "result": self.transcript}
+
+            elif method == "get_new_text":
+                # Get text since last read (for polling)
+                text = self.transcript_since_last_read
+                self.transcript_since_last_read = ""
+                return {"status": "ok", "result": text}
+
+            elif method == "clear_transcript":
+                self.transcript = ""
+                self.transcript_since_last_read = ""
+                return {"status": "ok"}
+
             elif method == "shutdown":
                 self.running = False
                 return {"status": "ok"}
@@ -536,6 +554,10 @@ class VoiceServer:
             text_piece = self.text_tokenizer.id_to_piece(text_token_id)
             text_piece = text_piece.replace("▁", " ")
 
+            # Append to transcript for monitoring
+            self.transcript += text_piece
+            self.transcript_since_last_read += text_piece
+
             # Check for tool calls
             self._check_tool_call(text_piece)
 
@@ -669,6 +691,20 @@ class VoiceServerClient:
     def get_context_usage(self) -> dict:
         """Get context window usage."""
         return self._call("get_context_usage")
+
+    # === Transcript Monitoring ===
+
+    def get_transcript(self) -> str:
+        """Get full transcript of Moshi's speech."""
+        return self._call("get_transcript")
+
+    def get_new_text(self) -> str:
+        """Get new text since last call (for polling)."""
+        return self._call("get_new_text")
+
+    def clear_transcript(self):
+        """Clear the transcript."""
+        return self._call("clear_transcript")
 
     # === Tool Use ===
 
