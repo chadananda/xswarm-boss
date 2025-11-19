@@ -299,12 +299,13 @@ class VoiceServer:
                     # Process audio
                     result = self._process_audio_frame(pcm)
 
-                    # Send output
-                    if result["audio"] is not None:
-                        self.audio_out_socket.send(msgpack.packb({
-                            "audio": result["audio"].tolist(),
-                            "text": result["text"],
-                        }))
+                    # Always send response (for amplitude feedback even without audio)
+                    self.audio_out_socket.send(msgpack.packb({
+                        "audio": result["audio"].tolist() if result["audio"] is not None else None,
+                        "text": result["text"],
+                        "mic_amp": self.mic_amplitude,
+                        "out_amp": self.output_amplitude,
+                    }))
 
             except zmq.ZMQError as e:
                 if e.errno == zmq.ETERM:
@@ -750,14 +751,16 @@ class VoiceServerClient:
             timeout: Timeout in ms
 
         Returns:
-            Dict with 'audio' (np.ndarray) and 'text' (str), or None
+            Dict with 'audio' (np.ndarray), 'text' (str), 'mic_amp', 'out_amp', or None
         """
         if self.audio_in_socket.poll(timeout):
             msg = self.audio_in_socket.recv()
             data = msgpack.unpackb(msg, raw=False)
             return {
-                "audio": np.array(data["audio"], dtype=np.float32) if data["audio"] else None,
-                "text": data["text"],
+                "audio": np.array(data["audio"], dtype=np.float32) if data.get("audio") else None,
+                "text": data.get("text", ""),
+                "mic_amp": data.get("mic_amp", 0.0),
+                "out_amp": data.get("out_amp", 0.0),
             }
         return None
 

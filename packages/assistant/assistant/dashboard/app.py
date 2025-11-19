@@ -728,6 +728,7 @@ class VoiceAssistantApp(App):
         from ..voice_server import VoiceServerClient, is_server_running
         from ..voice.audio_io import AudioIO
         import time
+        import numpy as np
 
         activity = self.query_one("#activity", ActivityFeed)
 
@@ -748,11 +749,29 @@ class VoiceAssistantApp(App):
         self.update_activity("✓ Connected to voice server")
 
         # Initialize audio I/O
-        self.audio_io = AudioIO(
-            input_callback=self._on_audio_input,
-            output_callback=self._on_audio_output_request
-        )
-        self.audio_io.start()
+        self.audio_io = AudioIO()
+
+        # State for audio processing
+        self._smoothed_amplitude = 0.0
+        self._voice_output_queue = []
+
+        # Audio input callback - sends to voice server
+        def on_audio_input(audio):
+            # Calculate mic amplitude
+            rms = np.sqrt(np.mean(audio ** 2))
+            raw_amplitude = float(np.clip(rms * 4, 0, 1))
+
+            # Apply smoothing and boost
+            boosted = min(raw_amplitude * 2.5, 1.0)
+            alpha = 0.3
+            self._smoothed_amplitude = alpha * boosted + (1 - alpha) * self._smoothed_amplitude
+
+            # Send to voice server
+            self.voice_client.send_audio(audio)
+
+        # Start audio streams
+        self.audio_io.start_input(callback=on_audio_input)
+        self.audio_io.start_output()
         self.update_activity("✓ Audio I/O initialized")
 
         # Configure persona
@@ -762,29 +781,60 @@ class VoiceAssistantApp(App):
             self.voice_client.set_persona(persona.name, persona.system_prompt, traits)
             self.update_activity(f"✓ Persona set: {persona.name}")
 
-        # Start audio processing loops
-        self._voice_output_queue = []  # Queue for audio from server
+        # Start processing loops
         self.run_worker(self._voice_client_recv_loop(), exclusive=False, group="voice_recv")
-        self.run_worker(self._voice_playback_loop(), exclusive=False, group="voice_playback")
+        self.run_worker(self._voice_amplitude_loop(), exclusive=False, group="voice_amplitude")
 
         self.voice_initialized = True
         self.update_activity("✓ Voice system ready")
 
     async def _voice_client_recv_loop(self):
-        """Receive audio and text from voice server."""
-        while self.voice_initialized:
-            # Poll for audio from server (non-blocking)
-            # TODO: Implement proper async receive from ZeroMQ
-            await asyncio.sleep(0.01)
+        """Receive audio and text from voice server and queue for playback."""
+        self._last_mic_amp = 0.0
+        self._last_out_amp = 0.0
 
-    async def _voice_playback_loop(self):
-        """Play audio from voice server."""
         while self.voice_initialized:
-            if len(self._voice_output_queue) > 0:
-                audio_chunk = self._voice_output_queue.pop(0)
-                # Play through audio_io
-                # TODO: Implement actual playback
+            try:
+                # Poll for audio from server (non-blocking with short timeout)
+                result = self.voice_client.recv_audio(timeout=10)
+                if result:
+                    # Queue audio for playback
+                    if result["audio"] is not None:
+                        self.audio_io.output_queue.put(result["audio"])
+
+                    # Store amplitudes for visualizer
+                    self._last_mic_amp = result.get("mic_amp", 0.0)
+                    self._last_out_amp = result.get("out_amp", 0.0)
+
+                    # Handle text output
+                    if result["text"]:
+                        # Append to transcript
+                        self._voice_transcript = getattr(self, '_voice_transcript', '') + result["text"]
+
+            except Exception as e:
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"ERROR in voice_client_recv_loop: {e}\n")
+
             await asyncio.sleep(0.001)
+
+    async def _voice_amplitude_loop(self):
+        """Update visualizer with amplitudes from audio stream."""
+        while self.voice_initialized:
+            try:
+                visualizer = self.query_one("#voice_viz", VoiceVisualizerPanel)
+
+                # Update mic visualizer (bottom circle) - from server-processed amplitude
+                mic_percent = int(getattr(self, '_last_mic_amp', 0.0) * 100)
+                visualizer.update_bottom_circle(mic_percent)
+
+                # Update output visualizer (top circle)
+                out_percent = int(getattr(self, '_last_out_amp', 0.0) * 100)
+                visualizer.update_top_circle(out_percent)
+
+            except Exception:
+                pass
+
+            await asyncio.sleep(0.033)  # ~30Hz update rate for smooth visualizer
 
     async def initialize_moshi(self):
         """Load voice models and initialize audio"""

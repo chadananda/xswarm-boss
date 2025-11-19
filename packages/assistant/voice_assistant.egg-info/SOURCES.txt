@@ -4,6 +4,7 @@ assistant/__init__.py
 assistant/config.py
 assistant/main.py
 assistant/memory.py
+assistant/voice_server.py
 assistant/dashboard/__init__.py
 assistant/dashboard/app.py
 assistant/dashboard/platform.py
@@ -30,12 +31,12 @@ assistant/dashboard/widgets/panels/panel_base.py
 assistant/dashboard/widgets/panels/projects_panel.py
 assistant/dashboard/widgets/panels/todo_panel.py
 assistant/dashboard/widgets/panels/voice_visualizer_panel.py
-assistant/email/__init__.py
-assistant/email/persona_mailer.py
-assistant/email/status_reporter.py
 assistant/hardware/__init__.py
 assistant/hardware/gpu_detector.py
 assistant/hardware/service_selector.py
+assistant/mailer/__init__.py
+assistant/mailer/persona_mailer.py
+assistant/mailer/status_reporter.py
 assistant/memory/__init__.py
 assistant/memory/client.py
 assistant/memory/embedder.py
@@ -66,7 +67,9 @@ assistant/voice/audio_io.py
 assistant/voice/bridge.py
 assistant/voice/conversation.py
 assistant/voice/download_models.py
+assistant/voice/moshi_client.py
 assistant/voice/moshi_mlx.py
+assistant/voice/moshi_server.py
 assistant/voice/parallel_download.py
 assistant/voice/robust_download.py
 assistant/voice/vad.py
