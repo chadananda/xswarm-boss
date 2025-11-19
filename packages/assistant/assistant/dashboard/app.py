@@ -59,11 +59,13 @@ class VoiceAssistantApp(App):
 
     CSS_PATH = "styles.tcss"
 
-    def __init__(self, config: Config, personas_dir: Path):
+    def __init__(self, config: Config, personas_dir: Path, moshi_server_info=None):
         super().__init__()
         self.config = config
         self.personas_dir = personas_dir
+        self.moshi_server_info = moshi_server_info  # (process, client_to_server, server_to_client, status_queue)
         self.moshi_bridge: Optional[object] = None
+        self.moshi_client: Optional[object] = None  # New client for server-based architecture
         self.audio_io: Optional[object] = None
         self.audio_buffer = []  # Buffer for capturing audio during listening
         self.chat_history = []  # Store chat messages (user + assistant)
