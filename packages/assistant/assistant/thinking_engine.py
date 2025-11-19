@@ -280,6 +280,62 @@ What action, if any, should be taken?"""
             # Log but don't crash
             pass
 
+    async def _summarize_for_moshi(self, data: str, context: str) -> str:
+        """
+        Use Sonnet 4.5 to create a terse summary for Moshi's small context window.
+
+        Args:
+            data: The raw data to summarize (memories, tool results, etc.)
+            context: What this data is for (e.g., "memory search results", "email status")
+
+        Returns:
+            A very terse but accurate summary suitable for Moshi's ~3000 token context
+        """
+        if not self.claude:
+            # Fallback: truncate to 200 chars
+            return data[:200] + "..." if len(data) > 200 else data
+
+        system_prompt = """You are a summarizer for a voice AI assistant with a VERY small context window (~3000 tokens total).
+
+Your job is to create extremely terse but accurate summaries that capture the essential information.
+
+Rules:
+- Maximum 2-3 short sentences
+- Use fragments, not full sentences where possible
+- Focus on actionable/relevant facts only
+- Omit pleasantries, timestamps, metadata
+- Be direct: "User prefers X" not "The user has indicated a preference for X"
+- Numbers and names are important - keep them
+- If multiple items, pick the 2-3 most relevant
+
+Example good summaries:
+- "User prefers dark themes. Last set GLaDOS orange on Tuesday."
+- "Email sent successfully to chad@example.com. Subject: Status Update"
+- "User asked about weather twice yesterday. Likes detailed forecasts."
+
+Example bad summaries (too verbose):
+- "Based on the conversation history, it appears that the user has expressed a preference for..."
+- "The email has been successfully dispatched to the intended recipient at the address..."
+"""
+
+        user_message = f"""Summarize this {context} for injection into Moshi's context:
+
+{data}
+
+Create a terse 2-3 sentence summary:"""
+
+        try:
+            response = await self.claude.messages.create(
+                model="claude-sonnet-4-5-20250514",  # Sonnet 4.5 for smart summarization
+                max_tokens=150,  # Force brevity
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_message}]
+            )
+            return response.content[0].text.strip()
+        except Exception as e:
+            # Fallback: truncate
+            return data[:200] + "..." if len(data) > 200 else data
+
     async def _execute_decision(self, decision: Dict[str, Any]):
         """Execute the thinking engine's decision."""
         action = decision.get("action", "none")
@@ -296,8 +352,19 @@ What action, if any, should be taken?"""
 
                 # Inject tool result into Moshi's context
                 if result.get("success"):
-                    result_text = str(result.get("result", ""))
-                    self.voice_client.inject_tool_result(tool_name, result_text)
+                    result_data = result.get("result", {})
+
+                    # Summarize the result for Moshi's small context
+                    if isinstance(result_data, dict):
+                        result_text = str(result_data)
+                    else:
+                        result_text = str(result_data)
+
+                    summary = await self._summarize_for_moshi(
+                        result_text,
+                        f"tool '{tool_name}' result"
+                    )
+                    self.voice_client.inject_tool_result(tool_name, summary)
 
                     if self.on_tool_result:
                         self.on_tool_result(tool_name, result)
@@ -305,6 +372,10 @@ What action, if any, should be taken?"""
         elif action == "inject_context":
             context = decision.get("context_to_inject", "")
             if context:
+                # Summarize if context is long
+                if len(context) > 200:
+                    context = await self._summarize_for_moshi(context, "context injection")
+
                 self.voice_client.inject_context(context)
 
                 if self.on_injection:
@@ -315,16 +386,23 @@ What action, if any, should be taken?"""
             if query:
                 result = await self._search_memory_handler(query)
 
-                # If we found relevant memories, inject them
+                # If we found relevant memories, summarize and inject them
                 if result.get("results"):
                     memories = result["results"]
-                    memory_text = "\n".join([
-                        f"[Past: {m.get('message', '')}]"
+
+                    # Build raw memory text
+                    raw_memories = "\n".join([
+                        f"- {m.get('role', 'unknown')}: {m.get('message', '')}"
                         for m in memories
                     ])
-                    self.voice_client.inject_context(
-                        f"Relevant past context:\n{memory_text}"
+
+                    # Summarize with Sonnet for Moshi's small context
+                    summary = await self._summarize_for_moshi(
+                        raw_memories,
+                        f"memory search for '{query}'"
                     )
 
+                    self.voice_client.inject_context(f"[Memory] {summary}")
+
                     if self.on_injection:
-                        self.on_injection(memory_text)
+                        self.on_injection(summary)
