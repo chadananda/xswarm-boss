@@ -127,14 +127,15 @@ def server_process(
         while True:
             # Get encoded audio from client
             try:
-                data = client_to_server.get(timeout=1.0)
+                data = client_to_server.get(timeout=0.1) # Faster timeout for checking
+                log(f"DEBUG: Server received data: {type(data)}")
             except queue.Empty:
                 continue
-                
-            # log(f"Received frame, shape: {data.shape if hasattr(data, 'shape') else 'unknown'}")
+            except Exception as e:
+                log(f"Error getting data: {e}")
+                continue
 
-            if data is None:
-                # Shutdown signal
+            if isinstance(data, str) and data == "stop":
                 break
 
             # Convert to MLX array and run inference
@@ -144,9 +145,11 @@ def server_process(
                 # Add batch dimension: (8, T) -> (1, 8, T)
                 data = data[None, :, :]
             
-            # log(f"Step input shape: {data.shape}")
+            log(f"Step input shape: {data.shape}")
             try:
+                log("DEBUG: Running inference step...")
                 text_token = gen.step(data)
+                log(f"DEBUG: Step complete. Token: {text_token[0].item()}")
             except ValueError as e:
                 continue
                 

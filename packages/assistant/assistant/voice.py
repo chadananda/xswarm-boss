@@ -268,6 +268,7 @@ class MoshiClient:
                 await asyncio.sleep(0.001)
                 try:
                     pcm_data = self.input_queue.get(block=False)
+                    # print(f"DEBUG: Client encoding {len(pcm_data)} samples")
                     self.audio_tokenizer.encode(pcm_data)
                 except queue.Empty:
                     continue
@@ -277,6 +278,7 @@ class MoshiClient:
                 if data is None:
                     await asyncio.sleep(0.001)
                     continue
+                # print(f"DEBUG: Client sending codes: {data.shape}")
                 self.client_to_server.put_nowait(data)
         async def recv_loop2():
             while self._running:
