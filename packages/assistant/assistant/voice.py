@@ -587,19 +587,25 @@ class MoshiBridgeProxy:
     def encode_audio(self, audio: np.ndarray) -> np.ndarray:
         audio = audio.astype(np.float32)
         self.audio_tokenizer.encode(audio)
-        while True:
+        start_time = time.time()
+        while time.time() - start_time < 1.0: # 1s timeout
             codes = self.audio_tokenizer.get_encoded()
             if codes is not None:
                 return codes
             time.sleep(0.001)
+        print("❌ Timeout encoding audio frame")
+        return np.zeros((1, 8), dtype=np.int32) # Return silence/empty on failure
 
     def decode_audio(self, codes: np.ndarray) -> np.ndarray:
         self.audio_tokenizer.decode(codes)
-        while True:
+        start_time = time.time()
+        while time.time() - start_time < 1.0: # 1s timeout
             audio = self.audio_tokenizer.get_decoded()
             if audio is not None:
                 return audio
             time.sleep(0.001)
+        print("❌ Timeout decoding audio frame")
+        return np.zeros(1920, dtype=np.float32) # Return silence on failure
             
     def get_amplitude(self, audio: np.ndarray) -> float:
         rms = np.sqrt(np.mean(audio ** 2))

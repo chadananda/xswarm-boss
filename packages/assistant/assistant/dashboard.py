@@ -1091,7 +1091,7 @@ class VoiceAssistantApp(App):
             pass
         
         # Also show toast for important messages to ensure visibility
-        if "Voice" in message or "voice" in message or "Error" in message:
+        if any(trigger in message for trigger in ["Voice", "voice", "Error", "🎤", "DEBUG"]):
             self.notify(message, timeout=5.0)
 
     def populate_theme_selector(self):
