@@ -267,7 +267,7 @@ Configuration:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 0.4.12"
+        version="%(prog)s 0.4.13"
     )
 
     args = parser.parse_args()

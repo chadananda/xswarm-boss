@@ -22,27 +22,45 @@ class AudioIO:
     Audio I/O manager using sounddevice.
     Provides real-time audio input/output with frame-based processing.
     """
-    def __init__(self, sample_rate: int = 24000, frame_size: int = 1920, channels: int = 1):
+    def __init__(self, sample_rate: int = 24000, frame_size: int = 1920, channels: int = 1, log_callback: Optional[Callable[[str], None]] = None):
         self.sample_rate = sample_rate
         self.frame_size = frame_size
         self.channels = channels
+        self.log_callback = log_callback
         self.input_queue: Queue = Queue()
         self.output_queue: Queue = Queue()
         self.input_stream: Optional[sd.InputStream] = None
         self.output_stream: Optional[sd.OutputStream] = None
+        
+        # Log available devices
+        try:
+            devices = sd.query_devices()
+            default_in = sd.query_devices(kind='input')
+            self.log(f"🎤 Audio Devices found: {len(devices)}")
+            self.log(f"🎤 Default Input: {default_in['name']}")
+        except Exception as e:
+            self.log(f"⚠️ Error querying audio devices: {e}")
+
+    def log(self, msg: str):
+        if self.log_callback:
+            self.log_callback(msg)
+        else:
+            print(msg)
 
     def start_input(self, callback: Optional[Callable] = None):
         def audio_callback(indata, frames, time, status):
+            if status:
+                self.log(f"⚠️ Audio Status: {status}")
             try:
                 audio = np.ascontiguousarray(indata[:, 0], dtype=np.float32)
                 self.input_queue.put(audio)
                 if callback:
                     try:
                         callback(audio)
-                    except Exception:
-                        pass
-            except Exception:
-                pass
+                    except Exception as e:
+                        self.log(f"❌ Error in audio callback: {e}")
+            except Exception as e:
+                self.log(f"❌ Critical error in audio processing: {e}")
 
         self.input_stream = sd.InputStream(
             samplerate=self.sample_rate,

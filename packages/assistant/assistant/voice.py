@@ -346,7 +346,7 @@ class ConversationLoop:
         self.on_turn_complete = on_turn_complete
         self.on_state_change = on_state_change
         self.log_callback = log_callback
-        self.audio_io = AudioIO()
+        self.audio_io = AudioIO(log_callback=self.log_callback)
         self.vad = VoiceActivityDetector()
         self.tool_executor = ToolExecutor(registry)
         self.command_parser = CommandParser()
