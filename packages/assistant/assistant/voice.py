@@ -654,25 +654,35 @@ class VoiceBridgeOrchestrator:
             print("🔌 Connecting to Voice Server Process...")
             c2s, s2c, status = self.voice_queues
             self.moshi = MoshiBridgeProxy(c2s, s2c, status, quality=self.moshi_quality)
+            print("✅ Voice Server Proxy created")
         else:
             print("🖥️  Initializing Local Moshi Bridge (In-Process)...")
             self.moshi = MoshiBridge(quality=self.moshi_quality)
+            print("✅ Local Moshi Bridge initialized")
             
         self.ai_client = AIClient(self.config)
         await self.memory_manager.initialize()
+        print(f"📝 Creating ConversationLoop (persona: {self.current_persona.name})...")
         self.conversation_loop = ConversationLoop(
             moshi_bridge=self.moshi, persona_manager=self.persona_manager, memory_manager=self.memory_manager,
             ai_client=self.ai_client, user_id=self.user_id, on_turn_complete=self._on_conversation_turn,
             on_state_change=self._on_state_change
         )
+        print("✅ ConversationLoop created")
         self._set_state(ConversationState.IDLE)
 
     async def start_conversation(self):
         if not self.conversation_loop:
             raise RuntimeError("Not initialized")
+        print("🎙️  Starting conversation loop...")
         self._running = True
-        await self.conversation_loop.start()
-        self._set_state(ConversationState.LISTENING)
+        try:
+            await self.conversation_loop.start()
+            self._set_state(ConversationState.LISTENING)
+            print("✅ Conversation loop started - microphone active")
+        except Exception as e:
+            print(f"❌ Failed to start conversation: {e}")
+            raise
 
     async def stop_conversation(self):
         self._running = False
