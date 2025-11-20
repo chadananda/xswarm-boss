@@ -1407,6 +1407,22 @@ class VoiceAssistantApp(App):
 
     def get_visualizer_data(self):
         """Callback for visualizer to pull data"""
-        # Return (amplitude, state)
-        return self.amplitude, self.state
+        # Return dict with mic_amplitude and connection_amplitude
+        if self.voice_orchestrator:
+            mic_amp = getattr(self.voice_orchestrator, '_current_mic_amplitude', 0.0)
+            moshi_amp = getattr(self.voice_orchestrator, '_current_moshi_amplitude', 0.0)
+            # Use max of mic and moshi for visualization
+            amplitude = max(mic_amp, moshi_amp)
+            # Map state to connection_amplitude
+            if self.state == "speaking":
+                conn_amp = 2.0 + (amplitude * 98.0)  # 2-100 range
+            elif self.state == "listening":
+                conn_amp = 1.0  # Idle/breathing
+            else:
+                conn_amp = 0.0  # Not connected
+            return {
+                "mic_amplitude": mic_amp * 2.0,  # Scale for visibility
+                "connection_amplitude": conn_amp
+            }
+        return {"mic_amplitude": 0.0, "connection_amplitude": 0.0}
 
