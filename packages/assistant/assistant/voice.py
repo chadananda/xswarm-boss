@@ -401,13 +401,26 @@ class ConversationLoop:
                 await asyncio.sleep(1.0)
 
     def _on_audio_frame(self, audio: np.ndarray):
+        """Callback for each audio frame from microphone"""
+        if not self._is_listening:
+            return
+        
+        # Update amplitude for visualization
+        self.moshi.update_mic_amplitude(audio)
+        
+        # Check for voice activity
         is_speaking = self.vad.process_frame(audio)
+        
         if is_speaking:
             self._audio_buffer.append(audio)
-            self._is_listening = True
-        else:
-            if self._is_listening and len(self._audio_buffer) > 0:
-                self._is_listening = False
+            # Log first frame of speech
+            if len(self._audio_buffer) == 1:
+                print(f"🎤 Speech detected! Starting capture...")
+        elif len(self._audio_buffer) > 0:
+            # End of speech - log buffer size
+            total_samples = sum(len(chunk) for chunk in self._audio_buffer)
+            duration_ms = (total_samples / 24000) * 1000
+            print(f"🎤 Speech ended. Captured {len(self._audio_buffer)} frames ({duration_ms:.0f}ms)")
 
     async def _capture_speech_segment(self) -> Optional[np.ndarray]:
         if len(self._audio_buffer) == 0:
@@ -418,6 +431,7 @@ class ConversationLoop:
         return segment
 
     async def _process_turn(self, user_audio: np.ndarray):
+        print(f"🤔 Processing turn with {len(user_audio)} audio samples...")
         self._set_state("thinking")
         self.moshi.update_mic_amplitude(user_audio)
         
@@ -433,6 +447,7 @@ class ConversationLoop:
                 pass
 
         moshi_audio, moshi_text = self.moshi.generate_response(user_audio=user_audio, text_prompt=inner_monologue, max_frames=125)
+        print(f"🎙️ Moshi generated: {len(moshi_audio)} audio samples, text: '{moshi_text[:50] if moshi_text else 'None'}...'")
         
         tool_output_text = ""
         if moshi_text:
