@@ -640,10 +640,15 @@ class MoshiBridgeProxy:
             
             # Read response (blocking)
             # Server sends ("audio", tokens, text) or ("text", None, text)
-            print(f"📥 Waiting for response from voice server...")
-            msg = self.server_to_client.get()
+            # print(f"📥 Waiting for response from voice server...")
+            try:
+                msg = self.server_to_client.get(timeout=5.0) # 5s timeout to prevent hang
+            except queue.Empty:
+                print("❌ Timeout waiting for voice server response")
+                break
+                
             type_, audio_tokens, text_piece = msg
-            print(f"📥 Received: type={type_}, audio_tokens={'present' if audio_tokens is not None else 'None'}, text='{text_piece}'")
+            # print(f"📥 Received: type={type_}, audio_tokens={'present' if audio_tokens is not None else 'None'}, text='{text_piece}'")
             
             if text_piece:
                 text_pieces.append(text_piece)
