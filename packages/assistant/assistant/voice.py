@@ -553,9 +553,23 @@ class MoshiBridgeProxy:
         self.mic_amplitude = 0.0
         self.moshi_amplitude = 0.0
         
+        self.mic_amplitude = 0.0
+        self.moshi_amplitude = 0.0
+        
         # Wait for server ready
-        # Note: This might block, but initialize() is async so we should be careful
-        # Ideally we check status_queue non-blocking
+        print("⏳ Waiting for voice server to be ready...")
+        try:
+            # Wait up to 30 seconds for model loading
+            msg = self.server_to_client.get(timeout=30.0)
+            if msg == "ready":
+                print("✅ Voice server is ready!")
+            else:
+                print(f"⚠️ Unexpected initial message from voice server: {msg}")
+        except queue.Empty:
+            print("❌ Timed out waiting for voice server ready signal")
+            # Don't raise here, let it fail later if needed, or retry
+        except Exception as e:
+            print(f"❌ Error waiting for voice server: {e}")
         
     def encode_audio(self, audio: np.ndarray) -> np.ndarray:
         audio = audio.astype(np.float32)
@@ -629,8 +643,9 @@ class MoshiBridgeProxy:
         # 3. Send silence codes for generation
         # We need to send empty codes to keep the model generating
         # MoshiBridge uses mx.zeros((1, 8))
-        # We need to send numpy equivalent
-        silence_codes = np.zeros((1, 8), dtype=np.int32) # Server expects numpy array from queue
+        # We need to send numpy equivalent with correct shape (1, 8)
+        # The server will add the time dimension -> (1, 8, 1)
+        silence_codes = np.zeros((1, 8), dtype=np.int32)
         
         for _ in range(max_frames):
             self.client_to_server.put(silence_codes)
