@@ -244,6 +244,23 @@ class MoshiClient:
         except queue.Empty:
             return None
 
+    def wait_for_ready(self, timeout: float = 30.0) -> bool:
+        """Wait for server ready signal."""
+        print("⏳ Waiting for voice server to be ready...")
+        try:
+            msg = self.server_to_client.get(timeout=timeout)
+            if msg == "ready":
+                print("✅ Voice server is ready!")
+                return True
+            else:
+                print(f"⚠️ Unexpected initial message from voice server: {msg}")
+                # If it's not ready, maybe it's data? Put it back? 
+                # No, if it's not ready, we probably shouldn't start.
+                return False
+        except queue.Empty:
+            print("❌ Timed out waiting for voice server ready signal")
+            return False
+
     async def run_async_loops(self):
         self._running = True
         async def send_loop():
@@ -268,6 +285,19 @@ class MoshiClient:
                 except queue.Empty:
                     await asyncio.sleep(0.001)
                     continue
+                
+                # Robust unpacking
+                if isinstance(result, str):
+                    if result == "ready":
+                        # Should have been consumed by wait_for_ready, but ignore if late
+                        continue
+                    print(f"⚠️ Unknown string message: {result}")
+                    continue
+                    
+                if not isinstance(result, (tuple, list)) or len(result) != 3:
+                    print(f"⚠️ Invalid message format: {result}")
+                    continue
+                    
                 msg_type, audio_tokens, text_piece = result
                 # print(f"DEBUG: Recv {msg_type} | Audio: {len(audio_tokens) if audio_tokens is not None else 0} | Text: {text_piece}")
                 if text_piece and self.on_text_token:
@@ -731,6 +761,7 @@ class VoiceBridgeOrchestrator:
             c2s, s2c, status = self.voice_queues
             # Use MoshiClient for full duplex streaming
             self.moshi = MoshiClient(c2s, s2c)
+            self.moshi.wait_for_ready()
             self.log("✅ Moshi Client created (Full Duplex)")
         else:
             self.log("🖥️  Initializing Local Moshi Bridge (In-Process)...")
