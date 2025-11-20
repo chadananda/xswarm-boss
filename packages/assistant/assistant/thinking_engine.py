@@ -15,9 +15,7 @@ import os
 from typing import Optional, Dict, Any, List
 from anthropic import AsyncAnthropic
 
-from .tools.registry import ToolRegistry, Tool, ToolParameter
-from .tools.email_tool import send_email_tool
-from .tools.phone_tool import make_call_tool
+from .tools import ToolRegistry, Tool, ToolParameter, send_email_tool, make_call_tool
 from .memory import MemoryManager
 
 
@@ -151,6 +149,63 @@ class ThinkingEngine:
 
         # Think about this input
         await self._think_and_act(text, source="user")
+
+    async def process_scheduled_task(self, task_name: str, context: str):
+        """
+        Process a scheduled task trigger.
+        
+        Called by Scheduler when a task is due (e.g. email check).
+        Decides if tools need to be run based on the task.
+        """
+        if not self.claude:
+            return
+
+        # We don't add this to the conversation buffer to avoid cluttering
+        # the user-visible chat, but we do use it to trigger tool usage.
+        
+        system_prompt = f"""You are an autonomous AI assistant performing a scheduled background task: '{task_name}'.
+        
+        Your goal is to decide if any action is needed for this task.
+        
+        Available Tools:
+        {self.tool_registry.get_tool_descriptions()}
+        
+        Task Context:
+        {context}
+        
+        Decide:
+        1. Should you run a tool? (e.g. check_email for 'email_check')
+        2. If yes, which tool and what arguments?
+        
+        Respond with JSON:
+        {{
+            "action": "tool_call" | "none",
+            "tool_name": "name",
+            "tool_args": {{ ... }},
+            "reasoning": "why"
+        }}
+        """
+        
+        try:
+            response = await self.claude.messages.create(
+                model="claude-3-haiku-20240307",
+                max_tokens=300,
+                system=system_prompt,
+                messages=[{"role": "user", "content": "Perform scheduled check."}]
+            )
+            
+            # Parse and execute
+            import json
+            response_text = response.content[0].text
+            json_start = response_text.find('{')
+            json_end = response_text.rfind('}') + 1
+            
+            if json_start >= 0:
+                decision = json.loads(response_text[json_start:json_end])
+                await self._execute_decision(decision)
+                
+        except Exception as e:
+            print(f"Error in scheduled task {task_name}: {e}")
 
     async def _monitor_loop(self):
         """Background loop that polls Moshi output."""

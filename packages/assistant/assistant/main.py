@@ -13,17 +13,17 @@ Brings together all components:
 import asyncio
 import sys
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 import argparse
 import os
 import atexit
 
 from .config import Config
-from .dashboard.app import VoiceAssistantApp
-from .dashboard.screens import WizardScreen
+from .dashboard import VoiceAssistantApp, WizardScreen
 from .personas import PersonaManager
 from .memory import MemoryManager
 from .wake_word import WakeWordDetector
+from .scheduler import Scheduler
 
 
 class SingletonLock:
@@ -92,14 +92,16 @@ class VoiceAssistant:
     Integrates all components into cohesive system.
     """
 
-    def __init__(self, config: Config, personas_dir: Path, voice_server_process=None):
+    def __init__(self, config: Config, personas_dir: Path, voice_server_process=None, voice_queues=None):
         self.config = config
         self.personas_dir = personas_dir
-        self.voice_server_process = voice_server_process  # subprocess.Popen from start_server_process()
+        self.voice_server_process = voice_server_process
+        self.voice_queues = voice_queues
         self.app: Optional[VoiceAssistantApp] = None
         self.persona_manager: Optional[PersonaManager] = None
         self.memory_manager: Optional[MemoryManager] = None
         self.wake_word_detector: Optional[WakeWordDetector] = None
+        self.scheduler: Optional['Scheduler'] = None
 
         # State
         self.is_running = False
@@ -119,7 +121,9 @@ class VoiceAssistant:
             if hasattr(self.config, 'default_persona') and self.config.default_persona:
                 persona_name = self.config.default_persona
             else:
-                persona_name = available_personas[0]
+                import random
+                persona_name = random.choice(available_personas)
+                print(f"🎲 Randomly selected persona: {persona_name}")
 
             self.persona_manager.set_current_persona(persona_name)
             current_persona = self.persona_manager.get_current_persona()
@@ -170,7 +174,14 @@ class VoiceAssistant:
                 pass  # Continue with local cache only
 
         # 3. Initialize dashboard (TUI)
-        self.app = VoiceAssistantApp(self.config, self.personas_dir, voice_server_process=self.voice_server_process)
+        # 3. Initialize dashboard (TUI)
+        self.app = VoiceAssistantApp(self.config, self.personas_dir, voice_server_process=self.voice_server_process, voice_queues=self.voice_queues)
+
+        # 4. Initialize Scheduler (connects to Thinking Engine)
+        # Note: Thinking Engine is created inside VoiceAssistantApp, so we access it there
+        if hasattr(self.app, 'thinking_engine'):
+            self.scheduler = Scheduler(self.app.thinking_engine)
+            self.scheduler.start()
 
     async def run(self):
         """Run the application"""
@@ -188,6 +199,9 @@ class VoiceAssistant:
         """Cleanup resources"""
         if self.wake_word_detector:
             self.wake_word_detector.stop()
+
+        if self.scheduler:
+            self.scheduler.stop()
 
         if self.memory_manager:
             await self.memory_manager.close()
@@ -217,7 +231,7 @@ async def show_wizard(personas_dir: Path) -> Config:
             self.exit(result)
 
     wizard_app = WizardApp()
-    return await wizard_app.run_async()
+    return cast(Config, await wizard_app.run_async())
 
 
 def main():
@@ -253,7 +267,7 @@ Configuration:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 0.1.0"
+        version="%(prog)s 0.4.1"
     )
 
     args = parser.parse_args()
@@ -271,11 +285,10 @@ Configuration:
         sys.exit(1)
 
     # Get personas directory
-    personas_dir = Path(__file__).parent.parent.parent / "personas"
+    personas_dir = Path(__file__).parent.parent.parent.parent / "personas"
 
     # GPU detection and service selection
-    from .hardware.gpu_detector import detect_gpu_capability
-    from .hardware.service_selector import select_services
+    from .hardware import detect_gpu_capability, select_services
 
     gpu = detect_gpu_capability()
     service_config = select_services(gpu)
@@ -317,11 +330,16 @@ Configuration:
     # Start Moshi voice server BEFORE Textual to avoid multiprocessing issues
     # The server runs MLX inference in a separate process for proper Metal GPU utilization
     voice_server_process = None
+    voice_queues = None
+    
     if service_config.moshi_mode == "local":
         print(f"🚀 Starting voice server (quality={service_config.moshi_quality})...")
         try:
             from .voice_server import start_server_process
-            voice_server_process = start_server_process(quality=service_config.moshi_quality)
+            # Unpack the tuple returned by start_server_process
+            process, c2s, s2c, status = start_server_process(quality=service_config.moshi_quality)
+            voice_server_process = process
+            voice_queues = (c2s, s2c, status)
             print("✅ Voice server process started")
         except Exception as e:
             print(f"⚠️  Failed to start voice server: {e}")
@@ -330,7 +348,7 @@ Configuration:
                 traceback.print_exc()
 
     # Create and run assistant
-    assistant = VoiceAssistant(config, personas_dir, voice_server_process=voice_server_process)
+    assistant = VoiceAssistant(config, personas_dir, voice_server_process=voice_server_process, voice_queues=voice_queues)
 
     try:
         asyncio.run(assistant.initialize())

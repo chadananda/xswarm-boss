@@ -1,188 +1,367 @@
-# xSwarm-Boss Documentation
+# xSwarm Boss Architecture
 
-Welcome to the xSwarm-Boss documentation! This AI-powered voice assistant system combines sophisticated AI agents, a beautiful terminal interface, and seamless integrations to create your personal productivity command center.
+Voice-first AI assistant platform with personality-driven personas, semantic memory, and multi-channel communication.
 
-## 🚀 Quick Start
-
-**New to xSwarm?** Start here:
-- **[Quick Start Guide](quickstart/)** - Get running in 5 minutes
-- **[Development Setup](development/guide-development.md)** - Set up your dev environment
-- **[Testing Guide](testing/README.md)** - Run tests and verify functionality
-
-## 📚 Documentation Overview
-
-### Getting Started
-Quick-start guides for specific features:
-- [Buzz Quickstart](quickstart/quickstart-buzz.md) - Community buzz feed
-- [Claude Code Integration](quickstart/quickstart-claude-code.md) - AI coding assistant
-- [Marketing System](quickstart/quickstart-marketing.md) - Email campaigns
-- [Stripe Integration](quickstart/quickstart-stripe.md) - Payments & subscriptions
-- [Suggestions Engine](quickstart/quickstart-suggestions.md) - Context-aware AI suggestions
-- [Supervisor System](quickstart/quickstart-supervisor.md) - Multi-agent coordination
-
-### Core Features
-- **[Dashboard (TUI)](guides/guide-dashboard-implementation.md)** - Terminal user interface with Textual
-- **[Persona System](implementations/summary-persona-system.md)** - AI personality switching (JARVIS, GLaDOS, etc.)
-- **[Theme System](status/summary-theme-quick.md)** - Dynamic color themes matching personas
-- **[Voice Interface (Moshi)](MOSHI_DOWNLOAD_STATUS.md)** - Voice AI with model download infrastructure
-- **[Phone Integration](phone-integration.md)** - Interactive phone calls with Twilio + Moshi voice
-- **[Authentication](implementations/summary-authentication.md)** - JWT-based auth with session management
-- **[Suggestions](implementations/summary-suggestions.md)** - Context-aware AI-powered suggestions
-- **[Marketing](implementations/summary-marketing.md)** - Email marketing with SendGrid
-- **[Buzz](implementations/summary-buzz.md)** - Community content and listings
-- **[Supervisor](planning/system-supervisor.md)** - AI agent coordination system
-
-### Integration & Deployment
-- **[Stripe Setup](planning/setups/setup-stripe-products.md)** - Payment processing and subscription tiers
-- **[SendGrid Setup](sendgrid/)** - Email delivery configuration
-- **[Cloudflare Setup](planning/setups/setup-cloudflare.md)** - CDN and tunnel configuration
-- **[Deployment Guide](deployment/guide-deployment.md)** - Production deployment steps
-- **[Production Checklist](deployment/checklist-deployment.md)** - Pre-launch verification
-
-### Development
-- **[Development Guide](development/guide-development.md)** - Local development setup
-- **[Testing Guide](testing/README.md)** - Test strategy and execution
-- **[E2E Tests](guides/guide-e2e-tests.md)** - End-to-end testing with pytest-textual
-- **[Moshi Model Download](moshi-model-download-lessons.md)** - Large model download strategies and lessons learned
-- **[Security](SECURITY.md)** - Security best practices and guidelines
-
-### Planning & Architecture
-- **[Complete Specification](planning/specification-complete.md)** - Master technical specification
-- **[Architecture](planning/architecture.md)** - System design and components
-- **[Database Schema](planning/schema-database.md)** - Data model and relationships
-- **[API Documentation](planning/)** - HTTP API endpoints and WebSocket events
-- **[Features Roadmap](planning/features.md)** - Planned features and enhancements
-
-## 🏗️ System Architecture
-
-**Current Implementation** (v0.1.0+):
-- **Frontend**: Python + Textual (Terminal UI)
-- **Backend**: FastAPI (HTTP API) + Cloudflare Workers
-- **Database**: SQLite (local) + Turso (LibSQL for cloud)
-- **AI**: Anthropic Claude, OpenAI, Perplexity, Gemini
-- **Infrastructure**: Cloudflare (CDN, Workers, Tunnels)
-
-**Key Technologies**:
-- **Textual** - Rich terminal user interface
-- **FastAPI** - Modern Python web framework
-- **SQLite/Turso** - Embedded + cloud-sync database
-- **WebSockets** - Real-time communication
-- **Stripe** - Payment processing
-- **SendGrid** - Email delivery
-- **Cloudflare** - Global edge network
-
-## 📖 Project Structure
+## System Overview
 
 ```
-docs/
-├── README.md (you are here)
-├── quickstart/ - Feature-specific quick-start guides
-├── development/ - Development setup and guidelines
-├── deployment/ - Production deployment guides
-├── testing/ - Test strategy and execution
-├── planning/ - Architecture, specs, and API docs
-├── sendgrid/ - SendGrid email integration
-└── archive/ - Historical documentation (Rust era)
-    ├── rust-legacy/ - Old Rust implementation docs
-    ├── moshi-rust-debugging/ - Audio debugging investigations
-    └── sessions/ - Development session logs
+┌─────────────────────────────────────────────────────────────┐
+│                    xSwarm Boss Platform                      │
+├─────────────────┬──────────────────┬────────────────────────┤
+│   Assistant     │     Server       │        Voice           │
+│   (Python TUI)  │ (Cloudflare JS)  │    (Python MLX)        │
+├─────────────────┼──────────────────┼────────────────────────┤
+│ • Dashboard     │ • Auth/JWT       │ • MOSHI Speech-to-     │
+│ • Chat panels   │ • Stripe billing │   Speech (24kHz)       │
+│ • Wake word     │ • Email/SendGrid │ • Apple Silicon        │
+│ • Voice I/O     │ • Calendar OAuth │   optimized (MLX)      │
+│ • Thinking      │ • Feature gating │ • WebSocket bridge     │
+│   engine        │ • Turso database │ • 200ms latency        │
+└─────────────────┴──────────────────┴────────────────────────┘
 ```
 
-## 🎨 Features
+## Architecture
 
-### Terminal User Interface (TUI)
-Beautiful, responsive terminal interface built with Textual:
-- **Persona Selection** - Choose AI personality (JARVIS, GLaDOS, HAL 9000, etc.)
-- **Theme Switching** - Dynamic colors matching persona
-- **Real-time Updates** - WebSocket-powered live data
-- **Keyboard Navigation** - Efficient keyboard shortcuts
+### Three Autonomous Subsystems
 
-### AI-Powered Features
-- **Voice Interface** - Conversation mode with AI personas
-- **Suggestions Engine** - Context-aware recommendations
-- **Supervisor System** - Multi-agent task coordination
-- **Content Generation** - Marketing copy, emails, blog posts
+| Component | Location | Tech Stack | Purpose |
+|-----------|----------|------------|---------|
+| **Assistant** | `packages/assistant/` | Python + Textual | Voice-interactive TUI dashboard |
+| **Server** | `packages/server/` | JS + Cloudflare Workers | Auth, billing, APIs, email |
+| **Voice** | `packages/voice/` | Python + MLX | MOSHI speech-to-speech bridge |
 
-### Integrations
-- **Stripe** - Subscription management (Free, Pro, Enterprise tiers)
-- **SendGrid** - Transactional and marketing emails
-- **Twilio** - Interactive phone calls with Moshi voice AI
-- **Claude Code** - AI coding assistant integration
-- **Cloudflare** - Global CDN and secure tunnels
+### Communication Flow
 
-## 🧪 Testing
+```
+User ←→ Assistant TUI ←→ Voice Server (WebSocket)
+              ↓
+        Server API (HTTP)
+              ↓
+      Turso DB / Stripe / SendGrid
+```
 
-xSwarm uses comprehensive testing across all layers:
-- **Unit Tests** - pytest for business logic
-- **Integration Tests** - API endpoint testing
-- **E2E Tests** - pytest-textual for TUI testing with SVG snapshots
-- **Visual Regression** - Snapshot testing for UI consistency
+## Technology Stack
 
-See [Testing Guide](testing/README.md) for detailed test execution.
+### Assistant (Python TUI)
 
-## 🔒 Security
+- **Framework**: Textual (modern terminal UI)
+- **Voice I/O**: CPAL audio, WebSocket to MOSHI
+- **Memory**: Embeddings + vector similarity (OpenAI ada-002)
+- **Tools**: Email, phone (Twilio), calendar, personas
 
-Security best practices:
-- JWT-based authentication with httpOnly cookies
-- API key management via environment variables
-- Rate limiting on all endpoints
-- CSRF protection
-- Secrets scanning with Gitleaks (pre-commit hook)
+### Server (Cloudflare Workers)
 
-See [Security Policy](SECURITY.md) for details.
+- **Runtime**: Cloudflare Workers (edge compute)
+- **Database**: Turso (libsql/SQLite, distributed)
+- **Auth**: JWT + PBKDF2 (100k iterations, OWASP)
+- **Payments**: Stripe (4-tier subscriptions + metered billing)
+- **Email**: SendGrid (transactional + inbound parsing)
+- **Calendar**: Google OAuth for read/write access
 
-## 📜 Project History
+### Voice (MOSHI MLX)
 
-### Current Implementation (Nov 2025 - Present)
-**Python** implementation for rapid development and AI integration:
-- Migrated to **Textual** for rich terminal UI
-- Integrated multiple AI providers (Claude, OpenAI, Perplexity)
-- Implemented persona system with dynamic themes
-- Added supervisor system for agent coordination
+- **Model**: Kyutai MOSHI 7B (speech-to-speech, NOT TTS)
+- **Codec**: Mimi (24kHz → 12.5Hz tokens, 8 codebooks)
+- **Hardware**: Apple Silicon (M1/M2/M3), 4-bit quantization
+- **Latency**: ~200ms end-to-end
+- **Interface**: WebSocket server for assistant connection
 
-### Legacy Implementation (Archived)
-The project was originally prototyped in **Rust** (Q4 2025) but migrated to Python for:
-- ✅ Faster iteration and development velocity
-- ✅ Better AI/ML library ecosystem
-- ✅ Richer TUI framework (Textual vs TUI-rs)
-- ✅ Simpler deployment and dependencies
+## Subscription Tiers
 
-**Legacy Rust documentation** preserved in [`archive/rust-legacy/`](archive/rust-legacy/) for historical reference.
+| Feature | Free | Personal ($20/mo) | Professional ($190/mo) | Enterprise ($940/mo) |
+|---------|------|-------------------|------------------------|----------------------|
+| Voice Minutes | 0 | 100/mo | 500/mo | Unlimited |
+| SMS Messages | 0 | 100/mo | 500/mo | Unlimited |
+| AI Models | GPT-3.5 | GPT-4, Claude | GPT-4 Turbo, Opus | All + Custom |
+| Custom Personas | 3 | Unlimited | Unlimited | Unlimited |
+| Memory Retention | 30 days | 1 year | 2 years | Unlimited |
+| Calendar | Read-only | Read/Write | Read/Write | Read/Write |
+| Teams | - | - | Up to 10 | Unlimited |
+| API Access | - | Basic | Full | Enterprise |
 
-## 🤝 Getting Help
+### Feature Gating
 
-- **Issues**: [GitHub Issues](https://github.com/chadananda/xswarm-boss/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/chadananda/xswarm-boss/discussions)
-- **Security**: See [Security Policy](SECURITY.md) to report vulnerabilities
-- **Contributing**: See [CONTRIBUTING.md](../CONTRIBUTING.md) in project root
+```javascript
+import { hasFeature, checkLimit } from './lib/features.js';
 
-## 📝 Contributing
+if (hasFeature(user.subscription_tier, 'voice_minutes')) {
+  const limit = checkLimit(tier, 'voice_minutes', currentUsage);
+  if (!limit.allowed && !limit.overage_allowed) {
+    return generateUpgradeMessage('voice_minutes', tier);
+  }
+}
+```
 
-We welcome contributions! Please see:
-- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
-- [Development Setup](development/guide-development.md) - Get your environment ready
-- [Testing Guide](testing/README.md) - Run tests before submitting
+## Database Schema
 
-## 🎯 Quick Links
+### Core Tables
 
-**For Users**:
-- [Quick Start](quickstart/) - Get started fast
-- [Features](planning/features.md) - What xSwarm can do
-- [Pricing](planning/setups/setup-stripe-products.md) - Subscription tiers
+- **users** - Subscription tier, Stripe IDs, contact info
+- **personas** - Big Five traits, voice config, response style
+- **memory_sessions** - Conversation summaries + embeddings
+- **memory_facts** - Extracted knowledge with confidence scores
+- **memory_entities** - People, places, projects, relationships
+- **tasks** - Todo items with priority and status
+- **calendar_tokens** - OAuth tokens for Google/Microsoft
+- **usage_records** - Metered billing (voice/SMS/API calls)
 
-**For Developers**:
-- [Architecture](planning/architecture.md) - System design
-- [API Docs](planning/) - HTTP API reference
-- [Database Schema](planning/schema-database.md) - Data model
+### Memory Architecture (3-Tier)
 
-**For Deployers**:
-- [Deployment Guide](deployment/guide-deployment.md) - Production deployment
-- [Configuration](planning/) - Environment variables and settings
+```
+┌─────────────────────────────────────┐
+│  Working Memory (In-Context)        │
+│  Last 5-10 messages, ~1-2K tokens   │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│  Session Summary (Rolling)          │
+│  Compressed every 10 messages       │
+└─────────────────────────────────────┘
+              ↓
+┌─────────────────────────────────────┐
+│  Long-Term Memory (Vector DB)       │
+│  Embeddings, tier-based retention   │
+└─────────────────────────────────────┘
+```
 
----
+### Memory Retrieval Scoring
 
-**Last Updated**: 2025-11-12
-**Current Version**: 0.1.0-2025.11.12.0
-**License**: MIT (see [LICENSE](../LICENSE))
+```
+Score = (Similarity × 0.6) + (Recency × 0.3) + (Frequency × 0.1)
+```
 
-🤖 AI-powered productivity, right in your terminal.
+## Voice Processing (MOSHI)
+
+**Critical**: MOSHI is a unified speech-to-speech model, NOT traditional STT→LLM→TTS.
+
+### Pipeline
+
+```
+User speaks → Mimi encoder → LM step → Mimi decoder → Audio out
+     │                          │
+     └── 8 codebooks ──────────→│
+                                 └── Audio tokens generated directly
+```
+
+### Three Voice Mechanisms
+
+1. **Greetings** (Scripted) - Force specific text tokens
+2. **Memory Context** - Condition::AddToInput for semantic search results
+3. **STT Background** - Async transcription for memory storage only
+
+### Key Parameters
+
+- Sample rate: 24kHz
+- Audio codebooks: 8
+- Model: kyutai/moshika-mlx-q4 (4-bit quantized)
+- Latency: ~200ms on Apple Silicon
+
+## Persona System
+
+### Big Five Personality Traits
+
+```json
+{
+  "extraversion": 0.7,
+  "agreeableness": 0.8,
+  "conscientiousness": 0.6,
+  "neuroticism": 0.3,
+  "openness": 0.9,
+  "formality": 0.5,
+  "enthusiasm": 0.7
+}
+```
+
+### Response Style
+
+```json
+{
+  "verbosity": "Balanced",
+  "tone": "Friendly",
+  "humor_level": 0.5,
+  "technical_depth": 0.5,
+  "empathy_level": 0.5,
+  "proactivity": 0.5
+}
+```
+
+### Available Personas
+
+Located in `personas/` directory:
+- **boss/** - Default professional assistant
+- **jarvis/** - Formal British butler
+- **glados/** - Sarcastic testing AI
+- **hal-9000/** - Calm and ominous
+- **c3po/** - Anxious protocol droid
+- **tars/** - Adjustable humor
+- And more...
+
+## Security
+
+### Authentication
+
+- JWT tokens (7-day expiration)
+- PBKDF2 hashing (100k iterations)
+- Email verification (24-hour tokens)
+- Password reset (1-hour tokens)
+- Token version management for instant invalidation
+
+### Feature Gating
+
+All tier-restricted features enforced at API level:
+- Middleware checks subscription tier
+- Graceful upgrade prompts
+- Usage tracking for metered billing
+
+### Data Protection
+
+- User data isolation enforced by database indexes
+- GDPR-compliant deletion endpoints
+- Automatic memory cleanup based on tier retention
+
+## Development
+
+### Local Setup
+
+```bash
+# Assistant (Python TUI)
+cd packages/assistant
+pip install -e .
+python -m assistant
+
+# Server (Cloudflare Workers)
+cd packages/server
+pnpm install
+pnpm run dev  # http://localhost:8787
+
+# Voice (MOSHI)
+cd packages/voice
+pip install -e .
+python -m voice_server
+```
+
+### Environment Variables
+
+```bash
+# Server
+JWT_SECRET=<openssl rand -base64 64>
+TURSO_DATABASE_URL=libsql://...
+TURSO_AUTH_TOKEN=...
+STRIPE_SECRET_KEY=sk_...
+SENDGRID_API_KEY=SG....
+
+# Assistant
+OPENAI_API_KEY=sk-...
+
+# Voice
+HF_XET_HIGH_PERFORMANCE=1  # Fast model downloads
+```
+
+### Database Migrations
+
+```bash
+cd packages/server
+node scripts/migrate-db.js
+```
+
+## Directory Structure
+
+```
+xswarm-boss/
+├── docs/
+│   ├── README.md          # This file (architecture)
+│   ├── TBD.md             # Current tasks, crash recovery
+│   ├── assistant/         # TUI documentation
+│   ├── server/            # Server documentation
+│   ├── voice/             # Voice/MOSHI documentation
+│   └── archive/           # Historical planning docs
+├── packages/
+│   ├── assistant/         # Python TUI app
+│   ├── server/            # Cloudflare Workers server
+│   └── voice/             # MOSHI voice bridge
+├── personas/              # Shared persona configurations
+├── tests/                 # Test suites
+└── scripts/              # Utility scripts
+```
+
+## Key Implementation Details
+
+### Challenging Technologies
+
+Each subsystem has documented lessons learned:
+
+- **Voice**: Model downloading on weak internet (chunk verification, hf-transfer)
+- **Server**: Cloudflare Workers compatibility (no Node.js natives)
+- **Assistant**: Textual TUI theming and responsive layouts
+
+See individual README files in `docs/assistant/`, `docs/server/`, `docs/voice/` for detailed implementation guides.
+
+## API Reference
+
+### Authentication Endpoints
+
+```
+POST /auth/signup          - Register with email verification
+POST /auth/verify-email    - Confirm email address
+POST /auth/login           - Get JWT token
+POST /auth/logout          - Invalidate token
+POST /auth/forgot-password - Request reset
+POST /auth/reset-password  - Set new password
+GET  /auth/me              - Get current user
+```
+
+### Memory Endpoints
+
+```
+POST /api/memory/store     - Store conversation
+POST /api/memory/retrieve  - Get relevant context
+GET  /api/memory/stats     - Memory statistics
+POST /api/memory/facts     - Store extracted fact
+DELETE /api/memory/all     - GDPR deletion
+```
+
+### Core Endpoints
+
+```
+GET  /users/:id           - Get user profile
+GET  /personas            - List user personas
+POST /personas            - Create persona
+GET  /calendar/events     - Get calendar events
+GET  /billing/subscription - Get subscription info
+POST /billing/checkout    - Create Stripe session
+```
+
+## Performance Targets
+
+- Voice latency: <200ms (Apple Silicon)
+- API response: <100ms
+- Memory search: <50ms
+- Dashboard: 60fps
+- Startup: <2 seconds
+
+## Deployment
+
+### Server (Cloudflare Workers)
+
+```bash
+cd packages/server
+wrangler deploy
+wrangler secret put JWT_SECRET
+wrangler secret put STRIPE_SECRET_KEY
+```
+
+### Voice Server
+
+Local deployment on Apple Silicon machine with MOSHI model downloaded.
+
+### Assistant
+
+Distributed as Python package, runs on user's machine.
+
+## References
+
+- [MOSHI by Kyutai](https://kyutai.org/moshi/)
+- [Textual TUI Framework](https://textual.textualize.io/)
+- [Cloudflare Workers](https://workers.cloudflare.com/)
+- [Turso Database](https://turso.tech/)
+- [Stripe Billing](https://stripe.com/billing)
