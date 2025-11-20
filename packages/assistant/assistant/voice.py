@@ -397,20 +397,52 @@ class ConversationLoop:
         self._set_state("idle")
 
     async def _conversation_loop(self):
+        """Full duplex streaming loop."""
+        self.log("🔄 Starting Duplex Streaming Loop")
+        
         while self.running:
             try:
                 if not self._is_listening:
-                    await asyncio.sleep(0.05)
+                    await asyncio.sleep(0.1)
                     continue
-                user_audio = await self._capture_speech_segment()
-                if user_audio is None or len(user_audio) == 0:
-                    await asyncio.sleep(0.1)  # Prevent tight loop
-                    continue
-                await self._process_turn(user_audio)
+
+                # 1. Process Input (Mic -> Moshi)
+                # We process all available frames in buffer
+                frames_processed = 0
+                while self._audio_buffer:
+                    frame = self._audio_buffer.pop(0)
+                    self.moshi.process_frame(frame)
+                    frames_processed += 1
+                
+                # If no input, send silence to keep model running
+                if frames_processed == 0:
+                    self.moshi.send_silence()
+
+                # 2. Process Output (Moshi -> Speaker)
+                # Read all available output
+                while True:
+                    audio_chunk, text_piece = self.moshi.get_output(timeout=0.001)
+                    if audio_chunk is None and text_piece is None:
+                        break
+                        
+                    if audio_chunk is not None:
+                        # Update amplitude for visualization
+                        self.moshi.update_moshi_amplitude(audio_chunk)
+                        # Play audio
+                        self.audio_io.play_audio(audio_chunk)
+                        
+                    if text_piece:
+                        # self.log(f"🤖 Moshi: {text_piece}")
+                        # TODO: Accumulate text for UI
+                        pass
+                
+                # Small sleep to prevent CPU hogging, but fast enough for audio
+                await asyncio.sleep(0.01)
+                
             except asyncio.CancelledError:
                 break
             except Exception as e:
-                print(f"❌ Loop error: {e}")
+                self.log(f"❌ Loop error: {e}")
                 await asyncio.sleep(1.0)
 
     def _on_audio_frame(self, audio: np.ndarray):
@@ -617,7 +649,53 @@ class MoshiBridgeProxy:
     def update_moshi_amplitude(self, audio: np.ndarray):
         self.moshi_amplitude = self.get_amplitude(audio)
 
+    def process_frame(self, user_audio: np.ndarray):
+        """Send a single audio frame to the server."""
+        frame_size = self.frame_size
+        audio_len = len(user_audio)
+        
+        # Pad if needed
+        if audio_len < frame_size:
+            user_audio = np.pad(user_audio, (0, frame_size - audio_len), mode='constant')
+        elif audio_len > frame_size:
+            # If too long, just take the first chunk (or loop? for now assume frame-sized chunks)
+            user_audio = user_audio[:frame_size]
+            
+        codes = self.encode_audio(user_audio)
+        self.client_to_server.put(codes)
+
+    def send_silence(self):
+        """Send a silence frame to keep the model generating."""
+        # Moshi expects (1, 8) or (8, 1) depending on side, server handles it.
+        # We send (8, 1) to match what we do in generate_response
+        silence_codes = np.zeros((8, 1), dtype=np.int32)
+        self.client_to_server.put(silence_codes)
+
+    def get_output(self, timeout: float = 0.01) -> tuple[Optional[np.ndarray], Optional[str]]:
+        """Get output from server (non-blocking by default)."""
+        try:
+            msg = self.server_to_client.get(timeout=timeout)
+            type_, audio_tokens, text_piece = msg
+            
+            audio_chunk = None
+            if audio_tokens is not None:
+                audio_chunk = self.decode_audio(audio_tokens)
+                
+            return audio_chunk, text_piece
+        except queue.Empty:
+            return None, None
+
     def generate_response(self, user_audio: np.ndarray, text_prompt: Optional[str] = None, max_frames: int = 125) -> tuple[np.ndarray, str]:
+        """
+        Legacy method for turn-based interaction.
+        Kept for compatibility but uses streaming methods internally if possible, 
+        or just the old logic.
+        """
+        # ... (keeping old logic for now to avoid breaking other things, or just wrapping streaming?)
+        # Let's keep the old logic as a fallback or reference, but we won't use it in the new loop.
+        return self._generate_response_legacy(user_audio, text_prompt, max_frames)
+
+    def _generate_response_legacy(self, user_audio: np.ndarray, text_prompt: Optional[str] = None, max_frames: int = 125) -> tuple[np.ndarray, str]:
         """
         Generate response by sending codes to server process and reading results.
         Replicates the loop from MoshiBridge but distributed.
@@ -636,57 +714,38 @@ class MoshiBridgeProxy:
             all_input_codes.append(codes)
             
         output_audio_chunks = []
-        text_tokens_list = [] # We get text pieces directly from server
         text_pieces = []
         
         # 2. Send input codes and read responses
         for i, input_codes in enumerate(all_input_codes):
-            print(f"📤 Sending frame {i+1}/{len(all_input_codes)} to voice server (shape: {input_codes.shape})")
+            # print(f"📤 Sending frame {i+1}/{len(all_input_codes)} to voice server")
             self.client_to_server.put(input_codes)
             
-            # Read response (blocking)
-            # Server sends ("audio", tokens, text) or ("text", None, text)
-            # print(f"📥 Waiting for response from voice server...")
             try:
-                msg = self.server_to_client.get(timeout=5.0) # 5s timeout to prevent hang
+                msg = self.server_to_client.get(timeout=5.0)
+                type_, audio_tokens, text_piece = msg
+                if text_piece: text_pieces.append(text_piece)
+                if audio_tokens is not None:
+                    output_audio_chunks.append(self.decode_audio(audio_tokens))
             except queue.Empty:
                 print("❌ Timeout waiting for voice server response")
                 break
                 
-            type_, audio_tokens, text_piece = msg
-            # print(f"📥 Received: type={type_}, audio_tokens={'present' if audio_tokens is not None else 'None'}, text='{text_piece}'")
-            
-            if text_piece:
-                text_pieces.append(text_piece)
-                
-            if audio_tokens is not None:
-                audio_chunk = self.decode_audio(audio_tokens)
-                output_audio_chunks.append(audio_chunk)
-                print(f"🔊 Decoded audio chunk: {len(audio_chunk)} samples")
-                
         # 3. Send silence codes for generation
-        # We need to send empty codes to keep the model generating
-        # MoshiBridge uses mx.zeros((1, 8))
-        # We need to send numpy equivalent with correct shape (8, 1)
-        # The server will add the batch dimension -> (1, 8, 1)
         silence_codes = np.zeros((8, 1), dtype=np.int32)
-        
         for _ in range(max_frames):
             self.client_to_server.put(silence_codes)
-            
-            msg = self.server_to_client.get()
-            type_, audio_tokens, text_piece = msg
-            
-            if text_piece:
-                text_pieces.append(text_piece)
-                
-            if audio_tokens is not None:
-                audio_chunk = self.decode_audio(audio_tokens)
-                output_audio_chunks.append(audio_chunk)
+            try:
+                msg = self.server_to_client.get(timeout=1.0)
+                type_, audio_tokens, text_piece = msg
+                if text_piece: text_pieces.append(text_piece)
+                if audio_tokens is not None:
+                    output_audio_chunks.append(self.decode_audio(audio_tokens))
+            except queue.Empty:
+                break
                 
         response_audio = np.concatenate(output_audio_chunks) if output_audio_chunks else np.array([], dtype=np.float32)
         response_text = "".join(text_pieces)
-        
         return response_audio, response_text
 
 
