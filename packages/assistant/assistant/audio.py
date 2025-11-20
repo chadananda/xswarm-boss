@@ -72,8 +72,10 @@ class AudioIO:
                 
                 # DEBUG: Check for signal
                 rms = np.sqrt(np.mean(audio**2))
-                if rms > 0.01:
-                    self.log(f"🎤 Signal detected! RMS: {rms:.4f}")
+                if rms > 0.0001:
+                    self.log(f"🎤 Signal detected! RMS: {rms:.6f}")
+                elif rms == 0.0:
+                    self.log(f"⚠️ Absolute Silence (RMS=0.0) - Check Permissions/Mute")
                 
                 self.input_queue.put(audio)
                 if callback:
@@ -150,7 +152,7 @@ class AudioIO:
 
 class VoiceActivityDetector:
     """Simple energy-based VAD."""
-    def __init__(self, threshold: float = 0.02, min_speech_duration: int = 5, min_silence_duration: int = 10):
+    def __init__(self, threshold: float = 0.001, min_speech_duration: int = 5, min_silence_duration: int = 10):
         self.threshold = threshold
         self.min_speech_duration = min_speech_duration
         self.min_silence_duration = min_silence_duration

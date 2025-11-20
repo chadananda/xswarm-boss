@@ -437,10 +437,10 @@ class ConversationLoop:
             
         # Debug logging for amplitude (every ~100 frames / 2 seconds)
         # We use a random check to avoid state
-        if np.random.random() < 0.01:
+        if np.random.random() < 0.02: # Increased frequency slightly
             amp = self.moshi.mic_amplitude
-            if amp > 0.01:
-                self.log(f"DEBUG: Mic Amp: {amp:.4f} (VAD: {is_speaking})")
+            rms = np.sqrt(np.mean(audio**2))
+            self.log(f"DEBUG: Mic RMS: {rms:.5f} | VAD: {is_speaking} | Amp: {amp:.4f}")
 
     async def _capture_speech_segment(self) -> Optional[np.ndarray]:
         """Capture a speech segment with timeout to prevent hanging"""
