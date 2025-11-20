@@ -56,8 +56,20 @@ def server_process(
         quantized: Quantization level (4 or 8) or None for bf16
         max_steps: Maximum generation steps
     """
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('/tmp/xswarm_voice_server.log', mode='w'),
+            logging.StreamHandler()
+        ]
+    )
+    logger = logging.getLogger("voice_server")
+    
     def log(msg):
-        status_queue.put(("info", msg))
+        logger.info(msg)
+        status_queue.put(("info", f"LOG: {msg}")) # Corrected syntax and kept tuple format for consistency
 
     try:
         # Download model files
@@ -112,7 +124,12 @@ def server_process(
         # Main inference loop
         while True:
             # Get encoded audio from client
-            data = client_to_server.get()
+            try:
+                data = client_to_server.get(timeout=1.0)
+            except queue.Empty:
+                continue
+                
+            # log(f"Received frame, shape: {data.shape if hasattr(data, 'shape') else 'unknown'}")
 
             if data is None:
                 # Shutdown signal
