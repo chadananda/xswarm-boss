@@ -1357,7 +1357,13 @@ class VoiceAssistantApp(App):
 
             return True
         except Exception as e:
-            self.update_activity(f"❌ Voice initialization failed: {e}")
+            error_msg = str(e)
+            if "Microphone access denied" in error_msg or "PortAudio" in error_msg:
+                self.update_activity(f"❌ Microphone permission denied")
+                self.update_activity("   Please grant microphone access in System Settings > Privacy & Security > Microphone")
+                self.update_activity("   App will continue without voice features")
+            else:
+                self.update_activity(f"❌ Voice initialization failed: {e}")
             self.voice_initialized = False
             return False
 

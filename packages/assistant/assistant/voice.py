@@ -356,8 +356,20 @@ class ConversationLoop:
 
     async def start(self):
         self.running = True
-        self.audio_io.start_input(callback=self._on_audio_frame)
-        self.audio_io.start_output()
+        try:
+            self.audio_io.start_input(callback=self._on_audio_frame)
+            self.audio_io.start_output()
+        except Exception as e:
+            # Handle microphone permission errors gracefully
+            error_msg = str(e)
+            if "PortAudio" in error_msg or "InputStream" in error_msg:
+                print(f"⚠️  Microphone access error: {error_msg}")
+                print("   Voice features disabled. Please grant microphone permission in System Settings.")
+                # Continue without voice - app can still function
+                self.running = False
+                raise RuntimeError(f"Microphone access denied: {error_msg}")
+            else:
+                raise
         self._loop_task = asyncio.create_task(self._conversation_loop())
         self._set_state("listening")
 
