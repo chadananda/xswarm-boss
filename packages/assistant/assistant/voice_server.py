@@ -14,6 +14,8 @@ runs in its own process to maximize Metal GPU utilization.
 import multiprocessing
 import time
 from pathlib import Path
+import logging # Added by user instruction
+import queue # Added to resolve missing import for queue.Empty
 
 import numpy as np
 try:

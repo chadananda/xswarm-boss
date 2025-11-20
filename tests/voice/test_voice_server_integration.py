@@ -95,7 +95,7 @@ async def test_voice_server_integration():
         with patch('rustymimi.StreamTokenizer') as MockTokenizer:
             # Mock tokenizer to return dummy codes
             mock_tok = MockTokenizer.return_value
-            mock_tok.get_encoded.side_effect = [np.zeros((1, 8)), None] * 100 # Return codes then None
+            mock_tok.get_encoded.side_effect = [np.zeros((8, 1)), None] * 100 # Return codes then None
             mock_tok.get_decoded.return_value = np.zeros(1920)
             
             with patch('sentencepiece.SentencePieceProcessor'):
