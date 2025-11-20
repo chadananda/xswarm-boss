@@ -1306,7 +1306,7 @@ class CyberpunkFooter(Static):
             result.append(f" ({gpu.compute_score:.0f}/100)", style=shade_4)
             vram_display = f" [{gpu.vram_used_gb:.0f}GB/{gpu.vram_total_gb:.0f}GB]"
             result.append(vram_display, style=shade_4)
-            result.append(f\" {gpu.util_percent:.0f}%\", style=f"{grade_color}")
+            result.append(f" {gpu.util_percent:.0f}%", style=f"{grade_color}")
             result.append(" │ ", style=shade_3)
 
         # Voice Server Status (if available)
