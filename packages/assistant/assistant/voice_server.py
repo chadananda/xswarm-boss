@@ -124,7 +124,14 @@ def server_process(
             if len(data.shape) == 2:
                 # Add batch dimension: (8, T) -> (1, 8, T)
                 data = data[None, :, :]
-            text_token = gen.step(data)
+            
+            # log(f"Step input shape: {data.shape}")
+            try:
+                text_token = gen.step(data)
+            except ValueError as e:
+                log(f"❌ Error in gen.step: {e} (Shape: {data.shape})")
+                continue
+                
             text_token_id = text_token[0].item()
 
             # Get audio tokens

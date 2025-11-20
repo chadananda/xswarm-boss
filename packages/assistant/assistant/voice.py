@@ -643,9 +643,9 @@ class MoshiBridgeProxy:
         # 3. Send silence codes for generation
         # We need to send empty codes to keep the model generating
         # MoshiBridge uses mx.zeros((1, 8))
-        # We need to send numpy equivalent with correct shape (1, 8)
-        # The server will add the time dimension -> (1, 8, 1)
-        silence_codes = np.zeros((1, 8), dtype=np.int32)
+        # We need to send numpy equivalent with correct shape (8, 1)
+        # The server will add the batch dimension -> (1, 8, 1)
+        silence_codes = np.zeros((8, 1), dtype=np.int32)
         
         for _ in range(max_frames):
             self.client_to_server.put(silence_codes)
