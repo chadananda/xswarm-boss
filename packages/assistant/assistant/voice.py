@@ -269,6 +269,7 @@ class MoshiClient:
                     await asyncio.sleep(0.001)
                     continue
                 msg_type, audio_tokens, text_piece = result
+                # print(f"DEBUG: Recv {msg_type} | Audio: {len(audio_tokens) if audio_tokens is not None else 0} | Text: {text_piece}")
                 if text_piece and self.on_text_token:
                     self.on_text_token(text_piece)
                 if audio_tokens is not None:
@@ -701,9 +702,19 @@ class VoiceBridgeOrchestrator:
         self.state = ConversationState.IDLE
         self.state_callbacks: list = []
         self._audio_buffer: list[np.ndarray] = []
-        self._current_mic_amplitude: float = 0.0
-        self._current_moshi_amplitude: float = 0.0
         self._running = False
+
+    @property
+    def _current_mic_amplitude(self) -> float:
+        if self.moshi:
+            return getattr(self.moshi, 'mic_amplitude', 0.0)
+        return 0.0
+
+    @property
+    def _current_moshi_amplitude(self) -> float:
+        if self.moshi:
+            return getattr(self.moshi, 'moshi_amplitude', 0.0)
+        return 0.0
 
     def log(self, msg: str):
         print(msg)
