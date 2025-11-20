@@ -1082,13 +1082,17 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-    def update_activity(self, message: str, level: str = "info"):
-        """Update activity feed"""
+    def update_activity(self, message: str):
+        """Add message to activity feed"""
         try:
-            activity = self.query_one("#activity", ActivityFeed)
-            activity.add_message(message, level)
+            feed = self.query_one(ActivityFeed)
+            feed.add_message(message)
         except Exception:
             pass
+        
+        # Also show toast for important messages to ensure visibility
+        if "Voice" in message or "voice" in message or "Error" in message:
+            self.notify(message, timeout=5.0)
 
     def populate_theme_selector(self):
         """Populate persona selector with available personas"""
@@ -1310,6 +1314,8 @@ class VoiceAssistantApp(App):
 
         try:
             self.update_activity("Initializing voice bridge...")
+            self.update_activity(f"DEBUG: Voice Queues: {bool(self.voice_queues)}")
+            
             # Ensure memory manager is initialized first
             if not self.memory_manager:
                 await self.initialize_memory()

@@ -267,7 +267,7 @@ Configuration:
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 0.4.9"
+        version="%(prog)s 0.4.10"
     )
 
     args = parser.parse_args()
@@ -332,6 +332,7 @@ Configuration:
     voice_server_process = None
     voice_queues = None
     
+    print(f"DEBUG: Moshi Mode: {service_config.moshi_mode}")
     if service_config.moshi_mode == "local":
         print(f"🚀 Starting voice server (quality={service_config.moshi_quality})...")
         try:
