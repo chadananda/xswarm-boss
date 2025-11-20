@@ -222,6 +222,18 @@ class MoshiClient:
         self.on_output_audio: Optional[Callable[[np.ndarray], None]] = None
         self.on_text_token: Optional[Callable[[str], None]] = None
         self._running = False
+        self.mic_amplitude = 0.0
+        self.moshi_amplitude = 0.0
+
+    def get_amplitude(self, audio: np.ndarray) -> float:
+        rms = np.sqrt(np.mean(audio ** 2))
+        return float(np.clip(rms * 4, 0, 1))
+
+    def update_mic_amplitude(self, audio: np.ndarray):
+        self.mic_amplitude = self.get_amplitude(audio)
+
+    def update_moshi_amplitude(self, audio: np.ndarray):
+        self.moshi_amplitude = self.get_amplitude(audio)
 
     def feed_audio(self, audio: np.ndarray):
         self.input_queue.put_nowait(audio.astype(np.float32))
@@ -382,11 +394,27 @@ class ConversationLoop:
         self._is_listening = True
         print("✅ Listening enabled - ready to capture audio")
         
-        self._loop_task = asyncio.create_task(self._conversation_loop())
+        # Register Moshi callbacks
+        if hasattr(self.moshi, 'on_output_audio'):
+            self.moshi.on_output_audio = self._on_moshi_audio
+        if hasattr(self.moshi, 'on_text_token'):
+            self.moshi.on_text_token = self._on_moshi_text
+            
+        # Start Moshi async loops if available (MoshiClient)
+        if hasattr(self.moshi, 'run_async_loops'):
+            self._loop_task = asyncio.create_task(self.moshi.run_async_loops())
+            self.log("🔄 Moshi Client Async Loops Started")
+        else:
+            # Fallback for local bridge (if any)
+            self._loop_task = asyncio.create_task(self._conversation_loop_legacy())
+            
         self._set_state("listening")
 
     async def stop(self):
         self.running = False
+        if hasattr(self.moshi, 'stop'):
+            self.moshi.stop()
+            
         if self._loop_task:
             self._loop_task.cancel()
             try:
@@ -396,152 +424,48 @@ class ConversationLoop:
         self.audio_io.stop()
         self._set_state("idle")
 
-    async def _conversation_loop(self):
-        """Full duplex streaming loop."""
-        self.log("🔄 Starting Duplex Streaming Loop")
-        
-        while self.running:
-            try:
-                if not self._is_listening:
-                    await asyncio.sleep(0.1)
-                    continue
-
-                # 1. Process Input (Mic -> Moshi)
-                # We process all available frames in buffer
-                frames_processed = 0
-                while self._audio_buffer:
-                    frame = self._audio_buffer.pop(0)
-                    self.moshi.process_frame(frame)
-                    frames_processed += 1
-                
-                # If no input, send silence to keep model running
-                if frames_processed == 0:
-                    self.moshi.send_silence()
-
-                # 2. Process Output (Moshi -> Speaker)
-                # Read all available output
-                while True:
-                    audio_chunk, text_piece = self.moshi.get_output(timeout=0.001)
-                    if audio_chunk is None and text_piece is None:
-                        break
-                        
-                    if audio_chunk is not None:
-                        # Update amplitude for visualization
-                        self.moshi.update_moshi_amplitude(audio_chunk)
-                        # Play audio
-                        self.audio_io.play_audio(audio_chunk)
-                        
-                    if text_piece:
-                        # self.log(f"🤖 Moshi: {text_piece}")
-                        # TODO: Accumulate text for UI
-                        pass
-                
-                # Small sleep to prevent CPU hogging, but fast enough for audio
-                await asyncio.sleep(0.01)
-                
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                self.log(f"❌ Loop error: {e}")
-                await asyncio.sleep(1.0)
-
     def _on_audio_frame(self, audio: np.ndarray):
         """Callback for each audio frame from microphone"""
         if not self._is_listening:
             return
         
         # Update amplitude for visualization
-        self.moshi.update_mic_amplitude(audio)
+        if hasattr(self.moshi, 'update_mic_amplitude'):
+            self.moshi.update_mic_amplitude(audio)
         
-        # Check for voice activity
-        is_speaking = self.vad.process_frame(audio)
-        
-        if is_speaking:
-            self._audio_buffer.append(audio)
-            # Log first frame of speech
-            if len(self._audio_buffer) == 1:
-                self.log(f"🎤 Speech detected! Starting capture...")
-        elif len(self._audio_buffer) > 0:
-            # End of speech - log buffer size
-            total_samples = sum(len(chunk) for chunk in self._audio_buffer)
-            duration_ms = (total_samples / 24000) * 1000
-            self.log(f"🎤 Speech ended. Captured {len(self._audio_buffer)} frames ({duration_ms:.0f}ms)")
+        # Feed audio to Moshi
+        if hasattr(self.moshi, 'feed_audio'):
+            self.moshi.feed_audio(audio)
             
         # Debug logging for amplitude (every ~100 frames / 2 seconds)
-        # We use a random check to avoid state
-        if np.random.random() < 0.02: # Increased frequency slightly
-            amp = self.moshi.mic_amplitude
+        if np.random.random() < 0.02:
+            amp = getattr(self.moshi, 'mic_amplitude', 0.0)
             rms = np.sqrt(np.mean(audio**2))
-            self.log(f"DEBUG: Mic RMS: {rms:.5f} | VAD: {is_speaking} | Amp: {amp:.4f}")
+            # self.log(f"DEBUG: Mic RMS: {rms:.5f} | Amp: {amp:.4f}")
 
-    async def _capture_speech_segment(self) -> Optional[np.ndarray]:
-        """Capture a speech segment with timeout to prevent hanging"""
-        # Wait for audio buffer to have content, but with timeout
-        max_wait = 10  # seconds
-        wait_time = 0
-        while len(self._audio_buffer) == 0 and wait_time < max_wait:
-            await asyncio.sleep(0.1)
-            wait_time += 0.1
-            if not self.running:
-                return None
-        
-        if len(self._audio_buffer) == 0:
-            return None
+    def _on_moshi_audio(self, audio: np.ndarray):
+        """Callback for audio received from Moshi"""
+        # Update amplitude
+        if hasattr(self.moshi, 'update_moshi_amplitude'):
+            self.moshi.update_moshi_amplitude(audio)
             
-        segment = np.concatenate(self._audio_buffer)
-        self._audio_buffer = []
-        self.vad.reset()
-        return segment
-
-    async def _process_turn(self, user_audio: np.ndarray):
-        print(f"🤔 Processing turn with {len(user_audio)} audio samples...")
-        self._set_state("thinking")
-        self.moshi.update_mic_amplitude(user_audio)
-        
-        inner_monologue = None
-        if self.memory_orchestrator and self.memory_orchestrator.is_available():
-            try:
-                recent_context_list = await self.memory.get_context(self.user_id, limit=5)
-                recent_context = "\n".join([f"{msg.get('role', 'user')}: {msg.get('message', '')}" for msg in recent_context_list]) if recent_context_list else "context"
-                filtered_memories = await self.memory_orchestrator.get_memories(self.user_id, query=recent_context, context=recent_context, thinking_level="light", max_memories=3)
-                if filtered_memories:
-                    inner_monologue = "[Inner thoughts]:\n" + "\n".join([f"- {mem.text}" for mem in filtered_memories])
-            except Exception:
-                pass
-
-        moshi_audio, moshi_text = self.moshi.generate_response(user_audio=user_audio, text_prompt=inner_monologue, max_frames=125)
-        print(f"🎙️ Moshi generated: {len(moshi_audio)} audio samples, text: '{moshi_text[:50] if moshi_text else 'None'}...'")
-        
-        tool_output_text = ""
-        if moshi_text:
-            commands = self.command_parser.parse(moshi_text)
-            if commands:
-                results = await self.tool_executor.execute_commands(commands)
-                for i, (tool_name, _, _) in enumerate(commands):
-                    tool_output_text += f"\n[Tool '{tool_name}' result]:\n{results[i]}\n"
-
-        assistant_text = (moshi_text if moshi_text else "[No response]") + tool_output_text
-        self.moshi.update_moshi_amplitude(moshi_audio)
-        
+        # Play audio
+        self.audio_io.play_audio(audio)
         self._set_state("speaking")
-        if len(moshi_audio) > 0:
-            self.audio_io.play_audio(moshi_audio)
-            await asyncio.sleep(len(moshi_audio) / 24000.0)
 
-        persona_name = self.persona.get_current_persona().name
-        await self.memory.store_message(self.user_id, "[Audio input]", "user", {"persona": persona_name})
-        await self.memory.store_message(self.user_id, assistant_text, "assistant", {"persona": persona_name})
+    def _on_moshi_text(self, text: str):
+        """Callback for text received from Moshi"""
+        # self.log(f"🤖 Moshi: {text}")
+        pass
 
-        turn = ConversationTurn(
-            user_text="[Audio input]", assistant_text=assistant_text, persona_name=persona_name,
-            timestamp=datetime.now().timestamp(), user_audio=user_audio, assistant_audio=moshi_audio,
-            metadata={"mic_amplitude": self.moshi.mic_amplitude, "moshi_amplitude": self.moshi.moshi_amplitude, "inner_monologue": inner_monologue}
-        )
-        if self.on_turn_complete:
-            self.on_turn_complete(turn)
-        
-        self._set_state("listening")
-        self._is_listening = False
+    async def _conversation_loop_legacy(self):
+        """Legacy loop for non-client bridges (if any)."""
+        while self.running:
+            await asyncio.sleep(1.0)
+
+    # Legacy methods removed/stubbed
+    async def _capture_speech_segment(self): pass
+    async def _process_turn(self, user_audio): pass
 
     def _set_state(self, state: str):
         if self.on_state_change:
@@ -794,8 +718,9 @@ class VoiceBridgeOrchestrator:
         if self.voice_queues:
             self.log("🔌 Connecting to Voice Server Process...")
             c2s, s2c, status = self.voice_queues
-            self.moshi = MoshiBridgeProxy(c2s, s2c, status, quality=self.moshi_quality)
-            self.log("✅ Voice Server Proxy created")
+            # Use MoshiClient for full duplex streaming
+            self.moshi = MoshiClient(c2s, s2c)
+            self.log("✅ Moshi Client created (Full Duplex)")
         else:
             self.log("🖥️  Initializing Local Moshi Bridge (In-Process)...")
             self.moshi = MoshiBridge(quality=self.moshi_quality)
