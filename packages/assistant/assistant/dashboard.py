@@ -1323,7 +1323,8 @@ class VoiceAssistantApp(App):
                 self.config,
                 user_id=self.user_id,
                 moshi_quality=moshi_quality,
-                voice_queues=self.voice_queues
+                voice_queues=self.voice_queues,
+                log_callback=self.update_activity
             )
             # Initialize Moshi models
             await self.voice_orchestrator.initialize()

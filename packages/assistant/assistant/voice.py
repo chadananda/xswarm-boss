@@ -679,13 +679,14 @@ class ConversationState(Enum):
 
 class VoiceBridgeOrchestrator:
     """Orchestrates voice conversation using MoshiBridge, PersonaManager, and MemoryManager."""
-    def __init__(self, persona_manager: PersonaManager, memory_manager: MemoryManager, config, user_id: str = "default", moshi_quality: str = "auto", voice_queues=None):
+    def __init__(self, persona_manager: PersonaManager, memory_manager: MemoryManager, config, user_id: str = "default", moshi_quality: str = "auto", voice_queues=None, log_callback: Optional[Callable[[str], None]] = None):
         self.persona_manager = persona_manager
         self.memory_manager = memory_manager
         self.config = config
         self.user_id = user_id
         self.moshi_quality = moshi_quality
         self.voice_queues = voice_queues
+        self.log_callback = log_callback
         self.moshi: Optional[Any] = None # MoshiBridge or MoshiBridgeProxy
         self.current_persona: Optional[PersonaConfig] = None
         self.ai_client: Optional[AIClient] = None
@@ -697,20 +698,25 @@ class VoiceBridgeOrchestrator:
         self._current_moshi_amplitude: float = 0.0
         self._running = False
 
+    def log(self, msg: str):
+        print(msg)
+        if self.log_callback:
+            self.log_callback(msg)
+
     async def initialize(self):
         self.current_persona = self.persona_manager.get_current_persona()
         if not self.current_persona:
             raise ValueError("No persona set")
             
         if self.voice_queues:
-            print("🔌 Connecting to Voice Server Process...")
+            self.log("🔌 Connecting to Voice Server Process...")
             c2s, s2c, status = self.voice_queues
             self.moshi = MoshiBridgeProxy(c2s, s2c, status, quality=self.moshi_quality)
-            print("✅ Voice Server Proxy created")
+            self.log("✅ Voice Server Proxy created")
         else:
-            print("🖥️  Initializing Local Moshi Bridge (In-Process)...")
+            self.log("🖥️  Initializing Local Moshi Bridge (In-Process)...")
             self.moshi = MoshiBridge(quality=self.moshi_quality)
-            print("✅ Local Moshi Bridge initialized")
+            self.log("✅ Local Moshi Bridge initialized")
             
         self.ai_client = AIClient(self.config)
         await self.memory_manager.initialize()
