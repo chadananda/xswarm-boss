@@ -69,6 +69,12 @@ class AudioIO:
                 self.log(f"⚠️ Audio Status: {status}")
             try:
                 audio = np.ascontiguousarray(indata[:, 0], dtype=np.float32)
+                
+                # DEBUG: Check for signal
+                rms = np.sqrt(np.mean(audio**2))
+                if rms > 0.01:
+                    self.log(f"🎤 Signal detected! RMS: {rms:.4f}")
+                
                 self.input_queue.put(audio)
                 if callback:
                     try:
