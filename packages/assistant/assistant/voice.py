@@ -359,6 +359,7 @@ class ConversationLoop:
         try:
             self.audio_io.start_input(callback=self._on_audio_frame)
             self.audio_io.start_output()
+            print("✅ Audio streams started")
         except Exception as e:
             # Handle microphone permission errors gracefully
             error_msg = str(e)
@@ -370,6 +371,11 @@ class ConversationLoop:
                 raise RuntimeError(f"Microphone access denied: {error_msg}")
             else:
                 raise
+        
+        # Enable listening AFTER audio streams are started
+        self._is_listening = True
+        print("✅ Listening enabled - ready to capture audio")
+        
         self._loop_task = asyncio.create_task(self._conversation_loop())
         self._set_state("listening")
 
