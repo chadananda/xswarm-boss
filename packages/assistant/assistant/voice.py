@@ -336,7 +336,7 @@ class AIClient:
 
 class ConversationLoop:
     """Manages the conversation loop with VAD -> STT -> AI -> TTS -> Output."""
-    def __init__(self, moshi_bridge: MoshiBridge, persona_manager: PersonaManager, memory_manager: MemoryManager, ai_client: AIClient, memory_orchestrator: Optional[MemoryOrchestrator] = None, user_id: str = "default", on_turn_complete: Optional[Callable] = None, on_state_change: Optional[Callable] = None):
+    def __init__(self, moshi_bridge: MoshiBridge, persona_manager: PersonaManager, memory_manager: MemoryManager, ai_client: AIClient, memory_orchestrator: Optional[MemoryOrchestrator] = None, user_id: str = "default", on_turn_complete: Optional[Callable[[ConversationTurn], None]] = None, on_state_change: Optional[Callable[[str], None]] = None, log_callback: Optional[Callable[[str], None]] = None):
         self.moshi = moshi_bridge
         self.persona = persona_manager
         self.memory = memory_manager
@@ -345,6 +345,7 @@ class ConversationLoop:
         self.user_id = user_id
         self.on_turn_complete = on_turn_complete
         self.on_state_change = on_state_change
+        self.log_callback = log_callback
         self.audio_io = AudioIO()
         self.vad = VoiceActivityDetector()
         self.tool_executor = ToolExecutor(registry)
@@ -354,12 +355,17 @@ class ConversationLoop:
         self._audio_buffer = []
         self._is_listening = False
 
+    def log(self, msg: str):
+        print(msg)
+        if self.log_callback:
+            self.log_callback(msg)
+
     async def start(self):
         self.running = True
         try:
             self.audio_io.start_input(callback=self._on_audio_frame)
             self.audio_io.start_output()
-            print("✅ Audio streams started")
+            self.log("✅ Audio streams started")
         except Exception as e:
             # Handle microphone permission errors gracefully
             error_msg = str(e)
@@ -422,12 +428,19 @@ class ConversationLoop:
             self._audio_buffer.append(audio)
             # Log first frame of speech
             if len(self._audio_buffer) == 1:
-                print(f"🎤 Speech detected! Starting capture...")
+                self.log(f"🎤 Speech detected! Starting capture...")
         elif len(self._audio_buffer) > 0:
             # End of speech - log buffer size
             total_samples = sum(len(chunk) for chunk in self._audio_buffer)
             duration_ms = (total_samples / 24000) * 1000
-            print(f"🎤 Speech ended. Captured {len(self._audio_buffer)} frames ({duration_ms:.0f}ms)")
+            self.log(f"🎤 Speech ended. Captured {len(self._audio_buffer)} frames ({duration_ms:.0f}ms)")
+            
+        # Debug logging for amplitude (every ~100 frames / 2 seconds)
+        # We use a random check to avoid state
+        if np.random.random() < 0.01:
+            amp = self.moshi.mic_amplitude
+            if amp > 0.01:
+                self.log(f"DEBUG: Mic Amp: {amp:.4f} (VAD: {is_speaking})")
 
     async def _capture_speech_segment(self) -> Optional[np.ndarray]:
         """Capture a speech segment with timeout to prevent hanging"""
@@ -724,7 +737,8 @@ class VoiceBridgeOrchestrator:
         self.conversation_loop = ConversationLoop(
             moshi_bridge=self.moshi, persona_manager=self.persona_manager, memory_manager=self.memory_manager,
             ai_client=self.ai_client, user_id=self.user_id, on_turn_complete=self._on_conversation_turn,
-            on_state_change=self._on_state_change
+            on_state_change=self._on_state_change,
+            log_callback=self.log_callback
         )
         print("✅ ConversationLoop created")
         self._set_state(ConversationState.IDLE)
