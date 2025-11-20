@@ -202,13 +202,16 @@ def start_server_process(quality: str = "q4", max_steps: int = 2000):
 
     hf_repo, quantized = quality_map[quality]
 
-    # Create queues
-    client_to_server = multiprocessing.Queue()
-    server_to_client = multiprocessing.Queue()
-    status_queue = multiprocessing.Queue()
+    # Use spawn context for macOS/MLX compatibility
+    ctx = multiprocessing.get_context("spawn")
 
-    # Start server process
-    process = multiprocessing.Process(
+    # Create queues using the spawn context
+    client_to_server = ctx.Queue()
+    server_to_client = ctx.Queue()
+    status_queue = ctx.Queue()
+
+    # Start server process using the spawn context
+    process = ctx.Process(
         target=server_process,
         args=(client_to_server, server_to_client, status_queue, hf_repo, quantized, max_steps),
         daemon=True
