@@ -607,13 +607,16 @@ class MoshiBridgeProxy:
         text_pieces = []
         
         # 2. Send input codes and read responses
-        for input_codes in all_input_codes:
+        for i, input_codes in enumerate(all_input_codes):
+            print(f"📤 Sending frame {i+1}/{len(all_input_codes)} to voice server (shape: {input_codes.shape})")
             self.client_to_server.put(input_codes)
             
             # Read response (blocking)
             # Server sends ("audio", tokens, text) or ("text", None, text)
+            print(f"📥 Waiting for response from voice server...")
             msg = self.server_to_client.get()
             type_, audio_tokens, text_piece = msg
+            print(f"📥 Received: type={type_}, audio_tokens={'present' if audio_tokens is not None else 'None'}, text='{text_piece}'")
             
             if text_piece:
                 text_pieces.append(text_piece)
@@ -621,6 +624,7 @@ class MoshiBridgeProxy:
             if audio_tokens is not None:
                 audio_chunk = self.decode_audio(audio_tokens)
                 output_audio_chunks.append(audio_chunk)
+                print(f"🔊 Decoded audio chunk: {len(audio_chunk)} samples")
                 
         # 3. Send silence codes for generation
         # We need to send empty codes to keep the model generating
