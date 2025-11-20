@@ -64,7 +64,7 @@ def server_process(
         format='%(asctime)s - %(levelname)s - %(message)s',
         handlers=[
             logging.FileHandler('/tmp/xswarm_voice_server.log', mode='w'),
-            logging.StreamHandler()
+            # logging.StreamHandler() # Disabled to prevent TUI corruption
         ]
     )
     logger = logging.getLogger("voice_server")
