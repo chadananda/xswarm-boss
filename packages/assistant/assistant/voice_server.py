@@ -119,7 +119,11 @@ def server_process(
                 break
 
             # Convert to MLX array and run inference
-            data = mx.array(data).transpose(1, 0)[:, :8]
+            # data comes in as (8, T) from encoder, need (1, 8, T) for Moshi
+            data = mx.array(data)
+            if len(data.shape) == 2:
+                # Add batch dimension: (8, T) -> (1, 8, T)
+                data = data[None, :, :]
             text_token = gen.step(data)
             text_token_id = text_token[0].item()
 
