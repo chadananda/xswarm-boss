@@ -1224,6 +1224,9 @@ class CyberpunkFooter(Static):
 
     # GPU capability (real hardware detection)
     gpu_capability: GPUCapability = None
+    
+    # Voice server connection status
+    voice_status = reactive(None)  # None, "connected", "disconnected"
 
     # Theme colors dictionary (set dynamically by app)
     theme_colors = None
@@ -1303,7 +1306,14 @@ class CyberpunkFooter(Static):
             result.append(f" ({gpu.compute_score:.0f}/100)", style=shade_4)
             vram_display = f" [{gpu.vram_used_gb:.0f}GB/{gpu.vram_total_gb:.0f}GB]"
             result.append(vram_display, style=shade_4)
-            result.append(f" {gpu.util_percent:.0f}%", style=f"{grade_color}")
+            result.append(f\" {gpu.util_percent:.0f}%\", style=f"{grade_color}")
+            result.append(" │ ", style=shade_3)
+
+        # Voice Server Status (if available)
+        if hasattr(self, 'voice_status') and self.voice_status:
+            status_icon = "🎙️" if self.voice_status == "connected" else "🔇"
+            status_color = "green" if self.voice_status == "connected" else "red"
+            result.append(status_icon, style=f"bold {status_color}")
             result.append(" │ ", style=shade_3)
 
         # 2. Version Number

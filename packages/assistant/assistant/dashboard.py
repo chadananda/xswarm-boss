@@ -1332,6 +1332,13 @@ class VoiceAssistantApp(App):
             # Mark as initialized
             self.voice_initialized = True
             self.update_activity("✅ Voice bridge initialized successfully")
+            
+            # Update footer voice status
+            try:
+                footer = self.query_one(CyberpunkFooter)
+                footer.voice_status = "connected"
+            except Exception:
+                pass
 
             # DON'T set baseline amplitude here - let it stay at 0.0 until actually speaking
             # The greeting generation below will set the amplitude when audio is played
