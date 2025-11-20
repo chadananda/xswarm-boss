@@ -398,6 +398,7 @@ class ConversationLoop:
                     continue
                 user_audio = await self._capture_speech_segment()
                 if user_audio is None or len(user_audio) == 0:
+                    await asyncio.sleep(0.1)  # Prevent tight loop
                     continue
                 await self._process_turn(user_audio)
             except asyncio.CancelledError:
@@ -429,8 +430,19 @@ class ConversationLoop:
             print(f"🎤 Speech ended. Captured {len(self._audio_buffer)} frames ({duration_ms:.0f}ms)")
 
     async def _capture_speech_segment(self) -> Optional[np.ndarray]:
+        """Capture a speech segment with timeout to prevent hanging"""
+        # Wait for audio buffer to have content, but with timeout
+        max_wait = 10  # seconds
+        wait_time = 0
+        while len(self._audio_buffer) == 0 and wait_time < max_wait:
+            await asyncio.sleep(0.1)
+            wait_time += 0.1
+            if not self.running:
+                return None
+        
         if len(self._audio_buffer) == 0:
             return None
+            
         segment = np.concatenate(self._audio_buffer)
         self._audio_buffer = []
         self.vad.reset()
