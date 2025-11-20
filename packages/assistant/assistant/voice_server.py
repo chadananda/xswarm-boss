@@ -148,7 +148,6 @@ def server_process(
             try:
                 text_token = gen.step(data)
             except ValueError as e:
-                log(f"❌ Error in gen.step: {e} (Shape: {data.shape})")
                 continue
                 
             text_token_id = text_token[0].item()
@@ -159,8 +158,8 @@ def server_process(
             # Decode text token
             text_piece = ""
             if text_token_id not in (0, 3):
-                text_piece = text_tokenizer.id_to_piece(text_token_id)
-                text_piece = text_piece.replace("▁", " ")
+                text_piece = text_tokenizer.decode(text_token_id)
+                text_piece = text_piece.replace(" ", " ")
 
             # Send results back
             if audio_tokens is not None:

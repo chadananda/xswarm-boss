@@ -32,14 +32,30 @@ class AudioIO:
         self.input_stream: Optional[sd.InputStream] = None
         self.output_stream: Optional[sd.OutputStream] = None
         
-        # Log available devices
+        # Log available devices and select best input
         try:
             devices = sd.query_devices()
             default_in = sd.query_devices(kind='input')
             self.log(f"🎤 Audio Devices found: {len(devices)}")
-            self.log(f"🎤 Default Input: {default_in['name']}")
+            
+            # Smart selection: Prefer "Built-in Microphone" or "MacBook Pro Microphone"
+            self.input_device_index = None
+            for i, dev in enumerate(devices):
+                if dev['max_input_channels'] > 0:
+                    name = dev['name']
+                    # self.log(f"  - [{i}] {name}") # Too verbose?
+                    if "Built-in Microphone" in name or "MacBook Pro Microphone" in name:
+                        self.input_device_index = i
+                        self.log(f"🎤 Selected Input Device: {name} (Index {i})")
+                        break
+            
+            if self.input_device_index is None:
+                self.log(f"🎤 Using Default Input: {default_in['name']}")
+                self.input_device_index = default_in['index']
+                
         except Exception as e:
             self.log(f"⚠️ Error querying audio devices: {e}")
+            self.input_device_index = None
 
     def log(self, msg: str):
         if self.log_callback:
@@ -66,7 +82,8 @@ class AudioIO:
             samplerate=self.sample_rate,
             channels=self.channels,
             blocksize=self.frame_size,
-            callback=audio_callback
+            callback=audio_callback,
+            device=self.input_device_index
         )
         self.input_stream.start()
 

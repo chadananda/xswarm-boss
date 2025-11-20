@@ -29,7 +29,8 @@ class MockLmGen:
     def step(self, audio_codes):
         # Return a dummy text token (0) and dummy audio tokens
         self.step_count += 1
-        return (MagicMock(item=lambda: 0), None)
+        # Return numpy array which is picklable and has .item()
+        return (np.array([0]), None)
         
     def last_audio_tokens(self):
         # Return 8 audio tokens (one frame)
@@ -53,10 +54,11 @@ async def test_voice_server_integration():
     Test the full loop:
     MoshiBridgeProxy -> Queue -> Server Process -> Queue -> MoshiBridgeProxy
     """
-    # Create queues
-    c2s = multiprocessing.Queue()
-    s2c = multiprocessing.Queue()
-    status = multiprocessing.Queue()
+    import queue
+    # Create queues - use queue.Queue to avoid pickling issues since we run in a thread
+    c2s = queue.Queue()
+    s2c = queue.Queue()
+    status = queue.Queue()
     
     # Start server process in a separate thread/process
     # We use a thread here to share the mocks easily, 
@@ -67,7 +69,9 @@ async def test_voice_server_integration():
     def run_server():
         # Mock hf_hub_download inside the thread
         with patch('assistant.voice_server.hf_hub_download', return_value="dummy_path"):
-            with patch('sentencepiece.SentencePieceProcessor'):
+            with patch('sentencepiece.SentencePieceProcessor') as MockSP:
+                mock_sp = MockSP.return_value
+                mock_sp.decode.return_value = "test"
                 server_process(c2s, s2c, status, "dummy_repo", 4, max_steps=100)
 
     server_thread = threading.Thread(target=run_server, daemon=True)
@@ -84,6 +88,7 @@ async def test_voice_server_integration():
             msg = s2c.get()
             if msg == "ready":
                 ready = True
+                s2c.put("ready") # Put it back for Proxy to consume
                 break
         time.sleep(0.1)
         

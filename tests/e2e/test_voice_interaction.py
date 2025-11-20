@@ -10,18 +10,25 @@ import sys
 # Mock dependencies
 sys.modules['assistant.hardware'] = MagicMock()
 sys.modules['assistant.voice_server'] = MagicMock()
+sys.modules['assistant.system'] = MagicMock()
+sys.modules['assistant.voice'] = MagicMock()
+sys.modules['assistant.personas'] = MagicMock()
+sys.modules['assistant.personas.manager'] = MagicMock() # Mock submodule to fix import error
+sys.modules['assistant.memory'] = MagicMock()
+sys.modules['assistant.tools'] = MagicMock()
 
-# Mock VoiceBridgeOrchestrator dependencies
-with patch.dict('sys.modules', {
-    'assistant.voice': MagicMock(),
-    'assistant.personas': MagicMock(),
-    'assistant.memory': MagicMock(),
-    'assistant.tools': MagicMock(),
-}):
-    # We need to import the actual class to test it, but mock its dependencies
-    # Since we can't easily partial import, we'll mock the module structure
-    # and rely on the fact that we're testing the orchestration logic
-    pass
+# Configure system mock
+gpu_mock = MagicMock()
+gpu_mock.grade = "A"
+gpu_mock.temp_c = 50
+gpu_mock.vram_total_gb = 24 # Correct attribute name
+gpu_mock.vram_used = 10
+gpu_mock.compute_score = 85.0
+gpu_mock.vram_used_gb = 12.0
+gpu_mock.util_percent = 45.0
+# dashboard_widgets imports from .hardware, so we must mock that
+sys.modules['assistant.hardware'].detect_gpu_capability.return_value = gpu_mock
+sys.modules['assistant.system'].detect_gpu_capability.return_value = gpu_mock # Mock both to be safe
 
 # Since importing VoiceBridgeOrchestrator is hard due to many deps,
 # we'll test the ConversationLoop logic if possible, or mock the orchestrator
@@ -40,13 +47,14 @@ async def test_voice_interaction_flow():
     app = VoiceAssistantApp(config, personas_dir=MagicMock(), voice_server_process=voice_process)
     
     # Mock the voice orchestrator
-    app.voice_orchestrator = MagicMock()
-    app.voice_orchestrator.process_audio_input = AsyncMock(return_value={
+    orchestrator_mock = MagicMock()
+    orchestrator_mock.process_audio_input = AsyncMock(return_value={
         "response_text": "Hello",
         "response_audio": np.zeros(100),
         "mic_amplitude": 0.5,
         "moshi_amplitude": 0.5
     })
+    app.voice_orchestrator = orchestrator_mock
     
     async with app.run_test() as pilot:
         # Simulate audio input (this would usually come from the mic thread)
