@@ -658,6 +658,8 @@ class VoiceAssistantApp(App):
     BINDINGS = [
         ("q", "quit", "Quit"),
         ("ctrl+q", "quit", "Quit"),
+        ("ctrl+c", "quit", "Quit"),  # User requested CTRL-C to exit
+        ("ctrl+l", "copy_logs", "Copy Logs"), # Rebound copy logs to CTRL-L
     ]
 
     # Reactive state
@@ -700,12 +702,26 @@ class VoiceAssistantApp(App):
         self.persona_manager = PersonaManager(personas_dir)
         self.available_personas = list(self.persona_manager.personas.values())
 
-        # Set default persona on startup
+        # Set default persona on startup (will load theme too)
         default_persona_name = config.default_persona or "JARVIS"
         if not self.persona_manager.set_current_persona(default_persona_name):
             # Fallback to first available persona if default not found
             if self.available_personas:
-                self.persona_manager.set_current_persona(self.available_personas[0].name)
+                fallback = self.available_personas[0].name
+                self.persona_manager.set_current_persona(fallback)
+                # Log fallback (to file since UI not ready)
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"WARNING: Default persona '{default_persona_name}' not found. Falling back to '{fallback}'\n")
+        else:
+             with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"SUCCESS: Loaded default persona '{default_persona_name}'\n")
+        
+        # Load theme from persona (must happen before switch_persona since it expects _theme_palette)
+        current_persona = self.persona_manager.get_current_persona()
+        if current_persona and current_persona.theme and current_persona.theme.theme_color:
+            self._theme_palette = self._load_theme(current_persona.theme.theme_color)
+        else:
+            self._theme_palette = self._load_theme(config.theme_base_color)
 
         # Initialize tool registry
         from .tools import ToolRegistry, ThemeChangeTool, send_email_tool, make_call_tool
@@ -716,9 +732,6 @@ class VoiceAssistantApp(App):
         self.tool_registry.register_tool(send_email_tool)
         # Register phone tools
         self.tool_registry.register_tool(make_call_tool)
-
-        # Generate dynamic theme colors
-        self._theme_palette = self._load_theme(config.theme_base_color)
 
         # Keyboard navigation state
         self._nav_buttons = ["tab-status", "tab-settings", "tab-tools", "tab-chat",
@@ -741,7 +754,84 @@ class VoiceAssistantApp(App):
 
         # Otherwise treat as hex color
         return generate_palette(theme_input)
+    
+    def switch_persona(self, persona_name: str) -> bool:
+        """
+        Centralized persona switching - handles theme, visualizer, and voice updates.
+        
+        Args:
+            persona_name: Name of persona to switch to
+            
+        Returns:
+            True if switch successful, False otherwise
+        """
+        persona = self.persona_manager.get_persona(persona_name)
+        if not persona:
+            return False
+        
+        # Set current persona in manager
+        if not self.persona_manager.set_current_persona(persona_name):
+            return False
+        
+        # Update theme (if persona has a theme)
+        if persona.theme and persona.theme.theme_color:
+            self.update_activity(f"🎨 Switching to {persona.name} theme ({persona.theme.theme_color})")
+            # Regenerate theme palette
+            self._theme_palette = self._load_theme(persona.theme.theme_color)
+            # Update reactive colors - triggers watchers that update ALL UI elements
+            self.theme_shade_1 = self._theme_palette.shade_1
+            self.theme_shade_2 = self._theme_palette.shade_2
+            self.theme_shade_3 = self._theme_palette.shade_3
+            self.theme_shade_4 = self._theme_palette.shade_4
+            self.theme_shade_5 = self._theme_palette.shade_5
+        
+        # Update current persona name
+        self.current_persona_name = persona.name
+        
+        # Update title
+        self.title = f"xSwarm Voice Assistant - {persona.name}"
+        
+        # Update persona name inside visualizer (rendered above divider line)
+        try:
+            viz_panel = self.query_one("#visualizer", VoiceVisualizerPanel)
+            viz_panel.persona_name = persona.name
+        except Exception:
+            pass  # Visualizer not ready yet
+        
+        # Update voice orchestrator persona (if initialized)
+        if self.voice_orchestrator:
+            asyncio.create_task(self.voice_orchestrator.set_persona(persona_name))
+            
+        return True
 
+    def update_activity(self, message: str, msg_type: str = "info") -> None:
+        """
+        Update activity feed with new message.
+        """
+        try:
+            feed = self.query_one(ActivityFeed)
+            feed.add_message(message, msg_type)
+            
+            # Removed toast notifications per user request
+        except Exception:
+            pass
+
+    def action_copy_logs(self) -> None:
+        """Copy activity logs to clipboard."""
+        try:
+            activity_feed = self.query_one("#activity", ActivityFeed)
+            # Extract messages from the deque
+            logs = "\n".join([f"[{msg['timestamp']}] [{msg['type'].upper()}] {msg['message']}" 
+                             for msg in activity_feed.messages])
+            
+            if logs:
+                pyperclip.copy(logs)
+                self.update_activity("Activity logs copied to clipboard!", "success")
+            else:
+                self.update_activity("No logs to copy.", "warning")
+        except Exception as e:
+            self.update_activity(f"Failed to copy logs: {str(e)}", "error")
+                
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout: left column (visualizer + tabs) + right column (content) + footer at bottom"""
         # Main content area with two columns
@@ -961,7 +1051,7 @@ class VoiceAssistantApp(App):
 
     def on_mount(self) -> None:
         """Initialize on mount"""
-        with open("/tmp/xswarm_debug.log", "w") as f:
+        with open("/tmp/xswarm_debug.log", "a") as f:
             f.write("DEBUG: on_mount() ENTRY\n")
             f.flush()
         # DON'T start update_visualizer() yet - wait until voice is initialized
@@ -975,18 +1065,18 @@ class VoiceAssistantApp(App):
 
             # Set title to static "xSwarm Assistant" (not persona-specific)
             visualizer.border_title = "xSwarm Assistant"
+            
+            # FIXED: Sync persona name from persona_manager
+            current_persona = self.persona_manager.get_current_persona()
+            if current_persona:
+                visualizer.persona_name = current_persona.name
 
             # Initialize with 0 connection_amplitude (not connected yet)
             visualizer.connection_amplitude = 0
         except Exception:
             pass
 
-        # Set persona name inside visualizer (will be rendered above divider line)
-        try:
-            persona_name = self.config.default_persona or "JARVIS"
-            visualizer.persona_name = persona_name
-        except Exception:
-            pass
+        # Persona name already set above (line 980-983) - don't duplicate
 
         # Populate theme selector with available themes
         self.populate_theme_selector()
@@ -1082,17 +1172,6 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-    def update_activity(self, message: str):
-        """Add message to activity feed"""
-        try:
-            feed = self.query_one(ActivityFeed)
-            feed.add_message(message)
-        except Exception:
-            pass
-        
-        # Also show toast for important messages to ensure visibility
-        if any(trigger in message for trigger in ["Voice", "voice", "Error"]):
-            self.notify(message, timeout=5.0)
 
     def populate_theme_selector(self):
         """Populate persona selector with available personas"""
@@ -1138,22 +1217,6 @@ class VoiceAssistantApp(App):
         elif button_id == "btn-copy-logs":
             self.action_copy_logs()
 
-    def action_copy_logs(self) -> None:
-        """Copy activity logs to clipboard."""
-        try:
-            activity_feed = self.query_one("#activity", ActivityFeed)
-            if activity_feed and activity_feed.messages:
-                # Format messages for clipboard (timestamp [TYPE] message)
-                log_text = ""
-                for msg in activity_feed.messages:
-                    log_text += f"[{msg['timestamp']}] [{msg['type'].upper()}] {msg['message']}\n"
-                
-                pyperclip.copy(log_text)
-                self.notify("Activity logs copied to clipboard!", title="Success", severity="information")
-            else:
-                self.notify("No logs to copy.", title="Info", severity="warning")
-        except Exception as e:
-            self.notify(f"Failed to copy logs: {str(e)}", title="Error", severity="error")
 
     def handle_oauth_button(self, button_id: str, button: Button) -> None:
         """Handle OAuth connector button clicks (mock functionality)"""
@@ -1239,34 +1302,11 @@ class VoiceAssistantApp(App):
         if event.radio_set.id != "theme-selector":
             return
         # Get selected persona name from RadioButton label
-        # Note: RadioButton.value is a boolean (pressed state), not custom data
-        # We use label which contains the persona.name
         selected_persona_name = event.pressed.label.plain if event.pressed else None
         if not selected_persona_name:
             return
-        # Switch to selected persona theme
-        persona = self.persona_manager.get_persona(selected_persona_name)
-        if persona and persona.theme and persona.theme.theme_color:
-            self.update_activity(f"🎨 Switching to {persona.name} theme ({persona.theme.theme_color})")
-            # Regenerate theme palette
-            self._theme_palette = self._load_theme(persona.theme.theme_color)
-            # Update reactive colors - triggers watchers that update ALL UI elements
-            self.theme_shade_1 = self._theme_palette.shade_1
-            self.theme_shade_2 = self._theme_palette.shade_2
-            self.theme_shade_3 = self._theme_palette.shade_3
-            self.theme_shade_4 = self._theme_palette.shade_4
-            self.theme_shade_5 = self._theme_palette.shade_5
-            # Update current persona name
-            self.current_persona_name = persona.name
-            # Update title
-            self.title = f"xSwarm Voice Assistant - {persona.name}"
-            # Update persona name inside visualizer (rendered above divider line)
-            try:
-                viz_panel = self.query_one("#visualizer", VoiceVisualizerPanel)
-                viz_panel.persona_name = persona.name
-            except Exception:
-                pass
-            # Keep visualizer title as static "xSwarm Assistant" (don't change it)
+        # Use centralized switch_persona() method
+        self.switch_persona(selected_persona_name)
 
     def on_unmount(self) -> None:
         """Cleanup on exit - IMMEDIATE shutdown, no waiting"""
@@ -1431,18 +1471,30 @@ class VoiceAssistantApp(App):
         if self.voice_orchestrator:
             mic_amp = getattr(self.voice_orchestrator, '_current_mic_amplitude', 0.0)
             moshi_amp = getattr(self.voice_orchestrator, '_current_moshi_amplitude', 0.0)
-            # Use max of mic and moshi for visualization
-            amplitude = max(mic_amp, moshi_amp)
-            # Map state to connection_amplitude
-            if self.state == "speaking":
-                conn_amp = 2.0 + (amplitude * 98.0)  # 2-100 range
+            
+            # DUPLEX: Both mic and moshi are independent and simultaneous
+            # - mic_amplitude → drives mic waveform (bottom) - from user input
+            # - connection_amplitude → drives circular viz (top) - from Moshi output
+            # Both should animate simultaneously when active (full duplex)
+            
+            # Map moshi amplitude to connection_amplitude
+            if moshi_amp > 0.01:
+                # Moshi is outputting audio → animate top section
+                conn_amp = 2.0 + (moshi_amp * 98.0)  # 2-100 range
             elif self.state == "listening":
                 conn_amp = 1.0  # Idle/breathing
             else:
                 conn_amp = 0.0  # Not connected
+            
             return {
-                "mic_amplitude": mic_amp * 2.0,  # Scale for visibility
-                "connection_amplitude": conn_amp
+                "mic_amplitude": mic_amp * 2.0,  # Bottom waveform (always show when mic active)
+                "connection_amplitude": conn_amp  # Top circular viz (always show when moshi active)
             }
-        return {"mic_amplitude": 0.0, "connection_amplitude": 0.0}
+            return {"mic_amplitude": 0.0, "connection_amplitude": 0.0}
 
+    async def on_unmount(self):
+        """Cleanup when app is closing."""
+        if self.voice_orchestrator:
+            self.voice_orchestrator.stop()
+        if self.voice_server_process:
+            self.voice_server_process.terminate()

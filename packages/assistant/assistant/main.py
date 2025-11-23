@@ -258,16 +258,30 @@ Configuration:
         help="Path to custom config file"
     )
 
+    # Determine default personas directory
+    # Try root personas directory first (development mode)
+    root_personas = Path(__file__).parents[3] / "personas"
+    local_personas = Path(__file__).parent / "personas"
+    
+    default_personas_dir = root_personas if root_personas.exists() else local_personas
+
+    parser.add_argument(
+        "--personas-dir",
+        type=Path,
+        default=default_personas_dir,
+        help="Directory containing personas"
+    )
     parser.add_argument(
         "--debug",
         action="store_true",
         help="Enable debug logging"
     )
 
+    from . import __version__
     parser.add_argument(
         "--version",
         action="version",
-        version="%(prog)s 0.4.27"
+        version=f"%(prog)s {__version__}"
     )
 
     args = parser.parse_args()

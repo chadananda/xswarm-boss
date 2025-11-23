@@ -36,7 +36,7 @@ class Config(BaseModel):
     memory_enabled: bool = True
 
     # Persona settings
-    default_persona: Optional[str] = None
+    default_persona: Optional[str] = "Jarvis"  # Default to Jarvis persona
 
     # UI Theme settings
     theme_base_color: str = "#8899aa"  # Base color for shade palette generation
@@ -134,24 +134,50 @@ class Config(BaseModel):
     @classmethod
     def load_from_file(cls, config_path: Optional[Path] = None) -> "Config":
         """
-        Load configuration from YAML file.
+        Load configuration from file (YAML or JSON).
+        Prioritizes:
+        1. Custom path (if provided)
+        2. Project root config.json (if exists)
+        3. ~/.config/xswarm/config.yaml (default)
 
         Args:
-            config_path: Optional custom config path. If None, uses ~/.config/xswarm/config.yaml
+            config_path: Optional custom config path.
 
         Returns:
-            Config: Loaded configuration, or default config if file doesn't exist
+            Config: Loaded configuration
         """
-        if config_path is None:
-            config_path = cls.get_config_path()
+        # 1. Try custom path
+        if config_path and config_path.exists():
+            return cls._load_from_path(config_path)
 
-        if not config_path.exists():
-            # Return default config if file doesn't exist
-            return cls()
+        # 2. Try project root config.json
+        root_config = Path("config.json")
+        if root_config.exists():
+            print(f"Loading config from project root: {root_config.absolute()}")
+            return cls._load_from_json_root(root_config)
 
+        # 3. Try default user config
+        default_path = cls.get_config_path()
+        if default_path.exists():
+            return cls._load_from_path(default_path)
+
+        # 4. Return default
+        return cls()
+
+    @classmethod
+    def _load_from_path(cls, path: Path) -> "Config":
+        """Helper to load from YAML/JSON based on extension"""
         try:
-            with open(config_path, "r") as f:
-                data = yaml.safe_load(f)
+            with open(path, "r") as f:
+                if path.suffix == ".json":
+                    import json
+                    data = json.load(f)
+                else:
+                    data = yaml.safe_load(f)
+            
+            # Handle potential nested structure if loading raw config.json directly
+            if "voice" in data:
+                return cls._map_root_json_to_config(data)
 
             # Convert string paths back to Path objects
             if "model_dir" in data:
@@ -161,9 +187,56 @@ class Config(BaseModel):
 
             return cls(**data)
         except Exception as e:
-            print(f"Error loading config from {config_path}: {e}")
-            print("Using default configuration")
+            print(f"Error loading config from {path}: {e}")
             return cls()
+
+    @classmethod
+    def _load_from_json_root(cls, path: Path) -> "Config":
+        """Load from the specific project root config.json structure"""
+        try:
+            import json
+            with open(path, "r") as f:
+                data = json.load(f)
+            return cls._map_root_json_to_config(data)
+        except Exception as e:
+            print(f"Error loading root config.json: {e}")
+            return cls()
+
+    @classmethod
+    def _map_root_json_to_config(cls, data: dict) -> "Config":
+        """Map root config.json structure to Config model"""
+        config_data = {}
+        
+        # Map 'voice' section
+        if "voice" in data:
+            voice = data["voice"]
+            if "defaultPersona" in voice:
+                config_data["default_persona"] = voice["defaultPersona"]
+            if "sampleRate" in voice:
+                config_data["sample_rate"] = voice["sampleRate"]
+            
+            # Map wake word
+            if "wakeWord" in voice and isinstance(voice["wakeWord"], dict):
+                ww = voice["wakeWord"]
+                if "keywords" in ww:
+                    config_data["wake_word"] = ww["keywords"]
+        
+        # Map 'ai' section
+        if "ai" in data:
+            ai = data["ai"]
+            if "defaultTextProvider" in ai:
+                # Map to thinking model if possible, or just note it
+                pass
+                
+        # Map 'server' section
+        if "server" in data:
+            server = data["server"]
+            host = server.get("host", "localhost")
+            port = server.get("port", 8787)
+            protocol = "https" if server.get("useHttps") else "http"
+            config_data["server_url"] = f"{protocol}://{host}:{port}"
+
+        return cls(**config_data)
 
     def save_to_file(self, config_path: Optional[Path] = None):
         """
@@ -206,3 +279,46 @@ class Config(BaseModel):
             "assistant",
             "hey"
         ]
+
+    @staticmethod
+    def get_project_version() -> str:
+        """
+        Get project version from root config.json.
+        Source of Truth: /config.json
+        """
+        try:
+            import json
+            # Look for config.json in project root (3 levels up from this file)
+            # packages/assistant/assistant/config.py -> packages/assistant/assistant -> packages/assistant -> packages -> root
+            # Actually it's 4 levels:
+            # 1. assistant (package)
+            # 2. assistant (package root)
+            # 3. packages
+            # 4. root
+            
+            # Let's try to find it relative to this file
+            current_file = Path(__file__).resolve()
+            # parents[0] = assistant/assistant
+            # parents[1] = assistant
+            # parents[2] = packages
+            # parents[3] = root
+            
+            project_root = current_file.parents[3]
+            config_path = project_root / "config.json"
+            
+            if config_path.exists():
+                with open(config_path, "r") as f:
+                    data = json.load(f)
+                    return data.get("project", {}).get("version", "0.0.0")
+            
+            # Fallback to package.json
+            package_json = project_root / "package.json"
+            if package_json.exists():
+                with open(package_json, "r") as f:
+                    data = json.load(f)
+                    return data.get("version", "0.0.0")
+                    
+        except Exception as e:
+            print(f"Error reading version from root: {e}")
+            
+        return "0.0.0"

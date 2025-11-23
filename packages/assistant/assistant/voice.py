@@ -211,9 +211,10 @@ class MoshiBridge:
 
 class MoshiClient:
     """Client that handles audio codec and communicates with server process."""
-    def __init__(self, client_to_server, server_to_client, hf_repo: str = "kyutai/moshiko-mlx-bf16", mimi_file: Optional[str] = None):
+    def __init__(self, client_to_server, server_to_client, hf_repo: str = "kyutai/moshiko-mlx-bf16", mimi_file: Optional[str] = None, log_callback: Optional[Callable[[str], None]] = None):
         self.client_to_server = client_to_server
         self.server_to_client = server_to_client
+        self.log_callback = log_callback
         if mimi_file is None:
             mimi_file = hf_hub_download(hf_repo, "tokenizer-e351c8d8-checkpoint125.safetensors")
         self.audio_tokenizer = rustymimi.StreamTokenizer(mimi_file)
@@ -224,6 +225,10 @@ class MoshiClient:
         self._running = False
         self.mic_amplitude = 0.0
         self.moshi_amplitude = 0.0
+
+    def log(self, msg: str):
+        if self.log_callback:
+            self.log_callback(msg)
 
     def get_amplitude(self, audio: np.ndarray) -> float:
         rms = np.sqrt(np.mean(audio ** 2))
@@ -246,21 +251,33 @@ class MoshiClient:
 
     def wait_for_ready(self, timeout: float = 30.0) -> bool:
         """Wait for server ready signal."""
-        print("⏳ Waiting for voice server to be ready...")
+        self.log("⏳ Waiting for voice server to be ready...")
         try:
             msg = self.server_to_client.get(timeout=timeout)
             if msg == "ready":
-                print("✅ Voice server is ready!")
+                self.log("✅ Voice server is ready!")
                 return True
             else:
-                print(f"⚠️ Unexpected initial message from voice server: {msg}")
+                self.log(f"⚠️ Unexpected initial message from voice server: {msg}")
                 # If it's not ready, maybe it's data? Put it back? 
                 # No, if it's not ready, we probably shouldn't start.
                 return False
         except queue.Empty:
-            print("❌ Timed out waiting for voice server ready signal")
+            self.log("❌ Timed out waiting for voice server ready signal")
             return False
 
+    def set_persona(self, system_prompt: str):
+        """Send system prompt/persona to the server."""
+        if self.client_to_server:
+            self.log(f"🎭 Setting persona: {len(system_prompt)} chars")
+            self.client_to_server.put(("system", system_prompt))
+
+    def inject_text(self, text: str):
+        """Send text to be injected into the stream."""
+        if self.client_to_server:
+            self.log(f"💉 Injecting text: {len(text)} chars")
+            self.client_to_server.put(("inject", text))
+            
     async def run_async_loops(self):
         self._running = True
         async def send_loop():
@@ -268,7 +285,13 @@ class MoshiClient:
                 await asyncio.sleep(0.001)
                 try:
                     pcm_data = self.input_queue.get(block=False)
-                    # print(f"DEBUG: Client encoding {len(pcm_data)} samples")
+                    
+                    # DEBUG: Log mic input
+                    rms = np.sqrt(np.mean(pcm_data**2))
+                    if rms > 0.01:
+                        # self.log(f"🎤 Mic Input: {len(pcm_data)} samples, RMS={rms:.4f}")
+                        pass
+                        
                     self.audio_tokenizer.encode(pcm_data)
                 except queue.Empty:
                     continue
@@ -278,7 +301,7 @@ class MoshiClient:
                 if data is None:
                     await asyncio.sleep(0.001)
                     continue
-                # print(f"DEBUG: Client sending codes: {data.shape}")
+                # self.log(f"DEBUG: Client sending codes: {data.shape}")
                 self.client_to_server.put_nowait(data)
         async def recv_loop2():
             while self._running:
@@ -293,25 +316,77 @@ class MoshiClient:
                     if result == "ready":
                         # Should have been consumed by wait_for_ready, but ignore if late
                         continue
-                    # print(f"⚠️ Unknown string message: {result}")
+                    self.log(f"⚠️ Unknown string message: {result}")
                     continue
                     
                 if not isinstance(result, (tuple, list)) or len(result) != 3:
-                    # print(f"⚠️ Invalid message format: {result}")
+                    self.log(f"⚠️ Invalid message format: {result}")
                     continue
                     
                 msg_type, audio_tokens, text_piece = result
-                # print(f"DEBUG: Recv {msg_type} | Audio: {len(audio_tokens) if audio_tokens is not None else 0} | Text: {text_piece}")
+                # self.log(f"DEBUG: Recv {msg_type} | Audio: {len(audio_tokens) if audio_tokens is not None else 0} | Text: {text_piece}")
                 if text_piece and self.on_text_token:
                     self.on_text_token(text_piece)
-                if audio_tokens is not None:
-                    self.audio_tokenizer.decode(audio_tokens)
+                if audio_tokens is not None and audio_tokens.size > 0:
+                    # rustymimi expects (8, 1) frames. If we have (8, T), slice it.
+                    if len(audio_tokens.shape) == 2 and audio_tokens.shape[0] == 8:
+                        T = audio_tokens.shape[1]
+                        for t in range(T):
+                            frame = audio_tokens[:, t]  # (8,)
+                            # rustymimi expects (Time, Codebooks) = (1, 8)
+                            frame = frame[None, :] # (1, 8)
+                            frame = frame.astype(np.uint32)
+                            
+                            if not frame.flags['C_CONTIGUOUS']:
+                                frame = np.ascontiguousarray(frame)
+                            self.audio_tokenizer.decode(frame)
+                    else:
+                        # Fallback
+                        audio_tokens = audio_tokens.astype(np.uint32)
+                        if not audio_tokens.flags['C_CONTIGUOUS']:
+                            audio_tokens = np.ascontiguousarray(audio_tokens)
+                        self.audio_tokenizer.decode(audio_tokens)
+                
         async def recv_loop():
             while self._running:
                 data = self.audio_tokenizer.get_decoded()
                 if data is None:
                     await asyncio.sleep(0.001)
                     continue
+                
+                # DEBUG: Check data type and range
+                print(f"🎵 recv_loop: dtype={data.dtype}, min={np.min(data):.4f}, max={np.max(data):.4f}, rms={np.sqrt(np.mean(data**2)):.4f}")
+                
+                # Sanitize decoded audio - ENSURE float32
+                data = np.asarray(data, dtype=np.float32)
+                
+                # Check for NaN/Inf
+                if not np.isfinite(data).all():
+                    self.log("⚠️ Warning: Decoded audio contains NaN/Inf! Replacing with silence.")
+                    data = np.zeros_like(data)
+                
+                # Clip to [-1, 1] to prevent distortion
+                data = np.clip(data, -1.0, 1.0)
+
+                # Noise Gate: Silence very quiet audio to prevent white noise
+                rms = np.sqrt(np.mean(data**2))
+                
+                # DEBUG: Log every chunk's RMS to see what's happening
+                # self.log(f"🔊 Audio Out RMS: {rms:.4f}")
+
+                # Hiss floor is around 0.04 RMS. 
+                # User reported 0.05 was cutting off speech. Lowering to 0.01 for now.
+                if rms < 0.01: 
+                    data = np.zeros_like(data)
+                elif rms < 0.04:
+                     # Soft knee / expansion for the hiss zone?
+                     # For now just let it through so we can hear if it's working
+                     pass
+                
+                # DEBUG: Log audio stats occasionally
+                if np.random.random() < 0.005:
+                    self.log(f"🔊 Decoded Audio: Shape={data.shape}, RMS={rms:.4f}")
+
                 self.output_queue.put_nowait(data)
                 if self.on_output_audio:
                     self.on_output_audio(data)
@@ -319,6 +394,13 @@ class MoshiClient:
 
     def stop(self):
         self._running = False
+
+
+# ==============================================================================
+# SUBCONSCIOUS BRIDGE (Bicameral Thinking)
+# ==============================================================================
+
+
 
 
 # ==============================================================================
@@ -379,14 +461,147 @@ class AIClient:
     def is_available(self) -> bool:
         return self.client is not None
 
+# ==============================================================================
+# SUBCONSCIOUS BRIDGE (Bicameral Thinking)
+# ==============================================================================
+
+class SubconsciousBridge:
+    """
+    The 'System 2' bridge that monitors the conversation and injects thoughts.
+    """
+    def __init__(self, moshi_client: MoshiClient, ai_client: AIClient, tokenizer):
+        self.moshi = moshi_client
+        self.ai = ai_client
+        self.tokenizer = tokenizer # SentencePiece processor
+        self.transcript_buffer = ""
+        self.last_injection_time = 0
+        self.running = False
+        self._monitor_task: Optional[asyncio.Task] = None
+        
+        # Phrases to smooth the insertion of external memories
+        self.pivots = [
+            " actually, I just realized ",
+            " oh, and looking at the details, ",
+            " wait, I recall that ",
+            " correction, "
+        ]
+
+    async def start(self):
+        self.running = True
+        self._monitor_task = asyncio.create_task(self._monitor_loop())
+        print("🧠 Subconscious Bridge started")
+
+    def stop(self):
+        self.running = False
+        if self._monitor_task:
+            self._monitor_task.cancel()
+
+    def add_to_transcript(self, text: str):
+        self.transcript_buffer += text
+        # Keep buffer size manageable
+        if len(self.transcript_buffer) > 2000:
+            self.transcript_buffer = self.transcript_buffer[-2000:]
+
+    async def _monitor_loop(self):
+        """
+        Constantly watches the transcript. If it sees a need for RAG/Reasoning,
+        it queries Anthropic and queues the result.
+        """
+        while self.running:
+            await asyncio.sleep(2.0) # Check every 2 seconds
+            
+            # Simple heuristic: if buffer changed significantly since last check?
+            # For now, let's just rely on VAD or other signals if we had them.
+            # Here we'll just do a random check if we have enough context
+            # In a real implementation, we'd want smarter triggers.
+            
+            if len(self.transcript_buffer) > 50 and (time.time() - self.last_injection_time > 10):
+                # Only query if we haven't injected recently
+                # await self._query_brain()
+                pass
+
+    async def trigger_thought(self, context_override: Optional[str] = None):
+        """Manually trigger a thought process (e.g. from a tool or specific event)."""
+        await self._query_brain(context_override)
+
+    async def _query_brain(self, context_override: Optional[str] = None):
+        if not self.ai or not self.ai.is_available():
+            return
+
+        # This prompt is critical. It tells Anthropic to be a "silent observer"
+        system_prompt = (
+            "You are the subconscious memory of an AI assistant. "
+            "Read the current transcript. If the assistant is missing a fact "
+            "or needs to use a tool, output the CORRECT sentence to say next. "
+            "If the conversation is fine, output NOTHING."
+        )
+        
+        transcript = context_override or self.transcript_buffer[-1000:]
+        
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Transcript so far: {transcript}"}
+            ]
+            
+            # Use a quick model if possible, or just the main one
+            response_text = await self.ai.chat(messages, max_tokens=100)
+            
+            if response_text and len(response_text) > 5 and "NOTHING" not in response_text:
+                # We found a thought!
+                await self._inject_thought(response_text)
+                
+        except Exception as e:
+            print(f"🧠 Subconscious error: {e}")
+
+    async def _inject_thought(self, text: str):
+        # Wrap it in a pivot
+        import random
+        pivot = random.choice(self.pivots)
+        full_thought = f"{pivot}{text}"
+        
+        print(f"🧠 Injecting thought: '{full_thought}'")
+        
+        self.moshi.inject_text(full_thought)
+        self.last_injection_time = time.time()
+
+    async def inject_persona(self, persona_text: str):
+        """
+        Injects the full persona description as a thought.
+        This is called shortly after startup to 'inception' the personality.
+        """
+        # We don't use a pivot for this, or we use a specific one.
+        # "I am..." is a strong affirmation.
+        
+        # If the text is very long, we might want to summarize it or break it up.
+        # For now, let's inject the core identity.
+        
+        print(f"🧠 Injecting Persona: {len(persona_text)} chars")
+        
+        # We frame it as an internal monologue of self-definition.
+        # Moshi will 'think' this text, effectively becoming it.
+        # We prefix with a space to ensure clean tokenization if needed.
+        
+        # Example: " I am Jarvis. My personality is..."
+        
+        # We strip "You are" if present and replace with "I am"
+        if persona_text.startswith("You are"):
+            persona_text = "I am" + persona_text[7:]
+            
+        full_thought = f" {persona_text}"
+        
+        self.moshi.inject_text(full_thought)
+        self.last_injection_time = time.time()
+
 class ConversationLoop:
     """Manages the conversation loop with VAD -> STT -> AI -> TTS -> Output."""
-    def __init__(self, moshi_bridge: MoshiBridge, persona_manager: PersonaManager, memory_manager: MemoryManager, ai_client: AIClient, memory_orchestrator: Optional[MemoryOrchestrator] = None, user_id: str = "default", on_turn_complete: Optional[Callable[[ConversationTurn], None]] = None, on_state_change: Optional[Callable[[str], None]] = None, log_callback: Optional[Callable[[str], None]] = None):
+    def __init__(self, moshi_bridge: MoshiBridge, persona_manager: PersonaManager, memory_manager: MemoryManager, ai_client: AIClient, memory_orchestrator: Optional[MemoryOrchestrator] = None, subconscious_bridge: Optional['SubconsciousBridge'] = None, user_id: str = "default", on_turn_complete: Optional[Callable[[ConversationTurn], None]] = None, on_state_change: Optional[Callable[[str], None]] = None, log_callback: Optional[Callable[[str], None]] = None):
         self.moshi = moshi_bridge
         self.persona = persona_manager
         self.memory = memory_manager
         self.ai = ai_client
         self.memory_orchestrator = memory_orchestrator
+        self.subconscious = subconscious_bridge
         self.user_id = user_id
         self.on_turn_complete = on_turn_complete
         self.on_state_change = on_state_change
@@ -444,41 +659,62 @@ class ConversationLoop:
         self._set_state("listening")
 
     async def stop(self):
-        self.running = False
-        if hasattr(self.moshi, 'stop'):
+        self._running = False # Assuming _running is the new internal state variable
+        if self.audio_io:
+            self.audio_io.stop()
+        
+        # Stop client (assuming self.client refers to MoshiBridgeProxy or similar)
+        if hasattr(self.moshi, 'stop'): # Check if moshi has a stop method
             self.moshi.stop()
-            
+
+        # Fix multiprocessing queue hang: Cancel join threads to prevent deadlock
+        if self.voice_queues:
+            for q in self.voice_queues:
+                try:
+                    if hasattr(q, 'cancel_join_thread'):
+                        q.cancel_join_thread()
+                    if hasattr(q, 'close'):
+                        q.close()
+                except Exception as e:
+                    self.log(f"⚠️ Error closing queue: {e}")
+
+        # Terminate server process aggressively
+        if hasattr(self.moshi, 'server_process') and self.moshi.server_process and self.moshi.server_process.is_alive():
+            self.log("🔌 Terminating voice server process...")
+            self.moshi.server_process.terminate()
+            self.moshi.server_process.join(timeout=1.0)
+            if self.moshi.server_process.is_alive():
+                self.log("💀 Kill voice server process...")
+                self.moshi.server_process.kill()
+        
         if self._loop_task:
             self._loop_task.cancel()
             try:
                 await self._loop_task
             except asyncio.CancelledError:
                 pass
-        self.audio_io.stop()
+        
+        self.log("✅ Voice bridge stopped.")
         self._set_state("idle")
 
     def _on_audio_frame(self, audio: np.ndarray):
         """Callback for each audio frame from microphone"""
-        if not self._is_listening:
-            return
+        # Always process audio for duplex communication
+        # if not self._is_listening:
+        #     return
         
-        # Update amplitude for visualization
+        # Update amplitude for visualization (USER INPUT)
         if hasattr(self.moshi, 'update_mic_amplitude'):
             self.moshi.update_mic_amplitude(audio)
         
         # Feed audio to Moshi
         if hasattr(self.moshi, 'feed_audio'):
             self.moshi.feed_audio(audio)
-            
-        # Debug logging for amplitude (every ~100 frames / 2 seconds)
-        if np.random.random() < 0.02:
-            amp = getattr(self.moshi, 'mic_amplitude', 0.0)
-            rms = np.sqrt(np.mean(audio**2))
-            # self.log(f"DEBUG: Mic RMS: {rms:.5f} | Amp: {amp:.4f}")
 
     def _on_moshi_audio(self, audio: np.ndarray):
         """Callback for audio received from Moshi"""
-        # Update amplitude
+        # self.log(f"DEBUG: Playing audio chunk {audio.shape}")
+        # Update amplitude (MOSHI OUTPUT)
         if hasattr(self.moshi, 'update_moshi_amplitude'):
             self.moshi.update_moshi_amplitude(audio)
             
@@ -489,7 +725,8 @@ class ConversationLoop:
     def _on_moshi_text(self, text: str):
         """Callback for text received from Moshi"""
         # self.log(f"🤖 Moshi: {text}")
-        pass
+        if self.subconscious:
+            self.subconscious.add_to_transcript(text)
 
     async def _conversation_loop_legacy(self):
         """Legacy loop for non-client bridges (if any)."""
@@ -730,6 +967,7 @@ class VoiceBridgeOrchestrator:
         self.moshi: Optional[Any] = None # MoshiBridge or MoshiBridgeProxy
         self.current_persona: Optional[PersonaConfig] = None
         self.ai_client: Optional[AIClient] = None
+        self.subconscious: Optional[SubconsciousBridge] = None
         self.conversation_loop: Optional[ConversationLoop] = None
         self.state = ConversationState.IDLE
         self.state_callbacks: list = []
@@ -762,20 +1000,68 @@ class VoiceBridgeOrchestrator:
             self.log("🔌 Connecting to Voice Server Process...")
             c2s, s2c, status = self.voice_queues
             # Use MoshiClient for full duplex streaming
-            self.moshi = MoshiClient(c2s, s2c)
+            self.moshi = MoshiClient(c2s, s2c, log_callback=self.log_callback)
             self.moshi.wait_for_ready()
             self.log("✅ Moshi Client created (Full Duplex)")
+            
+            # Initialize AudioIO for playback
+            from .audio import AudioIO
+            self.audio_io = AudioIO(log_callback=self.log_callback)
+            self.audio_io.start_output()
+            self.log("✅ Audio output started")
+            
+            # Hook up Moshi audio output to AudioIO
+            self.moshi.on_output_audio = self.audio_io.play_audio
+            self.log("✅ Moshi audio output connected")
+            
+            # Set initial persona - inject name + short personality description
+        if self.current_persona:
+            # Use simpler prompt - just name and core personality
+            persona_name = self.current_persona.name
+            
+            # FAST STARTUP: Use a very short first-person prompt.
+            # This minimizes the time Moshi spends "thinking" before being ready.
+            # The full personality will be injected by the SubconsciousBridge shortly after.
+            persona_prompt = f"I am {persona_name}."
+            
+            self.log(f"🎭 Setting persona: {persona_name} ({len(persona_prompt)} chars)")
+            self.moshi.set_persona(persona_prompt)
         else:
             self.log("🖥️  Initializing Local Moshi Bridge (In-Process)...")
             self.moshi = MoshiBridge(quality=self.moshi_quality)
             self.log("✅ Local Moshi Bridge initialized")
             
         self.ai_client = AIClient(self.config)
+        
+        # Initialize Subconscious Bridge if we have a client and tokenizer
+        if isinstance(self.moshi, MoshiClient) and hasattr(self.moshi, 'client_to_server'):
+             # We need a tokenizer for the bridge. MoshiClient has one but it's for audio.
+             # The bridge needs a text tokenizer.
+             # For now, we can pass None and let the bridge rely on string injection, 
+             # as the tokenization happens on the server side.
+             self.subconscious = SubconsciousBridge(self.moshi, self.ai_client, None)
+             await self.subconscious.start()
+             
+             # INJECT FULL PERSONA
+             # Now that the bridge is running, we inject the full personality as a "thought".
+             # This uses the Bicameral "inception" mechanism to make Moshi adopt the persona.
+             if self.current_persona:
+                 full_prompt = self.current_persona.build_system_prompt()
+                 # We frame it as a realization to make it natural
+                 await self.subconscious.inject_persona(full_prompt)
+        
+
+        
         await self.memory_manager.initialize()
         print(f"📝 Creating ConversationLoop (persona: {self.current_persona.name})...")
         self.conversation_loop = ConversationLoop(
-            moshi_bridge=self.moshi, persona_manager=self.persona_manager, memory_manager=self.memory_manager,
-            ai_client=self.ai_client, user_id=self.user_id, on_turn_complete=self._on_conversation_turn,
+            moshi_bridge=self.moshi,
+            persona_manager=self.persona_manager,
+            memory_manager=self.memory_manager,
+            ai_client=self.ai_client,
+            subconscious_bridge=self.subconscious,
+            user_id=self.user_id,
+            on_turn_complete=self._on_conversation_turn,
             on_state_change=self._on_state_change,
             log_callback=self.log_callback
         )
@@ -787,6 +1073,11 @@ class VoiceBridgeOrchestrator:
             raise RuntimeError("Not initialized")
         print("🎙️  Starting conversation loop...")
         self._running = True
+        
+        # Start Subconscious Bridge
+        if self.subconscious:
+            await self.subconscious.start()
+            
         try:
             await self.conversation_loop.start()
             self._set_state(ConversationState.LISTENING)
@@ -897,10 +1188,47 @@ class VoiceBridgeOrchestrator:
         await self.stop_conversation()
         await self.memory_manager.close()
 
+    def stop(self):
+        print("🛑 Stopping VoiceAssistant...")
+        self._running = False
+        if self.conversation_loop:
+            # ConversationLoop.stop() is async, but we're in sync context
+            # Just set running flag and let it clean up
+            if hasattr(self.conversation_loop, 'running'):
+                self.conversation_loop.running = False
+            
+        # Stop Subconscious Bridge
+        if self.subconscious:
+            self.subconscious.stop()
+            
+        if self.moshi:
+            self.moshi.stop()
+        
+        # Fix multiprocessing queue hang: Cancel join threads to prevent deadlock
+        if self.voice_queues:
+            for q in self.voice_queues:
+                try:
+                    if hasattr(q, 'cancel_join_thread'):
+                        q.cancel_join_thread()
+                    if hasattr(q, 'close'):
+                        q.close()
+                except Exception as e:
+                    self.log(f"⚠️ Error closing queue: {e}")
+
     def _on_conversation_turn(self, turn: ConversationTurn):
+        # This is called when a turn is complete (user spoke, AI responded)
+        # We can use this to update the UI or trigger other events
+        # self.log(f"Turn complete: {turn.user_text} -> {turn.ai_text}")
+        
+        # Feed transcript to Subconscious Bridge
+        if self.subconscious:
+            self.subconscious.on_transcript_update(turn.user_text, turn.ai_text)
+            
         if turn.metadata:
             self._current_mic_amplitude = turn.metadata.get("mic_amplitude", 0.0)
             self._current_moshi_amplitude = turn.metadata.get("moshi_amplitude", 0.0)
+            if "latency_ms" in turn.metadata:
+                pass # self.log(f"  Latency: {turn.metadata['latency_ms']}ms")
 
     def _on_state_change(self, state: str):
         state_map = {"idle": ConversationState.IDLE, "listening": ConversationState.LISTENING, "thinking": ConversationState.THINKING, "speaking": ConversationState.SPEAKING, "error": ConversationState.ERROR}

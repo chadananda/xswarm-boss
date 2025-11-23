@@ -1,7 +1,7 @@
 {
   "project": {
     "name": "xSwarm Boss",
-    "version": "0.1.1",
+    "version": "0.5.30",
     "description": "AI-powered voice assistant with multi-tenant phone integration"
   },
   "server": {

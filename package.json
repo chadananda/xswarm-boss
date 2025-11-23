@@ -1,6 +1,6 @@
 {
   "name": "xswarm-boss",
-  "version": "0.1.0",
+  "version": "0.5.30",
   "private": true,
   "description": "AI Orchestration Layer for Multi-Project Development",
   "type": "module",

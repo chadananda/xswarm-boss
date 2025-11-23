@@ -11,7 +11,7 @@ import numpy as np
 import torch
 import threading
 from typing import Callable, Optional, Dict
-from queue import Queue
+from queue import Queue, Empty
 
 # ==============================================================================
 # AUDIO I/O
@@ -57,6 +57,17 @@ class AudioIO:
             self.log(f"⚠️ Error querying audio devices: {e}")
             self.input_device_index = None
 
+        # Log default output device
+        try:
+            default_out = sd.query_devices(kind='output')
+            self.log(f"🔊 Default Output Device: {default_out['name']} (Index {default_out['index']})")
+        except Exception as e:
+            self.log(f"⚠️ Error querying output device: {e}")
+
+        # Buffer state for callback
+        self.current_chunk = None
+        self.chunk_pos = 0
+
     def log(self, msg: str):
         if self.log_callback:
             self.log_callback(msg)
@@ -72,9 +83,7 @@ class AudioIO:
                 
                 # DEBUG: Check for signal
                 rms = np.sqrt(np.mean(audio**2))
-                if rms > 0.0001:
-                    self.log(f"🎤 Signal detected! RMS: {rms:.6f}")
-                elif rms == 0.0:
+                if rms == 0.0:
                     self.log(f"⚠️ Absolute Silence (RMS=0.0) - Check Permissions/Mute")
                 
                 self.input_queue.put(audio)
@@ -96,24 +105,69 @@ class AudioIO:
         self.input_stream.start()
 
     def start_output(self):
+        # Initialize buffer state
+        self.current_chunk = None
+        self.chunk_pos = 0
+        self._callback_count = 0
+        
         def audio_callback(outdata, frames, time, status):
+            if status:
+                print(status)
+            
             try:
-                audio = self.output_queue.get_nowait()
-                if audio.dtype != np.float32:
-                    audio = audio.astype(np.float32)
-                if audio.shape[0] < frames:
-                    audio = np.pad(audio, (0, frames - audio.shape[0]))
-                try:
-                    outdata[:] = audio[:frames].reshape(-1, 1)
-                except ValueError:
-                    outdata.fill(0)
-            except Exception:
+                self._callback_count += 1
+                # Debug: Log occasionally
+                if self._callback_count % 100 == 0:
+                    queue_size = self.output_queue.qsize()
+                    print(f"🔊 Callback #{self._callback_count}, Queue: {queue_size}, Chunk: {self.current_chunk is not None}")
+                
+                # Fill output buffer by piecing together chunks from queue
+                needed = frames
+                output = np.zeros(frames, dtype=np.float32)
+                filled = 0
+                
+                while filled < needed:
+                    # Get or continue current chunk
+                    if self.current_chunk is None:
+                        try:
+                            self.current_chunk = self.output_queue.get_nowait()
+                            self.chunk_pos = 0
+                        except Exception:  # Catch Empty or any queue exception
+                            break
+                    
+                    # Copy what we can from current chunk
+                    chunk_remaining = len(self.current_chunk) - self.chunk_pos
+                    to_copy = min(needed - filled, chunk_remaining)
+                    
+                    output[filled:filled + to_copy] = self.current_chunk[self.chunk_pos:self.chunk_pos + to_copy]
+                    
+                    filled += to_copy
+                    self.chunk_pos += to_copy
+                    
+                    # If we consumed the whole chunk, clear it
+                    if self.chunk_pos >= len(self.current_chunk):
+                        self.current_chunk = None
+                
+                # Write to output
+                outdata[:] = output.reshape(-1, 1)
+                
+            except Exception as e:
+                print(f"Audio callback error: {e}")
+                import traceback
+                traceback.print_exc()
                 outdata.fill(0)
 
+        # Pre-buffer: Wait for some data before starting stream
+        # This prevents initial underrun/choppiness
+        # self.log("⏳ Pre-buffering audio...") 
+        # Note: sounddevice starts callback immediately, so we handle buffering inside callback or just accept initial silence.
+        # Better approach: The callback plays silence until we have enough data?
+        # For now, we rely on the queue.
+        
         self.output_stream = sd.OutputStream(
             samplerate=self.sample_rate,
             channels=self.channels,
-            blocksize=self.frame_size,
+            blocksize=None, # Let PortAudio decide optimal blocksize
             callback=audio_callback
         )
         self.output_stream.start()
@@ -121,9 +175,31 @@ class AudioIO:
     def play_audio(self, audio: np.ndarray):
         if len(audio) == 0:
             return
+        
+        # Ensure float32
         audio = np.asarray(audio, dtype=np.float32)
+        
+        # Check for scaling issues (int16 treated as float32)
+        max_val = np.max(np.abs(audio))
+        if max_val > 1.5:
+            self.log(f"⚠️ Audio Amplitude Warning: Max={max_val:.2f} (Likely int16/float32 mismatch). Normalizing...")
+            audio = audio / 32768.0
+        
+        # DEBUG: Log playback occasionally
+        if np.random.random() < 0.005:
+            self.log(f"🔊 AudioIO.play_audio: {len(audio)} samples, Max={max_val:.4f}")
+            
+        # Ensure stream is active
+        if self.output_stream and not self.output_stream.active:
+            self.log("⚠️ Output stream inactive! Restarting...")
+            try:
+                self.output_stream.start()
+            except Exception as e:
+                self.log(f"❌ Failed to restart output stream: {e}")
+
         if not audio.flags['C_CONTIGUOUS']:
             audio = np.ascontiguousarray(audio)
+            
         num_frames = int(np.ceil(len(audio) / self.frame_size))
         for i in range(num_frames):
             start = i * self.frame_size
