@@ -918,24 +918,26 @@ class VoiceAssistantApp(App):
                         # Provider dropdown
                         with Horizontal(classes="setting-row"):
                             yield Static("Provider:", classes="setting-label")
-                            yield Select(
-                                [("anthropic", "Anthropic Claude"),
-                                 ("openai", "OpenAI GPT"),
-                                 ("google", "Google Gemini"),
-                                 ("openrouter", "OpenRouter"),
-                                 ("groq", "Groq")],
+                            yield Select[str](
+                                [("Anthropic Claude", "anthropic"),
+                                 ("OpenAI GPT", "openai"),
+                                 ("Google Gemini", "google"),
+                                 ("OpenRouter", "openrouter"),
+                                 ("Groq", "groq")],
                                 id="ai-provider",
-                                value="anthropic"
+                                value="anthropic",
+                                allow_blank=False
                             )
 
                         # Auth method (for Anthropic: API Key or OAuth)
                         with Horizontal(classes="setting-row", id="auth-method-row"):
                             yield Static("Auth:", classes="setting-label")
-                            yield Select(
-                                [("api_key", "API Key"),
-                                 ("oauth", "Anthropic Subscription (OAuth)")],
+                            yield Select[str](
+                                [("API Key", "api_key"),
+                                 ("Anthropic Subscription (OAuth)", "oauth")],
                                 id="ai-auth-method",
-                                value="api_key"
+                                value="api_key",
+                                allow_blank=False
                             )
 
                         # API Key input (shown when auth=api_key)
@@ -952,12 +954,13 @@ class VoiceAssistantApp(App):
                         # Model selector
                         with Horizontal(classes="setting-row"):
                             yield Static("Model:", classes="setting-label")
-                            yield Select(
-                                [("claude-sonnet-4-5", "Claude Sonnet 4.5"),
-                                 ("claude-opus-4", "Claude Opus 4"),
-                                 ("claude-3-5-haiku", "Claude 3.5 Haiku")],
+                            yield Select[str](
+                                [("Claude Sonnet 4.5", "claude-sonnet-4-5"),
+                                 ("Claude Opus 4", "claude-opus-4"),
+                                 ("Claude 3.5 Haiku", "claude-3-5-haiku")],
                                 id="ai-model",
-                                value="claude-sonnet-4-5"
+                                value="claude-sonnet-4-5",
+                                allow_blank=False
                             )
 
                         # Divider
@@ -966,12 +969,13 @@ class VoiceAssistantApp(App):
                         # Local AI (grayed out if GPU insufficient)
                         with Horizontal(classes="setting-row"):
                             yield Static("Local AI:", classes="setting-label")
-                            yield Select(
-                                [("disabled", "Disabled"),
-                                 ("ollama", "Ollama"),
-                                 ("lmstudio", "LM Studio")],
+                            yield Select[str](
+                                [("Disabled", "disabled"),
+                                 ("Ollama", "ollama"),
+                                 ("LM Studio", "lmstudio")],
                                 id="local-ai",
                                 value="disabled",
+                                allow_blank=False,
                                 disabled=True  # Will be enabled dynamically if GPU sufficient
                             )
 
@@ -994,12 +998,13 @@ class VoiceAssistantApp(App):
                         network_group.border_title = "Network Mode"
                         with Horizontal(classes="setting-row"):
                             yield Static("Role:", classes="setting-label")
-                            yield Select(
-                                [("standalone", "Standalone"),
-                                 ("master", "Master"),
-                                 ("slave", "Slave")],
+                            yield Select[str](
+                                [("Standalone", "standalone"),
+                                 ("Master", "master"),
+                                 ("Slave", "slave")],
                                 id="network-role",
-                                value="standalone"
+                                value="standalone",
+                                allow_blank=False
                             )
                         yield Static("(Network control coming soon)", classes="placeholder-text")
 
@@ -1590,41 +1595,38 @@ class VoiceAssistantApp(App):
             if provider == "anthropic":
                 auth_row.remove_class("hidden")
                 model_select.set_options([
-                    ("claude-sonnet-4-5", "Claude Sonnet 4.5"),
-                    ("claude-opus-4", "Claude Opus 4"),
-                    ("claude-3-5-haiku", "Claude 3.5 Haiku")
+                    ("Claude Sonnet 4.5", "claude-sonnet-4-5"),
+                    ("Claude Opus 4", "claude-opus-4"),
+                    ("Claude 3.5 Haiku", "claude-3-5-haiku")
                 ])
             elif provider == "openai":
                 auth_row.add_class("hidden")
                 model_select.set_options([
-                    ("gpt-4o", "GPT-4o"),
-                    ("gpt-4o-mini", "GPT-4o Mini"),
-                    ("gpt-4-turbo", "GPT-4 Turbo")
+                    ("GPT-4o", "gpt-4o"),
+                    ("GPT-4o Mini", "gpt-4o-mini"),
+                    ("GPT-4 Turbo", "gpt-4-turbo")
                 ])
             elif provider == "google":
                 auth_row.add_class("hidden")
                 model_select.set_options([
-                    ("gemini-2.0-flash", "Gemini 2.0 Flash"),
-                    ("gemini-1.5-pro", "Gemini 1.5 Pro"),
-                    ("gemini-1.5-flash", "Gemini 1.5 Flash")
+                    ("Gemini 2.0 Flash", "gemini-2.0-flash"),
+                    ("Gemini 1.5 Pro", "gemini-1.5-pro"),
+                    ("Gemini 1.5 Flash", "gemini-1.5-flash")
                 ])
             elif provider == "openrouter":
                 auth_row.add_class("hidden")
                 model_select.set_options([
-                    ("anthropic/claude-sonnet-4-5", "Claude Sonnet 4.5"),
-                    ("openai/gpt-4o", "GPT-4o"),
-                    ("google/gemini-2.0-flash", "Gemini 2.0 Flash")
+                    ("Claude Sonnet 4.5", "anthropic/claude-sonnet-4-5"),
+                    ("GPT-4o", "openai/gpt-4o"),
+                    ("Gemini 2.0 Flash", "google/gemini-2.0-flash")
                 ])
             elif provider == "groq":
                 auth_row.add_class("hidden")
                 model_select.set_options([
-                    ("llama-3.3-70b-versatile", "Llama 3.3 70B"),
-                    ("llama-3.1-8b-instant", "Llama 3.1 8B"),
-                    ("mixtral-8x7b-32768", "Mixtral 8x7B")
+                    ("Llama 3.3 70B", "llama-3.3-70b-versatile"),
+                    ("Llama 3.1 8B", "llama-3.1-8b-instant"),
+                    ("Mixtral 8x7B", "mixtral-8x7b-32768")
                 ])
-
-            # Reset to first model option
-            model_select.value = Select.BLANK
 
         except Exception as e:
             self.update_activity(f"Error updating provider UI: {e}")
