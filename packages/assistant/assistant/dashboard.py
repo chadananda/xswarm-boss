@@ -675,11 +675,11 @@ class VoiceAssistantApp(App):
         # Tab key zone cycling (priority=True to override default focus chain)
         Binding("tab", "cycle_focus_zone", "Next Pane", priority=True),
         Binding("shift+tab", "cycle_focus_zone_reverse", "Prev Pane", priority=True),
-        # Quick tab access
-        ("1", "goto_status", "Status"),
+        # Quick tab access (new order: Chat first, Settings second)
+        ("1", "goto_chat", "Chat"),
         ("2", "goto_settings", "Settings"),
-        ("3", "goto_tools", "Tools"),
-        ("4", "goto_chat", "Chat"),
+        ("3", "goto_status", "Status"),
+        ("4", "goto_tools", "Tools"),
         ("5", "goto_projects", "Projects"),
         ("6", "goto_schedule", "Schedule"),
         ("7", "goto_workers", "Workers"),
@@ -689,7 +689,7 @@ class VoiceAssistantApp(App):
     state = reactive("idle")  # idle, listening, speaking, thinking
     amplitude = reactive(0.0)
     current_persona_name = reactive("Default")  # Current persona name
-    active_tab = reactive("status")  # status, settings, tools, chat, projects, schedule, workers
+    active_tab = reactive("chat")  # chat, settings, status, tools, projects, schedule, workers (new order)
     _focus_zone = reactive("sidebar")  # "sidebar" | "content" - tracks which zone has focus
 
     # Reactive theme colors - automatically update UI when changed
@@ -768,8 +768,8 @@ class VoiceAssistantApp(App):
         # Register phone tools
         self.tool_registry.register_tool(make_call_tool)
 
-        # Keyboard navigation state
-        self._nav_buttons = ["tab-status", "tab-settings", "tab-tools", "tab-chat",
+        # Keyboard navigation state (new order: Chat first, Settings second)
+        self._nav_buttons = ["tab-chat", "tab-settings", "tab-status", "tab-tools",
                             "tab-projects", "tab-schedule", "tab-workers"]
         self._focused_nav_index = 0  # Track which nav button has keyboard focus
 
@@ -888,12 +888,12 @@ class VoiceAssistantApp(App):
                 viz_panel.simulation_mode = False
                 yield viz_panel
 
-                # Tab buttons below visualizer
+                # Tab buttons below visualizer (new order: Chat first, Settings second)
                 with Vertical(id="sidebar"):
-                    yield Button(" 📊  Status", id="tab-status", classes="tab-button")
-                    yield Button(" ⚙️   Settings", id="tab-settings", classes="tab-button")
-                    yield Button(" 🔧  Tools", id="tab-tools", classes="tab-button")
                     yield Button(" 💬  Chat", id="tab-chat", classes="tab-button")
+                    yield Button(" ⚙️   Settings", id="tab-settings", classes="tab-button")
+                    yield Button(" 📊  Status", id="tab-status", classes="tab-button")
+                    yield Button(" 🔧  Tools", id="tab-tools", classes="tab-button")
                     yield Button(" 📁  Projects", id="tab-projects", classes="tab-button")
                     yield Button(" 📅  Schedule", id="tab-schedule", classes="tab-button")
                     yield Button(" 💻  Workers", id="tab-workers", classes="tab-button")
@@ -911,12 +911,97 @@ class VoiceAssistantApp(App):
                 with Container(id="content-settings", classes="content-pane"):
                     yield Static("[dim]⚙️[/dim] Settings", classes="pane-header")
 
-                    # Persona selector group box
-                    with Container(classes="settings-group") as persona_group:
+                    # AI Thinking section (new - at top)
+                    with Container(classes="settings-group compact", id="ai-thinking-group") as ai_group:
+                        ai_group.border_title = "AI Thinking"
+
+                        # Provider dropdown
+                        with Horizontal(classes="setting-row"):
+                            yield Static("Provider:", classes="setting-label")
+                            yield Select(
+                                [("anthropic", "Anthropic Claude"),
+                                 ("openai", "OpenAI GPT"),
+                                 ("google", "Google Gemini"),
+                                 ("openrouter", "OpenRouter"),
+                                 ("groq", "Groq")],
+                                id="ai-provider",
+                                value="anthropic"
+                            )
+
+                        # Auth method (for Anthropic: API Key or OAuth)
+                        with Horizontal(classes="setting-row", id="auth-method-row"):
+                            yield Static("Auth:", classes="setting-label")
+                            yield Select(
+                                [("api_key", "API Key"),
+                                 ("oauth", "Anthropic Subscription (OAuth)")],
+                                id="ai-auth-method",
+                                value="api_key"
+                            )
+
+                        # API Key input (shown when auth=api_key)
+                        with Horizontal(classes="setting-row", id="api-key-row"):
+                            yield Static("API Key:", classes="setting-label")
+                            yield Input(password=True, id="api-key-input", placeholder="sk-...")
+                            yield Button("Test", id="btn-test-api", classes="compact-button")
+
+                        # OAuth button (hidden by default, shown when auth=oauth)
+                        with Horizontal(classes="setting-row hidden", id="oauth-row"):
+                            yield Button("Connect Anthropic Account", id="btn-anthropic-oauth")
+                            yield Static("", id="anthropic-oauth-status")
+
+                        # Model selector
+                        with Horizontal(classes="setting-row"):
+                            yield Static("Model:", classes="setting-label")
+                            yield Select(
+                                [("claude-sonnet-4-5", "Claude Sonnet 4.5"),
+                                 ("claude-opus-4", "Claude Opus 4"),
+                                 ("claude-3-5-haiku", "Claude 3.5 Haiku")],
+                                id="ai-model",
+                                value="claude-sonnet-4-5"
+                            )
+
+                        # Divider
+                        yield Static("─" * 40, classes="divider")
+
+                        # Local AI (grayed out if GPU insufficient)
+                        with Horizontal(classes="setting-row"):
+                            yield Static("Local AI:", classes="setting-label")
+                            yield Select(
+                                [("disabled", "Disabled"),
+                                 ("ollama", "Ollama"),
+                                 ("lmstudio", "LM Studio")],
+                                id="local-ai",
+                                value="disabled",
+                                disabled=True  # Will be enabled dynamically if GPU sufficient
+                            )
+
+                        # GPU warning (will be updated dynamically)
+                        yield Static("⚠ Requires 12GB+ VRAM for local AI", id="gpu-warning", classes="warning-text")
+
+                    # Persona selector (compact dropdown instead of RadioSet)
+                    with Container(classes="settings-group compact", id="persona-group") as persona_group:
                         persona_group.border_title = "Persona"
-                        with RadioSet(id="theme-selector"):
-                            # Will be populated dynamically with available personas
-                            pass
+                        with Horizontal(classes="setting-row"):
+                            yield Static("Theme:", classes="setting-label")
+                            yield Select(
+                                [],  # Populated dynamically
+                                id="persona-select",
+                                prompt="Select Persona"
+                            )
+
+                    # Network Mode section (placeholder)
+                    with Container(classes="settings-group compact", id="network-mode-group") as network_group:
+                        network_group.border_title = "Network Mode"
+                        with Horizontal(classes="setting-row"):
+                            yield Static("Role:", classes="setting-label")
+                            yield Select(
+                                [("standalone", "Standalone"),
+                                 ("master", "Master"),
+                                 ("slave", "Slave")],
+                                id="network-role",
+                                value="standalone"
+                            )
+                        yield Static("(Network control coming soon)", classes="placeholder-text")
 
                     # OAuth Connectors group box
                     with Container(classes="settings-group", id="oauth-connectors-group") as oauth_group:
@@ -986,11 +1071,6 @@ class VoiceAssistantApp(App):
                                     yield Static("✅ Connected • user@example.com", classes="oauth-status connected")
                                     yield Static("Synced 30 minutes ago", classes="oauth-sync-time")
                                 yield Button("Disconnect", id="oauth-zoom-btn", classes="oauth-button oauth-disconnect")
-
-                    # Device group box (placeholder for future)
-                    with Container(classes="settings-group") as device_group:
-                        device_group.border_title = "Device"
-                        yield Static("Device selection coming soon", classes="placeholder-text")
 
                 # Tools content
                 with Container(id="content-tools", classes="content-pane"):
@@ -1122,6 +1202,9 @@ class VoiceAssistantApp(App):
         # Populate theme selector with available themes
         self.populate_theme_selector()
 
+        # Populate AI settings and detect GPU
+        self.populate_ai_settings()
+
         # Initialize memory manager
         with open("/tmp/xswarm_debug.log", "a") as f:
             f.write("DEBUG: on_mount() - before initialize_memory()\n")
@@ -1218,22 +1301,56 @@ class VoiceAssistantApp(App):
 
 
     def populate_theme_selector(self):
-        """Populate persona selector with available personas"""
+        """Populate persona selector with available personas (now using Select dropdown)"""
         try:
-            radio_set = self.query_one("#theme-selector", RadioSet)
+            persona_select = self.query_one("#persona-select", Select)
             # Get personas with theme colors
             themed_personas = [p for p in self.available_personas if p.theme and p.theme.theme_color]
-            # Add radio button for each persona
-            for persona in themed_personas:
-                radio_btn = RadioButton(persona.name)
-                radio_btn.id = f"theme-{persona.name.lower().replace(' ', '-')}"
-                # Note: RadioButton.value is a boolean (pressed state), not for custom data
-                # We use label (persona.name) to identify which persona was selected
-                radio_set.mount(radio_btn)
+            # Create options list for Select
+            options = [(p.name, p.name) for p in themed_personas]
+            # Set options on Select widget
+            persona_select.set_options(options)
+            # Set current value to active persona
+            current_persona = self.persona_manager.get_current_persona()
+            if current_persona:
+                persona_select.value = current_persona.name
             # Log how many personas we loaded
             self.update_activity(f"Loaded {len(themed_personas)} personas")
         except Exception as e:
             self.update_activity(f"Error populating personas: {e}")
+
+    def populate_ai_settings(self):
+        """Populate AI settings from config and detect GPU capability"""
+        try:
+            from .hardware import detect_gpu_capability, MOSHI_Q4_MIN_SCORE
+
+            gpu = detect_gpu_capability()
+            gpu_sufficient = gpu.compute_score >= MOSHI_Q4_MIN_SCORE
+
+            # Enable/disable local AI dropdown based on GPU
+            local_ai_select = self.query_one("#local-ai", Select)
+            local_ai_select.disabled = not gpu_sufficient
+
+            # Update GPU warning
+            gpu_warning = self.query_one("#gpu-warning", Static)
+            if gpu_sufficient:
+                gpu_warning.update(f"GPU: {gpu.vram_total_gb:.0f}GB ({gpu.grade}) - Local AI available")
+                gpu_warning.remove_class("warning-text")
+                gpu_warning.add_class("success-text")
+            else:
+                gpu_warning.update(f"GPU: {gpu.vram_total_gb:.0f}GB ({gpu.grade}) - Requires 12GB+ VRAM")
+
+            # Load saved values from config if present
+            if hasattr(self.config, 'ai_provider'):
+                provider_select = self.query_one("#ai-provider", Select)
+                provider_select.value = self.config.ai_provider
+
+            if hasattr(self.config, 'ai_model'):
+                model_select = self.query_one("#ai-model", Select)
+                model_select.value = self.config.ai_model
+
+        except Exception as e:
+            self.update_activity(f"Error populating AI settings: {e}")
 
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
@@ -1338,30 +1455,30 @@ class VoiceAssistantApp(App):
             self._focused_nav_index = index
             self._switch_to_tab(self._nav_buttons[index])
     
-    def action_goto_status(self) -> None:
-        """Jump to Status tab (1)."""
+    def action_goto_chat(self) -> None:
+        """Jump to Chat tab (1)."""
         self._goto_tab_by_index(0)
-    
+
     def action_goto_settings(self) -> None:
         """Jump to Settings tab (2)."""
         self._goto_tab_by_index(1)
-    
-    def action_goto_tools(self) -> None:
-        """Jump to Tools tab (3)."""
+
+    def action_goto_status(self) -> None:
+        """Jump to Status tab (3)."""
         self._goto_tab_by_index(2)
-    
-    def action_goto_chat(self) -> None:
-        """Jump to Chat tab (4)."""
+
+    def action_goto_tools(self) -> None:
+        """Jump to Tools tab (4)."""
         self._goto_tab_by_index(3)
-    
+
     def action_goto_projects(self) -> None:
         """Jump to Projects tab (5)."""
         self._goto_tab_by_index(4)
-    
+
     def action_goto_schedule(self) -> None:
         """Jump to Schedule tab (6)."""
         self._goto_tab_by_index(5)
-    
+
     def action_goto_workers(self) -> None:
         """Jump to Workers tab (7)."""
         self._goto_tab_by_index(6)
@@ -1445,16 +1562,88 @@ class VoiceAssistantApp(App):
         except Exception:
             pass  # Widgets not ready yet
 
-    def on_radio_set_changed(self, event: RadioSet.Changed) -> None:
-        """Handle persona selection change"""
-        if event.radio_set.id != "theme-selector":
-            return
-        # Get selected persona name from RadioButton label
-        selected_persona_name = event.pressed.label.plain if event.pressed else None
-        if not selected_persona_name:
-            return
-        # Use centralized switch_persona() method
-        self.switch_persona(selected_persona_name)
+    def on_select_changed(self, event: Select.Changed) -> None:
+        """Handle Select widget changes (persona, AI provider, etc.)"""
+        select_id = event.select.id
+
+        if select_id == "persona-select":
+            # Handle persona selection change
+            selected_persona_name = str(event.value) if event.value else None
+            if selected_persona_name:
+                self.switch_persona(selected_persona_name)
+
+        elif select_id == "ai-provider":
+            # Update model options and auth options based on provider
+            self._update_ai_provider_ui(str(event.value) if event.value else "anthropic")
+
+        elif select_id == "ai-auth-method":
+            # Toggle between API key and OAuth UI
+            self._toggle_auth_method_ui(str(event.value) if event.value else "api_key")
+
+    def _update_ai_provider_ui(self, provider: str):
+        """Update UI when AI provider changes"""
+        try:
+            auth_row = self.query_one("#auth-method-row", Horizontal)
+            model_select = self.query_one("#ai-model", Select)
+
+            # Anthropic has OAuth option, others don't
+            if provider == "anthropic":
+                auth_row.remove_class("hidden")
+                model_select.set_options([
+                    ("claude-sonnet-4-5", "Claude Sonnet 4.5"),
+                    ("claude-opus-4", "Claude Opus 4"),
+                    ("claude-3-5-haiku", "Claude 3.5 Haiku")
+                ])
+            elif provider == "openai":
+                auth_row.add_class("hidden")
+                model_select.set_options([
+                    ("gpt-4o", "GPT-4o"),
+                    ("gpt-4o-mini", "GPT-4o Mini"),
+                    ("gpt-4-turbo", "GPT-4 Turbo")
+                ])
+            elif provider == "google":
+                auth_row.add_class("hidden")
+                model_select.set_options([
+                    ("gemini-2.0-flash", "Gemini 2.0 Flash"),
+                    ("gemini-1.5-pro", "Gemini 1.5 Pro"),
+                    ("gemini-1.5-flash", "Gemini 1.5 Flash")
+                ])
+            elif provider == "openrouter":
+                auth_row.add_class("hidden")
+                model_select.set_options([
+                    ("anthropic/claude-sonnet-4-5", "Claude Sonnet 4.5"),
+                    ("openai/gpt-4o", "GPT-4o"),
+                    ("google/gemini-2.0-flash", "Gemini 2.0 Flash")
+                ])
+            elif provider == "groq":
+                auth_row.add_class("hidden")
+                model_select.set_options([
+                    ("llama-3.3-70b-versatile", "Llama 3.3 70B"),
+                    ("llama-3.1-8b-instant", "Llama 3.1 8B"),
+                    ("mixtral-8x7b-32768", "Mixtral 8x7B")
+                ])
+
+            # Reset to first model option
+            model_select.value = Select.BLANK
+
+        except Exception as e:
+            self.update_activity(f"Error updating provider UI: {e}")
+
+    def _toggle_auth_method_ui(self, auth_method: str):
+        """Toggle between API key input and OAuth button"""
+        try:
+            api_key_row = self.query_one("#api-key-row", Horizontal)
+            oauth_row = self.query_one("#oauth-row", Horizontal)
+
+            if auth_method == "api_key":
+                api_key_row.remove_class("hidden")
+                oauth_row.add_class("hidden")
+            else:
+                api_key_row.add_class("hidden")
+                oauth_row.remove_class("hidden")
+
+        except Exception as e:
+            self.update_activity(f"Error toggling auth UI: {e}")
 
     def on_unmount(self) -> None:
         """Cleanup on exit - IMMEDIATE shutdown, no waiting"""

@@ -35,6 +35,11 @@ class Config(BaseModel):
     api_token: Optional[str] = None
     memory_enabled: bool = True
 
+    # Voice configuration
+    voice_enabled: bool = False  # Voice disabled by default
+    moshi_quality: str = "q4"
+    moshi_mode: str = "local"
+    
     # Persona settings
     default_persona: Optional[str] = "Jarvis"  # Default to Jarvis persona
 
@@ -53,6 +58,24 @@ class Config(BaseModel):
     anthropic_api_key: Optional[str] = None  # For cloud thinking
     openai_api_key: Optional[str] = None  # For future cloud services
     openrouter_api_key: Optional[str] = None  # For alternative cloud routing
+    google_api_key: Optional[str] = None  # For Google Gemini
+    groq_api_key: Optional[str] = None  # For Groq
+
+    # AI Thinking Configuration (Settings pane)
+    ai_provider: str = "anthropic"  # anthropic, openai, google, openrouter, groq
+    ai_auth_method: str = "api_key"  # api_key, oauth
+    ai_model: str = "claude-sonnet-4-5"  # Provider-specific model ID
+
+    # OAuth tokens (encrypted storage)
+    anthropic_oauth_token: Optional[str] = None
+
+    # Local AI settings
+    local_ai_provider: str = "disabled"  # disabled, ollama, lmstudio
+    local_ai_model: str = ""  # Model name for local provider
+
+    # Network Mode
+    network_role: str = "standalone"  # standalone, master, slave
+    master_address: str = ""  # Address of master when in slave mode
 
     class Config:
         """Pydantic configuration"""
@@ -125,6 +148,12 @@ class Config(BaseModel):
 
             if os.getenv("OPENROUTER_API_KEY"):
                 config.openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+
+            if os.getenv("GOOGLE_API_KEY"):
+                config.google_api_key = os.getenv("GOOGLE_API_KEY")
+
+            if os.getenv("GROQ_API_KEY"):
+                config.groq_api_key = os.getenv("GROQ_API_KEY")
 
         except ImportError:
             pass  # python-dotenv not installed
