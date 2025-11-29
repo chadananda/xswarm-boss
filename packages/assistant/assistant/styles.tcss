@@ -218,8 +218,9 @@ Footer {
 
 .tab-button {
     width: 100%;
-    height: 3;  /* Compact height */
+    height: 3;
     border: none;
+    border-left: thick transparent;  /* Reserve space for border to prevent shifting */
     background: transparent;
     color: $shade-4;
     text-align: left;
@@ -238,7 +239,7 @@ Footer {
     background: $shade-2;
     color: $shade-5;
     text-style: bold;
-    border-left: solid $shade-4;
+    border-left: thick $shade-4;  /* Same width as active, different color */
 }
 
 /* Active tab - prominent left border */
@@ -249,7 +250,7 @@ Footer {
     border-left: thick $shade-5;
 }
 
-/* Active tab with focus - brighter background, no underline */
+/* Active tab with focus - brighter background */
 .tab-button.active-tab:focus {
     background: $shade-3;
     color: $shade-5;
