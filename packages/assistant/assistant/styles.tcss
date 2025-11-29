@@ -233,13 +233,15 @@ Footer {
     color: $shade-5;
 }
 
+/* Focused but not active tab - subtle highlight */
 .tab-button:focus {
-    background: $shade-3;
+    background: $shade-2;
     color: $shade-5;
     text-style: bold;
-    border-left: solid $shade-5;
+    border-left: solid $shade-4;
 }
 
+/* Active tab - prominent left border */
 .tab-button.active-tab {
     background: $shade-2;
     color: $shade-5;
@@ -247,10 +249,12 @@ Footer {
     border-left: thick $shade-5;
 }
 
+/* Active tab with focus - brighter background, no underline */
 .tab-button.active-tab:focus {
     background: $shade-3;
     color: $shade-5;
-    text-style: bold underline;
+    text-style: bold;
+    border-left: thick $shade-5;
 }
 
 #content-area {
