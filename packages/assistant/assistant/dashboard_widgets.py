@@ -32,12 +32,13 @@ from rich.text import Text
 from textual.reactive import reactive
 from textual.widget import Widget
 from textual.widgets import Static
+from textual.events import Key
 
 # Import from sibling package
 from .hardware import GPUCapability, detect_gpu_capability
 
 
-class PanelBase(Static):
+class PanelBase(Static, can_focus=True):
     """
     Base class for all TUI panels (Chat, Documents, Todo, Projects, etc.).
 
@@ -48,6 +49,7 @@ class PanelBase(Static):
     - Notification badges
     - Voice command handling
     - Responsive sizing
+    - Keyboard navigation (left/escape returns to sidebar)
     """
 
     # Reactive properties
@@ -97,6 +99,10 @@ class PanelBase(Static):
         Returns:
             Rich Text object with full panel rendering
         """
+        from rich.console import Console
+        from rich.segment import Segment
+        from io import StringIO
+        
         result = Text()
 
         # Get dimensions
@@ -125,7 +131,36 @@ class PanelBase(Static):
         # Content (if not minimized)
         if not self.is_minimized:
             content = self.render_content()
-            content_lines = content.split("\n") if content else []
+            
+            # Use Rich Console to wrap text while preserving styles
+            max_line_width = widget_width - 4  # -4 for "║ " and " ║"
+            
+            # Create a console with the correct width for wrapping
+            console = Console(width=max_line_width, legacy_windows=False, force_terminal=True, color_system="truecolor")
+            
+            # Render the content to segments (preserves styles)
+            segments = list(console.render(content))
+            
+            # Convert segments back to lines
+            content_lines = []
+            current_line = Text()
+            for segment in segments:
+                text, style, control = segment
+                if "\n" in text:
+                    # Split on newlines
+                    parts = text.split("\n")
+                    for i, part in enumerate(parts):
+                        if part:
+                            current_line.append(part, style=style)
+                        if i < len(parts) - 1:
+                            content_lines.append(current_line)
+                            current_line = Text()
+                else:
+                    current_line.append(text, style=style)
+            
+            # Add the last line if not empty
+            if current_line.plain:
+                content_lines.append(current_line)
 
             # Calculate available content height
             available_height = widget_height - 2  # -2 for borders
@@ -137,16 +172,12 @@ class PanelBase(Static):
 
                 result.append("║ ", style=border_style)
 
-                # Truncate line if too long
-                line_str = str(line)
-                max_line_width = widget_width - 4  # -4 for "║ " and " ║"
-                if len(line_str) > max_line_width:
-                    line_str = line_str[:max_line_width-3] + "..."
-
-                result.append(line_str)
+                # Append the styled line directly
+                result.append(line)
 
                 # Pad to width
-                padding = max(0, max_line_width - len(line_str))
+                line_len = len(line.plain)
+                padding = max(0, max_line_width - line_len)
                 result.append(" " * padding)
                 result.append(" ║\n", style=border_style)
 
@@ -251,10 +282,18 @@ class PanelBase(Static):
             "size": (self.size.width, self.size.height),
         }
 
+    def on_key(self, event: Key) -> None:
+        """Handle keyboard navigation. Left/Escape returns to sidebar."""
+        if event.key in ("left", "escape"):
+            # Return focus to sidebar
+            self.app.action_focus_sidebar()
+            event.stop()
 
 
 class VisualizationStyle(Enum):
     """Circular visualization styles for assistant speaking."""
+    TRON_BARS = "tron_bars"  # Original TRON-style amplitude bars
+    SIMPLE_CIRCLE = "simple_circle"  # Original simple pulsing circle
     CONCENTRIC_CIRCLES = "concentric_circles"
     RIPPLE_WAVES = "ripple_waves"
     CIRCULAR_BARS = "circular_bars"
@@ -762,6 +801,58 @@ class VoiceVisualizerPanel(Static):
 
         return lines
 
+    def _render_tron_bars(self, width: int, height: int) -> List[str]:
+        """Radial star pattern - bars radiating outward from center."""
+        import math
+        
+        lines = []
+        center_x = width // 2
+        center_y = height // 2
+        
+        # Bar characters from shortest to tallest
+        bar_chars = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+        
+        # Calculate max radius based on space
+        max_radius = min(width // 2, height) - 1
+        
+        for y in range(height):
+            line = ""
+            for x in range(width):
+                dx = x - center_x
+                dy = (y - center_y) * 2  # Compensate for character aspect ratio
+                
+                # Calculate distance from center
+                distance = math.sqrt(dx * dx + dy * dy)
+                
+                # Calculate angle for animation
+                angle = math.atan2(dy, dx)
+                
+                # Animate: pulsing based on angle and time
+                pulse = math.sin(self.animation_frame * 0.1 + angle * 2) * 0.5 + 0.5
+                
+                # Scale by amplitude
+                amplitude_scale = self._smooth_assistant_amplitude
+                
+                # Calculate effective radius with pulse and amplitude
+                effective_radius = max_radius * (0.3 + amplitude_scale * 0.7) * (0.7 + pulse * 0.3)
+                
+                # Determine bar height based on distance from center
+                if distance < 1:
+                    # Center point
+                    char_idx = 0
+                elif distance <= effective_radius:
+                    # Inside the star - height increases with distance
+                    intensity = distance / effective_radius
+                    char_idx = int(intensity * (len(bar_chars) - 1))
+                else:
+                    # Outside the star
+                    char_idx = 0
+                
+                line += bar_chars[char_idx]
+            
+            lines.append(line)
+        
+        return lines
 
     def render(self) -> Text:
         """
@@ -797,8 +888,13 @@ class VoiceVisualizerPanel(Static):
             result.append(waveform)
             return result
 
-        # Use SIMPLE circle rendering (no expensive math) - all styles use same fast implementation
-        viz_lines = self._render_simple_circle(content_width, circular_viz_lines)
+        # Choose visualization based on style
+        if self.visualization_style == VisualizationStyle.TRON_BARS:
+            viz_lines = self._render_tron_bars(content_width, circular_viz_lines)
+        else:
+            # Use SIMPLE circle rendering (no expensive math) - all other styles use same fast implementation
+            viz_lines = self._render_simple_circle(content_width, circular_viz_lines)
+
 
         # Use dynamic theme colors if available
         theme = getattr(self, 'theme_colors', None)
@@ -903,7 +999,7 @@ class VoiceVisualizerPanel(Static):
 
 
 
-class ActivityFeed(Static):
+class ActivityFeed(Static, can_focus=True):
     """
     Scrolling activity log - HACKER TERMINAL STYLE.
 
@@ -913,6 +1009,7 @@ class ActivityFeed(Static):
     - Line numbers
     - Terminal prompt style
     - Message type indicators
+    - Keyboard navigation (left/escape returns to sidebar)
     """
 
     def __init__(self, max_messages: int = 100, **kwargs):
@@ -1086,6 +1183,12 @@ class ActivityFeed(Static):
                 result.append("\n")
 
         return result
+
+    def on_key(self, event: Key) -> None:
+        """Handle keyboard navigation. Left/Escape returns to sidebar."""
+        if event.key in ("left", "escape"):
+            self.app.action_focus_sidebar()
+            event.stop()
 
 
 class CyberpunkActivityFeed(Static):
@@ -1697,9 +1800,10 @@ class CompactCyberpunkHeader(Static):
 
 
 
-class ProjectDashboard(Static):
+class ProjectDashboard(Static, can_focus=True):
     """
     Project status dashboard showing active projects and progress.
+    Keyboard navigation: left/escape returns to sidebar.
     """
 
     def __init__(self, **kwargs):
@@ -1767,8 +1871,14 @@ class ProjectDashboard(Static):
 
         return result
 
+    def on_key(self, event: Key) -> None:
+        """Handle keyboard navigation. Left/Escape returns to sidebar."""
+        if event.key in ("left", "escape"):
+            self.app.action_focus_sidebar()
+            event.stop()
 
-class WorkerDashboard(Static):
+
+class WorkerDashboard(Static, can_focus=True):
     """
     Worker status dashboard showing AI agents/workers.
     """
@@ -1820,8 +1930,14 @@ class WorkerDashboard(Static):
 
         return result
 
+    def on_key(self, event: Key) -> None:
+        """Handle keyboard navigation. Left/Escape returns to sidebar."""
+        if event.key in ("left", "escape"):
+            self.app.action_focus_sidebar()
+            event.stop()
 
-class ScheduleWidget(Static):
+
+class ScheduleWidget(Static, can_focus=True):
     """
     Schedule/Calendar widget showing upcoming events.
     """
@@ -1876,6 +1992,11 @@ class ScheduleWidget(Static):
 
         return result
 
+    def on_key(self, event: Key) -> None:
+        """Handle keyboard navigation. Left/Escape returns to sidebar."""
+        if event.key in ("left", "escape"):
+            self.app.action_focus_sidebar()
+            event.stop()
 
 
 class StatusWidget(Static):
@@ -1964,7 +2085,17 @@ class AudioVisualizer(Static):
     _frame = reactive(0)
 
     def on_mount(self) -> None:
-        """Start animation timer"""
+        """Start animation timer only if voice is enabled"""
+        # Check if voice is enabled in the app config
+        try:
+            app = self.app
+            if hasattr(app, 'config') and hasattr(app.config, 'voice_enabled'):
+                if not app.config.voice_enabled:
+                    # Voice disabled - don't start animation
+                    return
+        except Exception:
+            pass  # If we can't check, default to starting animation
+        
         self.set_interval(1/30, self.tick)  # 30 FPS animation
 
     def tick(self) -> None:
@@ -2412,34 +2543,54 @@ class CyberpunkVisualizer(Static):
                         canvas[wave_y][x] = char
                         styles[wave_y][x] = "bold yellow" if self.state == "speaking" else "bold green"
 
-        # === LAYER 3: CENTRAL PULSE CIRCLE ===
+        # === LAYER 3: RADIAL BARS (STAR PATTERN) ===
         cx = width // 2
         cy = height // 2
-        base_radius = min(width // 6, height // 3)
-        color, radius, state_msg = self._get_state_params(base_radius)
-
-        # Draw pulse circle
-        for y in range(max(0, cy - radius - 2), min(height, cy + radius + 2)):
-            for x in range(max(0, cx - radius - 2), min(width, cx + radius + 2)):
+        
+        # Radial bars configuration
+        bar_chars = [" ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+        num_bars = 12
+        radius = min(width // 2, height) - 2
+        
+        # Get color based on state
+        state_colors = {
+            "idle": "cyan",
+            "listening": "green",
+            "speaking": "yellow",
+            "thinking": "magenta",
+            "error": "red",
+            "ready": "blue"
+        }
+        color = state_colors.get(self.state, "cyan")
+        
+        # Draw radial bars
+        for y in range(height):
+            for x in range(width):
                 dx = x - cx
                 dy = (y - cy) * 2
-                dist = math.sqrt(dx*dx + dy*dy)
+                
+                # Calculate angle and distance
+                angle = math.atan2(dy, dx)
+                distance = math.sqrt(dx * dx + dy * dy)
+                
+                # Check if we're near a bar position
+                bar_idx = int((angle + math.pi) / (2 * math.pi) * num_bars)
+                bar_angle = (bar_idx / num_bars) * 2 * math.pi - math.pi
+                
+                # Calculate amplitude for this bar (varies by bar and time)
+                bar_amplitude = math.sin(self._frame * 0.2 + bar_idx) * self.amplitude
+                bar_height = radius * (0.5 + bar_amplitude)
+                
+                # Check if point is within this bar
+                angle_diff = abs(angle - bar_angle)
+                if angle_diff < 0.3 and distance < bar_height and distance > 1:
+                    # Height of bar at this point
+                    bar_intensity = 1.0 - (distance / bar_height)
+                    char_idx = int(bar_intensity * (len(bar_chars) - 1))
+                    if canvas[y][x] == ' ':  # Don't overwrite other layers
+                        canvas[y][x] = bar_chars[char_idx]
+                        styles[y][x] = f"bold {color}"
 
-                if abs(dist - radius) < 1.5:
-                    canvas[y][x] = "●"
-                    styles[y][x] = f"bold {color}"
-                elif abs(dist - radius) < 3:
-                    canvas[y][x] = "○"
-                    styles[y][x] = color
-
-        # Draw state message
-        msg_y = cy + (radius // 2) + 3
-        if 0 <= msg_y < height:
-            msg_x = cx - len(state_msg) // 2
-            for i, char in enumerate(state_msg):
-                if 0 <= msg_x + i < width:
-                    canvas[msg_y][msg_x + i] = char
-                    styles[msg_y][msg_x + i] = f"bold {color}"
 
         # === LAYER 4: AUDIO LEVEL METERS ===
         if self.state in ["listening", "speaking"]:
@@ -2525,6 +2676,85 @@ class CyberpunkVisualizer(Static):
 
 # END OF FILE
 
+class ChatHistory(PanelBase):
+    """
+    Displays the conversation history between User and Moshi.
+    """
+    # messages = reactive([])  <-- Removed to avoid conflict with instance variable
+
+    def __init__(self, **kwargs):
+        super().__init__(panel_id="chat_history", title="Conversation History", **kwargs)
+        self.messages = []
+
+    def add_message(self, sender: str, text: str):
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        now = time.time()
+        
+        # DEBUG: Log what we're receiving
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: ChatHistory.add_message sender='{sender}' text='{text}'\n")
+        
+        # Check if we should append to the last message
+        # Criteria: Same sender AND less than 2.0 seconds since last update
+        should_append = False
+        if self.messages and self.messages[-1]["sender"] == sender:
+            last_update = self.messages[-1].get("last_update", 0)
+            if now - last_update < 2.0:
+                should_append = True
+        
+        if should_append:
+            # Tokens from voice server often come WITHOUT leading spaces
+            # The voice server already handles spacing via sentencepiece decode
+            # So we should just concatenate directly
+            self.messages[-1]["text"] += text
+            self.messages[-1]["last_update"] = now
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: Appended to last message. New text: '{self.messages[-1]['text']}'\n")
+        else:
+            self.messages.append({
+                "sender": sender, 
+                "text": text, 
+                "time": timestamp,
+                "last_update": now
+            })
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: Created new message.\n")
+        
+        # Keep last 50 messages
+        if len(self.messages) > 50:
+            self.messages.pop(0)
+        self.refresh()
+
+    def render_content(self) -> Text:
+        content = Text()
+        
+        # DEBUG: Log message count
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: render_content called with {len(self.messages)} messages\n")
+            if self.messages:
+                f.write(f"DEBUG: Last message: {self.messages[-1]}\n")
+        
+        if not self.messages:
+            content.append("No conversation history.", style="dim italic")
+            return content
+            
+        for msg in self.messages:
+            # Color coding: Assistant = terminal green (darker), User = yellow, System = white (dim)
+            if msg["sender"] in ["User", "user"]:
+                sender_color = "yellow"
+            elif msg["sender"].lower() in ["system", "debug"]:
+                sender_color = "white" # dim white looks gray
+            else:
+                # Assistant messages (any other sender) - use terminal green (color 2)
+                sender_color = "#00AA00"  # Terminal green (darker than bright green)
+                
+            content.append(f"[{msg['time']}] ", style="dim")
+            content.append(f"{msg['sender']}: ", style=f"bold {sender_color}")
+            # Enable wrapping by NOT truncating - Rich Text will wrap automatically
+            # For system messages, make the text dim as well
+            text_style = sender_color if sender_color != "white" else "dim white"
+            content.append(f"{msg['text']}\n", style=text_style)
+        return content
 
 
 
@@ -2532,3 +2762,96 @@ class CyberpunkVisualizer(Static):
 
 
 
+
+
+
+class VoiceVisualizer(PanelBase):
+    """Circular ASCII art visualizer that animates based on voice amplitude."""
+    
+    def __init__(self, title: str = "Voice", **kwargs):
+        # Extract id from kwargs to use as panel_id
+        panel_id = kwargs.pop('id', 'voice-visualizer')
+        super().__init__(panel_id=panel_id, title=title, **kwargs)
+        self.animation_frame = 0
+        self.moshi_amplitude = 0.0
+        self._smooth_amplitude = 0.0
+        self.smoothing_factor = 0.3
+        
+        # Start animation timer
+        self.set_interval(1/20, self._update_animation)
+    
+    def _update_animation(self):
+        """Update animation frame and smooth amplitude."""
+        self.animation_frame += 1
+        
+        # Smooth amplitude for stable animation
+        target = self.moshi_amplitude
+        self._smooth_amplitude = (
+            self.smoothing_factor * target +
+            (1 - self.smoothing_factor) * self._smooth_amplitude
+        )
+        
+        self.refresh()
+    
+    def set_amplitude(self, amplitude: float):
+        """Set the current voice amplitude (0.0 to 1.0)."""
+        self.moshi_amplitude = max(0.0, min(1.0, amplitude))
+    
+    def render(self) -> Text:
+        """Render the circular visualizer."""
+        width = self.size.width - 4  # Account for borders
+        height = self.size.height - 3
+        
+        if width < 10 or height < 5:
+            return Text("Too small", style="dim")
+        
+        lines = self._render_pulsing_rings(width, height)
+        content = "\n".join(lines)
+        
+        return Text(content, style="cyan")
+    
+    def _render_pulsing_rings(self, width: int, height: int) -> list[str]:
+        """Render pulsing concentric rings that scale with amplitude."""
+        import math
+        
+        lines = []
+        center_x = width // 2
+        center_y = height // 2
+        
+        chars = ["·", "∘", "○", "◉", "●"]
+        
+        # Don't show anything if amplitude is exactly 0.0
+        if self._smooth_amplitude == 0.0:
+            return [" " * width for _ in range(height)]
+        
+        # Scale radius based on amplitude: tiny dot when silent, full size when loud
+        min_radius = 1
+        max_radius = min(width, height * 2) // 3
+        scaled_radius = min_radius + (max_radius - min_radius) * self._smooth_amplitude
+        
+        for y in range(height):
+            line = ""
+            for x in range(width):
+                # Calculate distance from center
+                dx = x - center_x
+                dy = (y - center_y) * 2  # Adjust for character aspect ratio
+                distance = math.sqrt(dx * dx + dy * dy)
+                
+                # Show content only within the scaled radius
+                if distance <= scaled_radius:
+                    # Map distance to amplitude rings
+                    ring_size = max(1, 5 * self._smooth_amplitude)
+                    ring_phase = (distance - self.animation_frame * 0.5) % (ring_size + 1)
+                    
+                    if ring_phase < ring_size:
+                        intensity = 1.0 - (ring_phase / ring_size)
+                        char_idx = int(intensity * (len(chars) - 1))
+                        line += chars[char_idx]
+                    else:
+                        line += " "
+                else:
+                    line += " "
+            
+            lines.append(line)
+        
+        return lines

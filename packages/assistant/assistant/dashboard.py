@@ -32,9 +32,11 @@ from .dashboard_widgets import (
     CyberpunkFooter,
     VoiceVisualizerPanel,
     VisualizationStyle,
+    AudioVisualizer,
     WorkerDashboard,
     ScheduleWidget,
-    ProjectDashboard
+    ProjectDashboard,
+    ChatHistory
 )
 
 from .config import Config
@@ -660,6 +662,27 @@ class VoiceAssistantApp(App):
         ("ctrl+q", "quit", "Quit"),
         ("ctrl+c", "quit", "Quit"),  # User requested CTRL-C to exit
         ("ctrl+l", "copy_logs", "Copy Logs"), # Rebound copy logs to CTRL-L
+        # Navigation bindings
+        ("j", "nav_down", "Next Tab"),
+        ("k", "nav_up", "Previous Tab"),
+        ("down", "nav_down", "Next Tab"),
+        ("up", "nav_up", "Previous Tab"),
+        ("right", "focus_content", "Focus Content"),
+        ("left", "focus_sidebar", "Focus Sidebar"),
+        ("h", "focus_sidebar", "Focus Sidebar"),
+        ("l", "focus_content", "Focus Content"),
+        ("escape", "focus_sidebar", "Back to Sidebar"),
+        # Tab key zone cycling (priority=True to override default focus chain)
+        Binding("tab", "cycle_focus_zone", "Next Pane", priority=True),
+        Binding("shift+tab", "cycle_focus_zone_reverse", "Prev Pane", priority=True),
+        # Quick tab access
+        ("1", "goto_status", "Status"),
+        ("2", "goto_settings", "Settings"),
+        ("3", "goto_tools", "Tools"),
+        ("4", "goto_chat", "Chat"),
+        ("5", "goto_projects", "Projects"),
+        ("6", "goto_schedule", "Schedule"),
+        ("7", "goto_workers", "Workers"),
     ]
 
     # Reactive state
@@ -667,6 +690,7 @@ class VoiceAssistantApp(App):
     amplitude = reactive(0.0)
     current_persona_name = reactive("Default")  # Current persona name
     active_tab = reactive("status")  # status, settings, tools, chat, projects, schedule, workers
+    _focus_zone = reactive("sidebar")  # "sidebar" | "content" - tracks which zone has focus
 
     # Reactive theme colors - automatically update UI when changed
     theme_shade_1 = reactive("#252a33")
@@ -698,20 +722,31 @@ class VoiceAssistantApp(App):
         # Voice bridge orchestrator (initialized later)
         self.voice_bridge: Optional[VoiceBridgeOrchestrator] = None
         self.voice_initialized = False
+        
         # Load personas
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: Loading personas from: {personas_dir}\n")
+            f.write(f"DEBUG: personas_dir exists: {personas_dir.exists()}\n")
+            if personas_dir.exists():
+                f.write(f"DEBUG: personas_dir contents: {list(personas_dir.iterdir())}\n")
+        
         self.persona_manager = PersonaManager(personas_dir)
         self.available_personas = list(self.persona_manager.personas.values())
 
         # Set default persona on startup (will load theme too)
         default_persona_name = config.default_persona or "JARVIS"
         if not self.persona_manager.set_current_persona(default_persona_name):
-            # Fallback to first available persona if default not found
-            if self.available_personas:
+            # Try JARVIS explicitly if default failed (e.g. "boss" missing)
+            if self.persona_manager.set_current_persona("JARVIS"):
+                 with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"WARNING: Default persona '{default_persona_name}' not found. Using JARVIS.\n")
+            # Fallback to first available persona if JARVIS not found
+            elif self.available_personas:
                 fallback = self.available_personas[0].name
                 self.persona_manager.set_current_persona(fallback)
                 # Log fallback (to file since UI not ready)
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"WARNING: Default persona '{default_persona_name}' not found. Falling back to '{fallback}'\n")
+                    f.write(f"WARNING: Default persona '{default_persona_name}' and JARVIS not found. Falling back to '{fallback}'\n")
         else:
              with open("/tmp/xswarm_debug.log", "a") as f:
                     f.write(f"SUCCESS: Loaded default persona '{default_persona_name}'\n")
@@ -802,6 +837,13 @@ class VoiceAssistantApp(App):
         if self.voice_orchestrator:
             asyncio.create_task(self.voice_orchestrator.set_persona(persona_name))
             
+        # Log to chat history
+        try:
+            chat_history = self.query_one("#chat-history-widget", ChatHistory)
+            chat_history.add_message("System", f"🎭 Switched persona to: {persona.name}")
+        except Exception:
+            pass
+            
         return True
 
     def update_activity(self, message: str, msg_type: str = "info") -> None:
@@ -838,18 +880,17 @@ class VoiceAssistantApp(App):
         with Horizontal(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
             with Vertical(id="left-column"):
-                # Voice visualizer - small square at top (visible but with 0 amplitude until voice initialized)
+                # Voice visualizer - always show, but animation controlled by voice_enabled
                 viz_panel = VoiceVisualizerPanel(
-                    visualization_style=VisualizationStyle.SOUND_WAVE_CIRCLE
+                    visualization_style=VisualizationStyle.TRON_BARS
                 )
                 viz_panel.id = "visualizer"
-                viz_panel.simulation_mode = False  # Use real audio, not simulation
-                # Don't hide the widget - keep it visible with 0 amplitude (will be set in on_mount)
+                viz_panel.simulation_mode = False
                 yield viz_panel
 
                 # Tab buttons below visualizer
                 with Vertical(id="sidebar"):
-                    yield Button(" 📊  Status", id="tab-status", classes="tab-button active-tab")
+                    yield Button(" 📊  Status", id="tab-status", classes="tab-button")
                     yield Button(" ⚙️   Settings", id="tab-settings", classes="tab-button")
                     yield Button(" 🔧  Tools", id="tab-tools", classes="tab-button")
                     yield Button(" 💬  Chat", id="tab-chat", classes="tab-button")
@@ -1029,7 +1070,7 @@ class VoiceAssistantApp(App):
                 # Chat content
                 with Container(id="content-chat", classes="content-pane"):
                     yield Static("[dim]💬[/dim] Chat", classes="pane-header")
-                    yield Static("", id="chat-history")
+                    yield ChatHistory(id="chat-history-widget")
                     yield Input(placeholder="Type a message...", id="chat-input")
 
                 # Projects content
@@ -1103,6 +1144,9 @@ class VoiceAssistantApp(App):
         with open("/tmp/xswarm_debug.log", "a") as f:
             f.write("DEBUG: on_mount() - after scheduling voice initialization\n")
             f.flush()
+        
+        # Manually trigger tab highlighting on startup
+        self.watch_active_tab(self.active_tab)
 
     async def _complete_voice_initialization(self):
         """Complete voice initialization: load models then initialize audio"""
@@ -1196,27 +1240,131 @@ class VoiceAssistantApp(App):
         """Handle tab button clicks and OAuth connector buttons"""
         button_id = event.button.id
 
-        # Determine which tab was clicked
-        if button_id == "tab-status":
-            self.active_tab = "status"
-        elif button_id == "tab-settings":
-            self.active_tab = "settings"
-        elif button_id == "tab-tools":
-            self.active_tab = "tools"
-        elif button_id == "tab-chat":
-            self.active_tab = "chat"
-        elif button_id == "tab-projects":
-            self.active_tab = "projects"
-        elif button_id == "tab-schedule":
-            self.active_tab = "schedule"
-        elif button_id == "tab-workers":
-            self.active_tab = "workers"
+        # Handle tab navigation
+        if button_id and button_id.startswith("tab-"):
+            # Update focused index when clicking
+            try:
+                self._focused_nav_index = self._nav_buttons.index(button_id)
+            except ValueError:
+                pass
+            self._switch_to_tab(button_id)
+            return
+
         # Handle OAuth connector buttons
         elif button_id and button_id.startswith("oauth-"):
             self.handle_oauth_button(button_id, event.button)
         elif button_id == "btn-copy-logs":
             self.action_copy_logs()
 
+    def _switch_to_tab(self, button_id: str) -> None:
+        """Helper method to switch to a given tab based on its button ID."""
+        tab_name = button_id.replace("tab-", "")
+        self.active_tab = tab_name
+    
+    def action_nav_up(self) -> None:
+        """Navigate up - context aware. In sidebar: switch tabs. In content: let widgets handle."""
+        if self._focus_zone == "sidebar":
+            if not self._nav_buttons:
+                return
+            self._focused_nav_index = (self._focused_nav_index - 1) % len(self._nav_buttons)
+            self._switch_to_tab(self._nav_buttons[self._focused_nav_index])
+            # Also focus the button for proper visual feedback
+            try:
+                button = self.query_one(f"#{self._nav_buttons[self._focused_nav_index]}", Button)
+                button.focus()
+            except Exception:
+                pass
+        # In content zone: do nothing - let widgets handle their own up/down
+
+    def action_nav_down(self) -> None:
+        """Navigate down - context aware. In sidebar: switch tabs. In content: let widgets handle."""
+        if self._focus_zone == "sidebar":
+            if not self._nav_buttons:
+                return
+            self._focused_nav_index = (self._focused_nav_index + 1) % len(self._nav_buttons)
+            self._switch_to_tab(self._nav_buttons[self._focused_nav_index])
+            # Also focus the button for proper visual feedback
+            try:
+                button = self.query_one(f"#{self._nav_buttons[self._focused_nav_index]}", Button)
+                button.focus()
+            except Exception:
+                pass
+        # In content zone: do nothing - let widgets handle their own up/down
+    
+    def action_focus_content(self) -> None:
+        """Move focus from sidebar to content pane."""
+        self._focus_zone = "content"
+        try:
+            # Focus the first focusable widget in the active content pane
+            pane_id = f"content-{self.active_tab}"
+            pane = self.query_one(f"#{pane_id}")
+            # Try to focus first button, input, or other interactive widget
+            # Include Tree for Tools pane
+            focusables = pane.query("Button, Input, Select, RadioButton, Switch, Tree")
+            if focusables:
+                focusables.first().focus()
+            else:
+                # If no focusable widgets, focus the pane itself
+                pane.focus()
+        except Exception:
+            pass
+
+    def action_focus_sidebar(self) -> None:
+        """Move focus back to sidebar."""
+        self._focus_zone = "sidebar"
+        try:
+            # Focus the current active tab button
+            current_button_id = f"tab-{self.active_tab}"
+            button = self.query_one(f"#{current_button_id}", Button)
+            button.focus()
+        except Exception:
+            pass
+
+    def action_cycle_focus_zone(self) -> None:
+        """Cycle focus to next zone: sidebar <-> content (Tab key)."""
+        if self._focus_zone == "sidebar":
+            self.action_focus_content()
+        else:
+            self.action_focus_sidebar()
+
+    def action_cycle_focus_zone_reverse(self) -> None:
+        """Cycle focus to previous zone (Shift+Tab)."""
+        # With only 2 zones, same as forward
+        self.action_cycle_focus_zone()
+    
+    def _goto_tab_by_index(self, index: int) -> None:
+        """Helper to jump to tab by index."""
+        if index < len(self._nav_buttons):
+            self._focused_nav_index = index
+            self._switch_to_tab(self._nav_buttons[index])
+    
+    def action_goto_status(self) -> None:
+        """Jump to Status tab (1)."""
+        self._goto_tab_by_index(0)
+    
+    def action_goto_settings(self) -> None:
+        """Jump to Settings tab (2)."""
+        self._goto_tab_by_index(1)
+    
+    def action_goto_tools(self) -> None:
+        """Jump to Tools tab (3)."""
+        self._goto_tab_by_index(2)
+    
+    def action_goto_chat(self) -> None:
+        """Jump to Chat tab (4)."""
+        self._goto_tab_by_index(3)
+    
+    def action_goto_projects(self) -> None:
+        """Jump to Projects tab (5)."""
+        self._goto_tab_by_index(4)
+    
+    def action_goto_schedule(self) -> None:
+        """Jump to Schedule tab (6)."""
+        self._goto_tab_by_index(5)
+    
+    def action_goto_workers(self) -> None:
+        """Jump to Workers tab (7)."""
+        self._goto_tab_by_index(6)
 
     def handle_oauth_button(self, button_id: str, button: Button) -> None:
         """Handle OAuth connector button clicks (mock functionality)"""
@@ -1349,6 +1497,13 @@ class VoiceAssistantApp(App):
         Returns:
             True if initialization successful, False otherwise
         """
+        # Check if voice is enabled in config
+        voice_enabled = getattr(self.config, 'voice_enabled', True)  # Default to True for backwards compatibility
+        if not voice_enabled:
+            self.update_activity("ℹ️  Voice disabled in config - skipping voice initialization")
+            self.voice_initialized = False
+            return False
+            
         if self.voice_initialized:
             return True
 
@@ -1370,7 +1525,8 @@ class VoiceAssistantApp(App):
                 user_id=self.user_id,
                 moshi_quality=moshi_quality,
                 voice_queues=self.voice_queues,
-                log_callback=self.update_activity
+                log_callback=self.update_activity,
+                text_callback=self._on_voice_text
             )
             # Initialize Moshi models
             await self.voice_orchestrator.initialize()
@@ -1417,6 +1573,11 @@ class VoiceAssistantApp(App):
                 self.update_activity("   Please grant microphone access in System Settings > Privacy & Security > Microphone")
                 self.update_activity("   App will continue without voice features")
             else:
+                import traceback
+                import logging
+                error_details = traceback.format_exc()
+                logging.error(f"❌ Voice initialization failed: {e}")
+                logging.error(f"Stack trace:\n{error_details}")
                 self.update_activity(f"❌ Voice initialization failed: {e}")
             self.voice_initialized = False
             return False
@@ -1465,6 +1626,50 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Handle chat input submission"""
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: on_input_submitted triggered. ID={event.input.id} Value='{event.value}'\n")
+            
+        if event.input.id == "chat-input":
+            text = event.value
+            if not text.strip():
+                return
+            
+            event.input.value = ""
+            
+            # Add user message to chat
+            try:
+                chat_history = self.query_one("#chat-history-widget", ChatHistory)
+                chat_history.add_message("User", text)
+            except Exception as e:
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"ERROR: Failed to add message to chat history: {e}\n")
+                pass
+            
+            # Send to Moshi
+            if self.voice_orchestrator:
+                await self.voice_orchestrator.send_text(text)
+            else:
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write("WARNING: No voice orchestrator available to send text.\n")
+                pass
+
+    def _on_voice_text(self, sender: str, text: str):
+        """Handle text output from voice bridge"""
+        try:
+            chat_history = self.query_one("#chat-history-widget", ChatHistory)
+            chat_history.add_message(sender, text)
+            
+            # Update visualizer when Moshi speaks
+            if sender == "Moshi":
+                # visualizer = self.query_one("#voice-visualizer", VoiceVisualizer)
+                # Set amplitude to 0.8 when speaking (will be smoothed by widget)
+                # visualizer.set_amplitude(0.8)
+                pass
+        except Exception:
+            pass
+
     def get_visualizer_data(self):
         """Callback for visualizer to pull data"""
         # Return dict with mic_amplitude and connection_amplitude
@@ -1480,7 +1685,8 @@ class VoiceAssistantApp(App):
             # Map moshi amplitude to connection_amplitude
             if moshi_amp > 0.01:
                 # Moshi is outputting audio → animate top section
-                conn_amp = 2.0 + (moshi_amp * 98.0)  # 2-100 range
+                # Triple the magnification for better visibility
+                conn_amp = 2.0 + (moshi_amp * 3.0 * 98.0)  # 3x magnification
             elif self.state == "listening":
                 conn_amp = 1.0  # Idle/breathing
             else:

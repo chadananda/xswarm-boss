@@ -1,6 +1,6 @@
 [project]
 name = "voice-assistant"
-version = "0.5.30"
+version = "0.10.4"
 description = "Cross-platform voice assistant with MOSHI, Textual TUI, and persona system"
 authors = [{name = "xSwarm", email = "support@xswarm.io"}]
 requires-python = ">=3.11"
@@ -33,6 +33,7 @@ dependencies = [
     "twilio>=8.0.0",  # Phone call integration
     "sendgrid>=6.11.0",  # Email integration
     "toml>=0.10.2",  # Config file parsing
+    "moshi_mlx @ git+https://github.com/kyutai-labs/moshi.git#subdirectory=moshi_mlx",
 ]
 
 [project.optional-dependencies]
@@ -65,7 +66,10 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["assistant*"]
-exclude = ["tmp*", "personas*", "tests*"]
+exclude = ["tmp*", "tests*"]
+
+[tool.setuptools.package-data]
+assistant = ["*.tcss", "*.css", "personas/**/*.yaml", "personas/**/*.md", "personas/**/*.txt"]
 
 [tool.black]
 line-length = 100
