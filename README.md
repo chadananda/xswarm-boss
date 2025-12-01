@@ -26,6 +26,14 @@
 
 </div>
 
+<div align="center">
+
+![xSwarm TUI](assets/tui-screenshot.svg)
+
+*The xSwarm Terminal UI with AI-powered chat, personas, and memory*
+
+</div>
+
 ---
 
 ## A Day with xSwarm
