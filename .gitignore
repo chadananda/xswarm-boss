@@ -120,6 +120,13 @@ __pycache__/
 *.pyd
 .Python
 
+# Python build artifacts
+build/
+*.egg-info/
+dist/
+eggs/
+*.egg
+
 # HuggingFace model cache (models downloaded at runtime)
 .cache/huggingface/
 ~/.cache/huggingface/
@@ -158,3 +165,19 @@ snapshot_report.html
 # Configuration (generated from config.js to ./tmp/)
 # config.js is the only config file that should be committed
 # All generated config files go in ./tmp/ directory
+
+# Temporary development scripts (root level)
+test_*.py
+verify_*.py
+inspect_*.py
+check_*.py
+show_*.py
+kill_*.py
+!tests/**/test_*.py
+!tests/**/verify_*.py
+
+# Development summaries
+COMMIT_SUMMARY.md
+
+# Persona Python module cache
+personas/.py_module/
