@@ -6,7 +6,7 @@ main = "packages/server/src/index.js"
 compatibility_date = "2024-10-23"
 compatibility_flags = ["nodejs_compat"]
 
-account_id = "CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER"
+account_id = "b750d0f7242bbc76f115f72840453083"
 
 [dev]
 port = 8787
@@ -19,7 +19,7 @@ preview_bucket_name = "xswarm-boss-dev"
 
 [vars]
 ENVIRONMENT = "production"
-TURSO_DATABASE_URL = "TURSO_DATABASE_URL_PLACEHOLDER"
+TURSO_DATABASE_URL = "libsql://xswarm-b750d0f7-chad1996.turso.io"
 SENDGRID_FROM_EMAIL = "boss@xswarm.ai"
 SENDGRID_FROM_NAME = "Boss AI"
 VOICE_ENABLED = "true"

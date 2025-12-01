@@ -135,7 +135,7 @@ region = "auto"
 
 # Custom endpoint (required for R2, optional for S3-compatible services)
 # For R2: https://<account-id>.r2.cloudflarestorage.com
-endpoint = "https://CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.r2.cloudflarestorage.com"
+endpoint = "https://b750d0f7242bbc76f115f72840453083.r2.cloudflarestorage.com"
 
 # Public URL for assets (if using CDN or public bucket)
 public_url = "https://assets.xswarm.ai"

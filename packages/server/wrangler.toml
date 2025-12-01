@@ -5,7 +5,7 @@ compatibility_flags = ["nodejs_compat"]
 
 # Workers configuration
 workers_dev = true
-account_id = "CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER"
+account_id = "b750d0f7242bbc76f115f72840453083"
 
 # Local development configuration
 [dev]

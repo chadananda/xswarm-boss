@@ -125,10 +125,10 @@ git lfs pull
 # Store securely (e.g., 1Password, macOS Keychain)
 
 # Configure local git (NOT committed to repo)
-git config --local lfs.url "https://xswarm-webhooks.CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.workers.dev/lfs"
-git config --local lfs.https://xswarm-webhooks.CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.workers.dev/lfs.access basic
-git config --local credential.https://xswarm-webhooks.CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.workers.dev.username "xswarm"
-git config --local credential.https://xswarm-webhooks.CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.workers.dev.helper "!f() { echo \"username=xswarm\"; echo \"password=$LFS_AUTH_TOKEN_WRITE\"; }; f"
+git config --local lfs.url "https://xswarm-webhooks.b750d0f7242bbc76f115f72840453083.workers.dev/lfs"
+git config --local lfs.https://xswarm-webhooks.b750d0f7242bbc76f115f72840453083.workers.dev/lfs.access basic
+git config --local credential.https://xswarm-webhooks.b750d0f7242bbc76f115f72840453083.workers.dev.username "xswarm"
+git config --local credential.https://xswarm-webhooks.b750d0f7242bbc76f115f72840453083.workers.dev.helper "!f() { echo \"username=xswarm\"; echo \"password=$LFS_AUTH_TOKEN_WRITE\"; }; f"
 ```
 
 **Alternative: Use environment variable**
@@ -224,10 +224,10 @@ pnpm wrangler deploy
 
 ```bash
 # Test health endpoint
-curl https://xswarm-webhooks.CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.workers.dev/health
+curl https://xswarm-webhooks.b750d0f7242bbc76f115f72840453083.workers.dev/health
 
 # Test LFS batch API (with auth)
-curl -X POST https://xswarm-webhooks.CLOUDFLARE_ACCOUNT_ID_PLACEHOLDER.workers.dev/lfs/objects/batch \
+curl -X POST https://xswarm-webhooks.b750d0f7242bbc76f115f72840453083.workers.dev/lfs/objects/batch \
   -H "Authorization: Bearer $LFS_AUTH_TOKEN_READ" \
   -H "Content-Type: application/vnd.git-lfs+json" \
   -d '{
