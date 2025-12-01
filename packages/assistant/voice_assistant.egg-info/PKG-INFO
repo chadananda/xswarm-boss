@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: voice-assistant
-Version: 0.5.30
-Summary: Cross-platform voice assistant with MOSHI, Textual TUI, and persona system
+Version: 0.17.30
+Summary: Developer-centric AI assistant for managing multiple software projects with TUI and optional voice interface
 Author-email: xSwarm <support@xswarm.io>
 License: MIT
 Requires-Python: >=3.11
@@ -31,6 +31,9 @@ Requires-Dist: silero-vad>=4.0.0
 Requires-Dist: twilio>=8.0.0
 Requires-Dist: sendgrid>=6.11.0
 Requires-Dist: toml>=0.10.2
+Requires-Dist: libsql-experimental>=0.0.55
+Requires-Dist: sentence-transformers>=2.2.0
+Requires-Dist: moshi_mlx@ git+https://github.com/kyutai-labs/moshi.git#subdirectory=moshi_mlx
 Provides-Extra: dev
 Requires-Dist: pytest>=7.4.0; extra == "dev"
 Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"

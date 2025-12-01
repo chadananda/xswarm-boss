@@ -4,11 +4,14 @@ Offline, lightweight, deterministic speech recognition.
 """
 
 import json
+import logging
 import queue
 import threading
 from typing import Optional, Callable
 from pathlib import Path
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 try:
     from vosk import Model, KaldiRecognizer
@@ -63,17 +66,17 @@ class WakeWordDetector:
                 f"Download: https://alphacephei.com/vosk/models"
             )
 
-        print(f"Loading Vosk model from {model_path}...")
+        logger.debug(f"Loading Vosk model from {model_path}...")
         self.model = Model(str(model_path))
         self.recognizer = KaldiRecognizer(self.model, sample_rate)
         self.recognizer.SetWords(True)  # Get word-level confidence
 
-        # Show all wake words
+        # Log all wake words
         if len(self.wake_words) == 1:
-            print(f"Vosk model loaded. Listening for: '{self.wake_words[0]}'")
+            logger.debug(f"Vosk model loaded. Listening for: '{self.wake_words[0]}'")
         else:
             wake_words_str = "', '".join(self.wake_words)
-            print(f"Vosk model loaded. Listening for: '{wake_words_str}'")
+            logger.debug(f"Vosk model loaded. Listening for: '{wake_words_str}'")
 
         # Detection state
         self.is_active = False
@@ -99,17 +102,17 @@ class WakeWordDetector:
         self._thread.start()
 
         if len(self.wake_words) == 1:
-            print(f"Wake word detection started: '{self.wake_words[0]}'")
+            logger.debug(f"Wake word detection started: '{self.wake_words[0]}'")
         else:
             wake_words_str = "', '".join(self.wake_words)
-            print(f"Wake word detection started for: '{wake_words_str}'")
+            logger.debug(f"Wake word detection started for: '{wake_words_str}'")
 
     def stop(self):
         """Stop wake word detection"""
         self.is_active = False
         if self._thread:
             self._thread.join(timeout=1.0)
-        print("Wake word detection stopped")
+        logger.debug("Wake word detection stopped")
 
     def process_audio(self, audio: np.ndarray):
         """
@@ -148,7 +151,7 @@ class WakeWordDetector:
             except queue.Empty:
                 continue
             except Exception as e:
-                print(f"Wake word detection error: {e}")
+                logger.debug(f"Wake word detection error: {e}")
 
     def _check_wake_word(self, result: dict, partial: bool = False):
         """
@@ -173,14 +176,14 @@ class WakeWordDetector:
 
             # Check sensitivity threshold
             if confidence >= self.sensitivity:
-                print(f"Wake word detected: '{detected_word}' in '{text}' (confidence: {confidence:.2f})")
+                logger.debug(f"Wake word detected: '{detected_word}' in '{text}' (confidence: {confidence:.2f})")
 
                 # Call callback with detected wake word
                 if self.detection_callback:
                     try:
                         self.detection_callback(detected_word)
                     except Exception as e:
-                        print(f"Wake word callback error: {e}")
+                        logger.debug(f"Wake word callback error: {e}")
 
     def _get_detected_wake_word(self, text: str) -> Optional[str]:
         """
@@ -267,11 +270,11 @@ class WakeWordDetector:
 
         # Log change
         if len(old_words) == 1 and len(self.wake_words) == 1:
-            print(f"Wake word changed: '{old_words[0]}' -> '{self.wake_words[0]}'")
+            logger.debug(f"Wake word changed: '{old_words[0]}' -> '{self.wake_words[0]}'")
         else:
             old_str = "', '".join(old_words)
             new_str = "', '".join(self.wake_words)
-            print(f"Wake words changed: ['{old_str}'] -> ['{new_str}']")
+            logger.debug(f"Wake words changed: ['{old_str}'] -> ['{new_str}']")
 
     def reset(self):
         """Reset recognizer state"""

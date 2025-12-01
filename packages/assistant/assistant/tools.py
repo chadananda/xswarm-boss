@@ -510,7 +510,7 @@ def create_persona_switch_tool(persona_manager, on_persona_change=None) -> Tool:
             try:
                 await cb(old_persona, new_persona)
             except Exception as e:
-                print(f"Callback error: {e}")
+                logger.debug(f"Callback error: {e}")
         
         return {"success": True, "message": f"Switched to {new_persona.display_name}", "persona": {"name": new_persona.name}}
 

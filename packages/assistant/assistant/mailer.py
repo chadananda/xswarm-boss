@@ -3,6 +3,7 @@ Mailer Module.
 Consolidates PersonaMailer and DevelopmentStatusReporter.
 """
 
+import logging
 import os
 import ssl
 from typing import Dict, Optional, List
@@ -12,6 +13,8 @@ import toml
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail, Email, To, Content
 from .personas.config import PersonaConfig
+
+logger = logging.getLogger(__name__)
 
 # Work around SSL certificate verification issues
 import certifi
@@ -32,7 +35,7 @@ class PersonaMailer:
         self.api_key = sendgrid_api_key or os.getenv("SENDGRID_API_KEY")
         if not self.api_key:
             # Log warning instead of raising error to allow app to start without SendGrid
-            print("WARNING: SENDGRID_API_KEY not found in environment. Email functionality disabled.")
+            logger.debug("SENDGRID_API_KEY not found in environment. Email functionality disabled.")
             self.sg = None
         else:
             self.sg = SendGridAPIClient(self.api_key)

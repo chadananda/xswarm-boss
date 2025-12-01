@@ -1,0 +1,14 @@
+# Gitleaks configuration - allow false positives for public API headers
+
+[allowlist]
+description = "Allowlist for public API headers (not secrets)"
+
+# Anthropic API beta headers are public, not secrets
+regexes = [
+  '''anthropic-beta.*interleaved-thinking''',
+  '''claude-code-\d+,oauth-\d+-\d+-\d+''',
+]
+
+paths = [
+  '''packages/assistant/assistant/auth\.py''',
+]

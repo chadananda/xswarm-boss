@@ -1,7 +1,7 @@
 [project]
 name = "voice-assistant"
-version = "0.11.0"
-description = "Cross-platform voice assistant with MOSHI, Textual TUI, and persona system"
+version = "0.17.30"
+description = "Developer-centric AI assistant for managing multiple software projects with TUI and optional voice interface"
 authors = [{name = "xSwarm", email = "support@xswarm.io"}]
 requires-python = ">=3.11"
 readme = "README.md"
@@ -33,6 +33,8 @@ dependencies = [
     "twilio>=8.0.0",  # Phone call integration
     "sendgrid>=6.11.0",  # Email integration
     "toml>=0.10.2",  # Config file parsing
+    "libsql-experimental>=0.0.55",  # LibSQL with vector search for semantic memory
+    "sentence-transformers>=2.2.0",  # Local CPU embeddings for semantic search (no API key needed)
     "moshi_mlx @ git+https://github.com/kyutai-labs/moshi.git#subdirectory=moshi_mlx",
 ]
 

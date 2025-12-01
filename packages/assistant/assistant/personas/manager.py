@@ -60,12 +60,7 @@ class PersonaManager:
                 persona = self.load_persona_from_dir(persona_dir)
                 self.personas[persona.name] = persona
                 discovered.append(persona.name)
-                # Debug log
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"DEBUG: Discovered persona '{persona.name}' in {persona_dir}\n")
-            except Exception as e:
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"ERROR: Failed to load persona from {persona_dir}: {e}\n")
+            except Exception:
                 pass  # Skip failed persona loads
 
         return discovered
@@ -122,12 +117,8 @@ class PersonaManager:
         name_lower = name.lower()
         for p_name, p_config in self.personas.items():
             if p_name.lower() == name_lower:
-                with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"DEBUG: Case-insensitive match: '{name}' -> '{p_name}'\n")
                 return p_config
-                
-        with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write(f"DEBUG: Persona '{name}' not found. Available: {list(self.personas.keys())}\n")
+
         return None
 
     def get_current_persona(self) -> Optional[PersonaConfig]:

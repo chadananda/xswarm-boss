@@ -6,12 +6,16 @@ Includes:
 - Voice Activity Detection (Energy-based & Hybrid Silero)
 """
 
+import logging
 import sounddevice as sd
 import numpy as np
 import torch
 import threading
+import random
 from typing import Callable, Optional, Dict
 from queue import Queue, Empty
+
+logger = logging.getLogger(__name__)
 
 # ==============================================================================
 # AUDIO I/O
@@ -39,15 +43,16 @@ class AudioIO:
             self.log(f"🎤 Audio Devices found: {len(devices)}")
             
             # Smart selection: Prefer "Built-in Microphone" or "MacBook Pro Microphone"
+            # DISABLED: User requested system default.
             self.input_device_index = None
-            for i, dev in enumerate(devices):
-                if dev['max_input_channels'] > 0:
-                    name = dev['name']
-                    # self.log(f"  - [{i}] {name}") # Too verbose?
-                    if "Built-in Microphone" in name or "MacBook Pro Microphone" in name:
-                        self.input_device_index = i
-                        self.log(f"🎤 Selected Input Device: {name} (Index {i})")
-                        break
+            # for i, dev in enumerate(devices):
+            #     if dev['max_input_channels'] > 0:
+            #         name = dev['name']
+            #         # self.log(f"  - [{i}] {name}") # Too verbose?
+            #         if "Built-in Microphone" in name or "MacBook Pro Microphone" in name:
+            #             self.input_device_index = i
+            #             self.log(f"🎤 Selected Input Device: {name} (Index {i})")
+            #             break
             
             if self.input_device_index is None:
                 self.log(f"🎤 Using Default Input: {default_in['name']}")
@@ -72,13 +77,19 @@ class AudioIO:
         if self.log_callback:
             self.log_callback(msg)
         else:
-            print(msg)
+            logger.debug(msg)
 
     def start_input(self, callback: Optional[Callable] = None):
         def audio_callback(indata, frames, time, status):
             if status:
                 self.log(f"⚠️ Audio Status: {status}")
             try:
+                # FEEDBACK PREVENTION: Ignore mic input when output is playing
+                # This prevents Moshi from hearing himself speak
+                if hasattr(self, 'current_output_amplitude') and self.current_output_amplitude > 0.01:
+                    # Output is playing - ignore mic input to prevent feedback
+                    return
+                
                 audio = np.ascontiguousarray(indata[:, 0], dtype=np.float32)
                 
                 # DEBUG: Check for signal
@@ -99,27 +110,30 @@ class AudioIO:
             samplerate=self.sample_rate,
             channels=self.channels,
             blocksize=self.frame_size,
+            latency='low',
             callback=audio_callback,
             device=self.input_device_index
         )
         self.input_stream.start()
 
     def start_output(self):
+        self.output_queue = Queue(maxsize=100)
         # Initialize buffer state
         self.current_chunk = None
         self.chunk_pos = 0
+        self.current_output_amplitude = 0.0  # Real-time amplitude from playing audio
         self._callback_count = 0
         
         def audio_callback(outdata, frames, time, status):
             if status:
-                print(status)
+                logging.warning(f"Audio callback status: {status}")
             
             try:
                 self._callback_count += 1
                 # Debug: Log occasionally
                 if self._callback_count % 100 == 0:
                     queue_size = self.output_queue.qsize()
-                    print(f"🔊 Callback #{self._callback_count}, Queue: {queue_size}, Chunk: {self.current_chunk is not None}")
+                    logging.debug(f"🔊 Callback #{self._callback_count}, Queue: {queue_size}, Chunk: {self.current_chunk is not None}")
                 
                 # Fill output buffer by piecing together chunks from queue
                 needed = frames
@@ -127,6 +141,20 @@ class AudioIO:
                 filled = 0
                 
                 while filled < needed:
+                    # Pre-buffering logic:
+                    # If we are starving (queue empty and no current chunk), wait until we have enough chunks
+                    # to avoid jittery playback.
+                    if self.current_chunk is None and self.output_queue.empty():
+                        # Queue is empty.
+                        break
+                    
+                    # STRICT PRE-BUFFERING:
+                    # If we are just starting or recovered from starvation, don't play until we have a buffer.
+                    # 3 chunks = 3 * 80ms = 240ms buffer.
+                    if self.current_chunk is None and self.output_queue.qsize() < 3:
+                         # Not enough data to guarantee smooth playback. Output silence.
+                         break
+
                     # Get or continue current chunk
                     if self.current_chunk is None:
                         try:
@@ -151,10 +179,17 @@ class AudioIO:
                 # Write to output
                 outdata[:] = output.reshape(-1, 1)
                 
+                # Calculate real-time amplitude from playing audio
+                if filled > 0:
+                    rms = np.sqrt(np.mean(output[:filled] ** 2))
+                    self.current_output_amplitude = float(rms)
+                else:
+                    self.current_output_amplitude = 0.0
+                
             except Exception as e:
-                print(f"Audio callback error: {e}")
+                logging.error(f"Audio callback error: {e}")
                 import traceback
-                traceback.print_exc()
+                logging.error(traceback.format_exc())
                 outdata.fill(0)
 
         # Pre-buffer: Wait for some data before starting stream
@@ -167,7 +202,8 @@ class AudioIO:
         self.output_stream = sd.OutputStream(
             samplerate=self.sample_rate,
             channels=self.channels,
-            blocksize=None, # Let PortAudio decide optimal blocksize
+            blocksize=self.frame_size, # Match Moshi frame size (1920) for stability
+            latency=0.1, # 100ms hardware latency
             callback=audio_callback
         )
         self.output_stream.start()
@@ -291,7 +327,7 @@ class HybridVAD:
                 self._silero_model = self._silero_model.to('cuda')
             self._silero_model.eval()
         except Exception as e:
-            print(f"Warning: Failed to load Silero VAD: {e}")
+            logger.debug(f"Failed to load Silero VAD: {e}")
             self._silero_model = "disabled"
 
     def _check_amplitude(self, audio: np.ndarray) -> bool:

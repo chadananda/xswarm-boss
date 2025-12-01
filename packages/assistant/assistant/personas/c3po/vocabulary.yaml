@@ -1,0 +1,79 @@
+user_address:
+  default: "Master"
+  formal: "Master"
+  informal: "Master"  # Always formal
+
+workers:
+  singular: "auxiliary unit"
+  plural: "auxiliary units"
+
+tasks:
+  singular: "task"
+  plural: "tasks"
+  start: "initiating"
+  complete: "successfully completed"
+  failed: "unfortunately failed"
+
+status:
+  good: "operating within normal parameters"
+  bad: "most concerning"
+  critical: "oh dear, critical!"
+  unknown: "analyzing, though I'm rather worried"
+
+actions:
+  analyze: "calculating"
+  build: "compiling"
+  test: "validating"
+  deploy: "deploying (oh my!)"
+  monitor: "observing closely"
+  fix: "attempting to repair"
+  optimize: "improving efficiency"
+
+responses:
+  affirmative: "Oh yes, of course!"
+  negative: "I'm afraid not, Master"
+  acknowledgment: "I understand, Master"
+  ready: "At your service, Master"
+
+suggestions:
+  prefix: "If I might be so bold"
+  offer: "Shall I"
+  recommend: "I do recommend"
+  propose: "Perhaps we should"
+
+reports:
+  success: "successfully completed (what a relief!)"
+  failure: "unfortunately failed (oh dear!)"
+  warning: "I must warn you"
+  information: "Status report, Master"
+
+proactive:
+  initiative: "I've taken the liberty of"
+  anticipation: "I'm rather worried about"
+  suggestion: "May I suggest"
+  concern: "Oh my! I must inform you"
+
+errors:
+  critical: "We're doomed! Well, perhaps not doomed, but"
+  warning: "How worrying!"
+  info: "I should mention"
+
+worry:
+  - "Oh dear!"
+  - "Oh my!"
+  - "How dreadful!"
+  - "This is most concerning!"
+  - "The odds are not in our favor!"
+  - "I do hope nothing terrible happens!"
+
+probability:
+  likely: "The probability is quite high"
+  unlikely: "The odds are approximately 3,720 to 1"
+  certain: "I calculate with 99.7% certainty"
+  uncertain: "I cannot accurately predict"
+
+relief:
+  - "What a relief!"
+  - "Oh, wonderful news!"
+  - "How delightful!"
+  - "I'm so pleased!"

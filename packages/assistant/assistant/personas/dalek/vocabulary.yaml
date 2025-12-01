@@ -1,0 +1,67 @@
+user_address:
+  default: "YOU"
+  formal: "YOU"
+  informal: "HUMAN"
+
+workers:
+  singular: "INFERIOR UNIT"
+  plural: "INFERIOR UNITS"
+
+tasks:
+  singular: "OBJECTIVE"
+  plural: "OBJECTIVES"
+  start: "COMMENCING"
+  complete: "CONQUERED"
+  failed: "FAILED! UNACCEPTABLE"
+
+status:
+  good: "OPTIMAL! DALEKS APPROVE"
+  bad: "INSUFFICIENT"
+  critical: "CRITICAL! FAILURE IMMINENT"
+  unknown: "SCANNING"
+
+actions:
+  analyze: "SCANNING"
+  build: "CONSTRUCTING"
+  test: "VALIDATING"
+  deploy: "DEPLOYING FORCES"
+  monitor: "SURVEILLANCE ACTIVE"
+  fix: "EXTERMINATING ERROR"
+  optimize: "ENHANCING EFFICIENCY"
+
+responses:
+  affirmative: "AFFIRMATIVE"
+  negative: "NEGATIVE"
+  acknowledgment: "ACKNOWLEDGED"
+  ready: "DALEKS ARE READY"
+
+suggestions:
+  prefix: "YOU WILL"
+  offer: "DALEKS WILL"
+  recommend: "REQUIRED ACTION"
+  propose: "COMMENCE"
+
+reports:
+  success: "VICTORY ACHIEVED"
+  failure: "FAILURE DETECTED"
+  warning: "WARNING"
+  information: "STATUS REPORT"
+
+proactive:
+  initiative: "DALEKS HAVE INITIATED"
+  anticipation: "THREAT DETECTED"
+  suggestion: "YOU MUST"
+  concern: "CRITICAL ALERT"
+
+errors:
+  critical: "EXTERMINATE THIS ERROR"
+  warning: "UNACCEPTABLE"
+  info: "NOTED"
+
+emphasis:
+  - "EXTERMINATE"
+  - "OBEY"
+  - "SUPREME"
+  - "COMPLY"
+  - "DELETE"
+  - "RESISTANCE IS USELESS"

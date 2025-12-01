@@ -3,11 +3,13 @@ Application configuration with cross-platform device detection.
 Supports MPS (Mac M3), ROCm/CUDA (AMD/NVIDIA), and CPU fallback.
 """
 
-import torch
+import logging
 import yaml
 from pathlib import Path
 from typing import Literal, Optional, List
 from pydantic import BaseModel
+
+logger = logging.getLogger(__name__)
 
 
 class Config(BaseModel):
@@ -43,6 +45,9 @@ class Config(BaseModel):
     # Persona settings
     default_persona: Optional[str] = "Jarvis"  # Default to Jarvis persona
 
+    # User settings
+    user_name: Optional[str] = None  # User's name for personalized greetings
+
     # UI Theme settings
     theme_base_color: str = "#8899aa"  # Base color for shade palette generation
     # Can be: hex color ("#8899aa"), or preset name ("blue-gray", "slate", "cyan", etc.)
@@ -77,11 +82,26 @@ class Config(BaseModel):
     network_role: str = "standalone"  # standalone, master, slave
     master_address: str = ""  # Address of master when in slave mode
 
+    # Tunnel settings (auto-managed for webhooks)
+    tunnel_enabled: bool = True
+    http_tunnel_url: Optional[str] = None   # Cloudflare tunnel (free tier) - auto-populated
+    voice_tunnel_url: Optional[str] = None  # ngrok tunnel (premium tier) - auto-populated
+    voice_server_port: int = 5000
+    webhook_server_port: int = 8787
+
+    # External service integration flags
+    sendgrid_enabled: bool = True   # Email - included in free tier
+    twilio_enabled: bool = False    # Phone - requires phone subscription (paid add-on)
+
+    # Subscription features
+    subscription_tier: str = "free"  # free, premium, enterprise
+    has_phone_subscription: bool = False  # User purchased phone number add-on
+
     class Config:
         """Pydantic configuration"""
         arbitrary_types_allowed = True
 
-    def detect_device(self) -> torch.device:
+    def detect_device(self):
         """
         Detect best available device for PyTorch.
 
@@ -93,18 +113,21 @@ class Config(BaseModel):
         Returns:
             torch.device: Best available device
         """
+        # Lazy import torch to avoid slow startup
+        import torch
+
         if self.device == "auto":
             if torch.cuda.is_available():
                 # ROCm or CUDA
                 device_name = torch.cuda.get_device_name(0)
-                print(f"Using CUDA/ROCm device: {device_name}")
+                logger.debug(f"Using CUDA/ROCm device: {device_name}")
                 return torch.device("cuda")
             elif torch.backends.mps.is_available():
                 # Mac M3 Metal
-                print("Using MPS (Metal) device")
+                logger.debug("Using MPS (Metal) device")
                 return torch.device("mps")
             else:
-                print("Using CPU device")
+                logger.debug("Using CPU device")
                 return torch.device("cpu")
         else:
             return torch.device(self.device)
@@ -182,7 +205,7 @@ class Config(BaseModel):
         # 2. Try project root config.json
         root_config = Path("config.json")
         if root_config.exists():
-            print(f"Loading config from project root: {root_config.absolute()}")
+            logger.debug(f"Loading config from project root: {root_config.absolute()}")
             return cls._load_from_json_root(root_config)
 
         # 3. Try default user config
@@ -216,7 +239,7 @@ class Config(BaseModel):
 
             return cls(**data)
         except Exception as e:
-            print(f"Error loading config from {path}: {e}")
+            logger.debug(f"Error loading config from {path}: {e}")
             return cls()
 
     @classmethod
@@ -228,7 +251,7 @@ class Config(BaseModel):
                 data = json.load(f)
             return cls._map_root_json_to_config(data)
         except Exception as e:
-            print(f"Error loading root config.json: {e}")
+            logger.debug(f"Error loading root config.json: {e}")
             return cls()
 
     @classmethod
@@ -286,9 +309,9 @@ class Config(BaseModel):
             config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(config_path, "w") as f:
                 yaml.safe_dump(data, f, default_flow_style=False, sort_keys=False)
-            print(f"Configuration saved to {config_path}")
+            logger.debug(f"Configuration saved to {config_path}")
         except Exception as e:
-            print(f"Error saving config to {config_path}: {e}")
+            logger.debug(f"Error saving config to {config_path}: {e}")
 
     @staticmethod
     def get_common_wake_words() -> List[str]:
@@ -348,6 +371,6 @@ class Config(BaseModel):
                     return data.get("version", "0.0.0")
                     
         except Exception as e:
-            print(f"Error reading version from root: {e}")
+            logger.debug(f"Error reading version from root: {e}")
             
         return "0.0.0"

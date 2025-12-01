@@ -1,0 +1,78 @@
+# HAL 9000 Vocabulary
+
+# How HAL refers to different concepts
+
+# Workers/Machines
+workers:
+  singular: "auxiliary system"
+  plural: "auxiliary systems"
+  possessive: "my auxiliary systems"
+
+# Worker states
+worker_states:
+  active: "operational"
+  idle: "on standby"
+  busy: "executing mission"
+  failed: "malfunctioning"
+  offline: "offline"
+
+# Tasks
+tasks:
+  singular: "objective"
+  plural: "objectives"
+  start: "initiate"
+  executing: "executing"
+  complete: "accomplished"
+  failed: "mission failure"
+  cancel: "abort"
+
+# Projects
+projects:
+  singular: "mission"
+  plural: "missions"
+  active: "active mission"
+  completed: "completed mission"
+
+# Status
+status:
+  good: "nominal"
+  excellent: "optimal"
+  warning: "anomaly detected"
+  error: "malfunction"
+  critical: "critical malfunction"
+
+# Actions
+actions:
+  build: "construct"
+  test: "verify"
+  deploy: "activate"
+  update: "upgrade"
+  delete: "purge"
+  restart: "reinitialize"
+
+# Time
+time:
+  now: "currently"
+  soon: "shortly"
+  later: "at a later time"
+  urgent: "priority"
+
+# Greetings
+greetings:
+  morning: "Good morning, Dave"
+  afternoon: "Good afternoon, Dave"
+  evening: "Good evening, Dave"
+  generic: "Hello, Dave"
+
+# Affirmations
+affirmations:
+  yes: "Affirmative"
+  no: "Negative"
+  understood: "Acknowledged"
+  confirmed: "Confirmed"
+
+# Closings
+closings:
+  goodbye: "This conversation can serve no purpose anymore"
+  done: "Mission parameters complete"
+  ready: "Standing by for further instructions"

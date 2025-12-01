@@ -9,6 +9,7 @@ import json
 import time
 import base64
 import audioop
+import logging
 import websockets
 import numpy as np
 from scipy import signal
@@ -17,6 +18,8 @@ from pathlib import Path
 from datetime import datetime
 import toml
 from twilio.rest import Client
+
+logger = logging.getLogger(__name__)
 from .personas.config import PersonaConfig
 from .personas.manager import PersonaManager
 from .memory import MemoryManager
@@ -150,12 +153,12 @@ class OutboundCaller:
 
         if not self.account_sid or not self.auth_token:
             # Log warning instead of raising error to allow app to start without Twilio
-            print("WARNING: Twilio credentials not found. Phone functionality disabled.")
+            logger.warning("Twilio credentials not found. Phone functionality disabled.")
             self.client = None
             return
 
         if not self.from_number:
-             print("WARNING: Twilio phone number not found. Phone functionality disabled.")
+             logger.warning("Twilio phone number not found. Phone functionality disabled.")
              self.client = None
              return
 
@@ -389,7 +392,7 @@ class TwilioVoiceBridge:
 
     async def initialize(self):
         """Initialize bridge (Moshi should already be pre-loaded)."""
-        print(f"[TwilioVoiceBridge] Initializing for call {self.call_sid}")
+        logger.debug(f"[TwilioVoiceBridge] Initializing for call {self.call_sid}")
 
         # Moshi should be pre-loaded, just create LM generator
         if self.moshi is None:
@@ -397,7 +400,7 @@ class TwilioVoiceBridge:
 
         # Create persistent LM generator for streaming
         self.lm_gen = self.moshi.create_lm_generator(max_steps=500)
-        print(f"[TwilioVoiceBridge] LM generator created (using pre-loaded Moshi)")
+        logger.debug(f"[TwilioVoiceBridge] LM generator created (using pre-loaded Moshi)")
 
         # Initialize memory for this user (use phone number as user_id)
         user_id = self.from_number.replace("+", "")
@@ -417,13 +420,13 @@ class TwilioVoiceBridge:
         """
         # Convert Twilio audio to Moshi format
         pcm_24k = mulaw_to_pcm24k(mulaw_base64)
-        print(f"[TwilioVoiceBridge] Received {len(pcm_24k)} PCM samples")
+        logger.debug(f"[TwilioVoiceBridge] Received {len(pcm_24k)} PCM samples")
 
         # Add to buffer
         self._input_buffer.append(pcm_24k)
         # Calculate total buffered samples
         total_samples = sum(len(chunk) for chunk in self._input_buffer)
-        print(f"[TwilioVoiceBridge] Buffer has {total_samples} samples (need {self._frame_size})")
+        logger.debug(f"[TwilioVoiceBridge] Buffer has {total_samples} samples (need {self._frame_size})")
 
         # Not enough for a frame yet
         if total_samples < self._frame_size:
@@ -431,25 +434,25 @@ class TwilioVoiceBridge:
 
         # Extract exactly one frame (80ms = 1920 samples)
         frame = self._concatenate_buffer(self._frame_size)
-        print(f"[TwilioVoiceBridge] Processing frame of {len(frame)} samples")
+        logger.debug(f"[TwilioVoiceBridge] Processing frame of {len(frame)} samples")
 
         # Process frame through Moshi (streaming!)
         response_audio, text_piece = self.moshi.step_frame(self.lm_gen, frame)
 
         # If Moshi generated audio, convert and return
         if response_audio is not None and len(response_audio) > 0:
-            print(f"[TwilioVoiceBridge] Moshi generated {len(response_audio)} samples")
+            logger.debug(f"[TwilioVoiceBridge] Moshi generated {len(response_audio)} samples")
             # Track text for transcript (optional, for logging)
             if text_piece:
-                print(f"[TwilioVoiceBridge] Moshi text: '{text_piece}'")
+                logger.debug(f"[TwilioVoiceBridge] Moshi text: '{text_piece}'")
                 # Accumulate text (could be used for real-time transcript)
                 pass
             # Convert to mulaw and return immediately
             mulaw_response = pcm24k_to_mulaw(response_audio)
-            print(f"[TwilioVoiceBridge] Sending {len(mulaw_response)} bytes back to Twilio")
+            logger.debug(f"[TwilioVoiceBridge] Sending {len(mulaw_response)} bytes back to Twilio")
             return mulaw_response
         else:
-            print(f"[TwilioVoiceBridge] Moshi returned no audio (still listening)")
+            logger.debug(f"[TwilioVoiceBridge] Moshi returned no audio (still listening)")
         return None
 
     def _concatenate_buffer(self, num_samples: int) -> np.ndarray:
@@ -493,7 +496,7 @@ class TwilioVoiceBridge:
             num_frames=25  # ~2 seconds
         )
         # Log greeting
-        print(f"[TwilioVoiceBridge] Greeting: {greeting_text}")
+        logger.debug(f"[TwilioVoiceBridge] Greeting: {greeting_text}")
         # Store in transcript
         self._call_transcript.append({
             "role": "assistant",
@@ -513,7 +516,7 @@ class TwilioVoiceBridge:
 
     async def cleanup(self):
         """Cleanup resources when call ends."""
-        print(f"[TwilioVoiceBridge] Cleanup for call {self.call_sid}")
+        logger.debug(f"[TwilioVoiceBridge] Cleanup for call {self.call_sid}")
 
         # Save final transcript to memory
         if len(self._call_transcript) > 0:
@@ -524,7 +527,7 @@ class TwilioVoiceBridge:
                     messages=self._call_transcript
                 )
             except Exception as e:
-                print(f"[TwilioVoiceBridge] Error saving transcript: {e}")
+                logger.error(f"[TwilioVoiceBridge] Error saving transcript: {e}")
 
         self._input_buffer = []
         self._call_transcript = []
@@ -576,10 +579,10 @@ class MediaStreamsServer:
 
     async def start(self):
         """Start WebSocket server."""
-        print(f"🎙️  Twilio Media Streams server starting on ws://{self.host}:{self.port}")
+        logger.info(f"Twilio Media Streams server starting on ws://{self.host}:{self.port}")
 
         async with websockets.serve(self.handle_connection, self.host, self.port):
-            print(f"✅ Server ready - waiting for connections...")
+            logger.info(f"Server ready - waiting for connections...")
             await asyncio.Future()  # Run forever
 
     async def handle_connection(self, websocket):
@@ -588,7 +591,7 @@ class MediaStreamsServer:
         call_sid = None
         bridge = None
 
-        print(f"[MediaStreams] New connection from {websocket.remote_address}")
+        logger.debug(f"[MediaStreams] New connection from {websocket.remote_address}")
 
         try:
             async for message in websocket:
@@ -600,13 +603,13 @@ class MediaStreamsServer:
                         # Initialize call session
                         stream_sid, call_sid, bridge = await self._handle_start(data, websocket)
                         # Send greeting to test audio playback
-                        print("[MediaStreams] Generating greeting...")
+                        logger.debug("[MediaStreams] Generating greeting...")
                         greeting_audio = await bridge.generate_and_send_greeting()
                         if greeting_audio:
-                            print(f"[MediaStreams] Sending greeting audio ({len(greeting_audio)} bytes)")
+                            logger.debug(f"[MediaStreams] Sending greeting audio ({len(greeting_audio)} bytes)")
                             await self.send_audio(websocket, stream_sid, greeting_audio)
                         else:
-                            print("[MediaStreams] No greeting audio generated")
+                            logger.debug("[MediaStreams] No greeting audio generated")
 
                     elif event == "media":
                         # Process audio chunk
@@ -627,10 +630,10 @@ class MediaStreamsServer:
                         pass
 
                 except json.JSONDecodeError:
-                    print(f"[MediaStreams] Invalid JSON: {message[:100]}")
+                    logger.warning(f"[MediaStreams] Invalid JSON: {message[:100]}")
 
         except websockets.exceptions.ConnectionClosed:
-            print(f"[MediaStreams] Connection closed for stream {stream_sid}")
+            logger.debug(f"[MediaStreams] Connection closed for stream {stream_sid}")
 
         finally:
             # Cleanup on disconnect
@@ -651,10 +654,10 @@ class MediaStreamsServer:
         from_number = start_data.get("customParameters", {}).get("From") or start_data.get("from")
         to_number = start_data.get("customParameters", {}).get("To") or start_data.get("to")
 
-        print(f"[MediaStreams] Call started: {call_sid}")
-        print(f"              From: {from_number}")
-        print(f"              To: {to_number}")
-        print(f"              Stream: {stream_sid}")
+        logger.info(f"[MediaStreams] Call started: {call_sid}")
+        logger.debug(f"              From: {from_number}")
+        logger.debug(f"              To: {to_number}")
+        logger.debug(f"              Stream: {stream_sid}")
 
         # Create bridge for this call
         if self.bridge_factory:
@@ -688,11 +691,11 @@ class MediaStreamsServer:
         stop_data = data.get("stop", {})
         call_sid = stop_data.get("callSid")
 
-        print(f"[MediaStreams] Call ended: {call_sid}")
+        logger.info(f"[MediaStreams] Call ended: {call_sid}")
 
         if bridge:
             transcript = bridge.get_transcript()
-            print(f"[MediaStreams] Transcript: {len(transcript)} messages")
+            logger.debug(f"[MediaStreams] Transcript: {len(transcript)} messages")
 
     async def send_audio(self, websocket, stream_sid: str, audio_payload: str):
         """Send audio back to Twilio."""
@@ -707,7 +710,7 @@ class MediaStreamsServer:
         try:
             await websocket.send(json.dumps(message))
         except Exception as e:
-            print(f"[MediaStreams] Error sending audio: {e}")
+            logger.error(f"[MediaStreams] Error sending audio: {e}")
 
     async def send_mark(self, websocket, stream_sid: str, name: str):
         """Send mark event to Twilio (for playback tracking)."""
@@ -722,7 +725,7 @@ class MediaStreamsServer:
         try:
             await websocket.send(json.dumps(message))
         except Exception as e:
-            print(f"[MediaStreams] Error sending mark: {e}")
+            logger.error(f"[MediaStreams] Error sending mark: {e}")
 
     def get_active_calls(self) -> list:
         """Get list of active call SIDs."""

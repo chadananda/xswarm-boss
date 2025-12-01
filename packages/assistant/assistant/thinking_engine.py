@@ -11,12 +11,15 @@ This is the "brain" that gives Moshi access to external capabilities.
 """
 
 import asyncio
+import logging
 import os
 from typing import Optional, Dict, Any, List
 from anthropic import AsyncAnthropic
 
 from .tools import ToolRegistry, Tool, ToolParameter, send_email_tool, make_call_tool
 from .memory import MemoryManager
+
+logger = logging.getLogger(__name__)
 
 
 class ThinkingEngine:
@@ -118,12 +121,12 @@ class ThinkingEngine:
     async def start(self):
         """Start the thinking engine background loop."""
         if not self.claude:
-            print("WARNING: No ANTHROPIC_API_KEY - thinking engine disabled")
+            logger.debug("No ANTHROPIC_API_KEY - thinking engine disabled")
             return
 
         self.running = True
         asyncio.create_task(self._monitor_loop())
-        print("Thinking engine started")
+        logger.debug("Thinking engine started")
 
     async def stop(self):
         """Stop the thinking engine."""
@@ -205,7 +208,7 @@ class ThinkingEngine:
                 await self._execute_decision(decision)
                 
         except Exception as e:
-            print(f"Error in scheduled task {task_name}: {e}")
+            logger.debug(f"Error in scheduled task {task_name}: {e}")
 
     async def _monitor_loop(self):
         """Background loop that polls Moshi output."""

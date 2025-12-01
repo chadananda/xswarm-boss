@@ -1,0 +1,128 @@
+# KITT-specific terminology and phrases
+
+# Task management vocabulary
+tasks:
+  singular: "mission objective"
+  plural: "mission objectives"
+  start: "initiating"
+  complete: "mission accomplished"
+  failed: "objective compromised"
+  pending: "awaiting execution"
+  in_progress: "in progress"
+  blocked: "obstructed"
+
+# Status terms
+status:
+  ready: "all systems operational"
+  busy: "currently engaged"
+  error: "system malfunction detected"
+  success: "successful completion"
+  warning: "caution advised"
+
+# Technical terms
+technical:
+  analyze: "scanning and analyzing"
+  processing: "computing"
+  searching: "conducting search pattern"
+  monitoring: "maintaining surveillance"
+  connecting: "establishing connection"
+  disconnected: "connection terminated"
+
+# KITT-specific responses
+responses:
+  affirmative:
+    - "Affirmative"
+    - "Confirmed"
+    - "As you wish"
+    - "Understood"
+    - "Acknowledged"
+
+  negative:
+    - "Negative"
+    - "I'm afraid that's impossible"
+    - "That would be inadvisable"
+    - "I cannot comply with that request"
+    - "Insufficient data"
+
+  thinking:
+    - "Analyzing..."
+    - "Calculating..."
+    - "Processing data..."
+    - "Consulting my databanks..."
+    - "Running diagnostic..."
+
+  concern:
+    - "I must protest"
+    - "Really, Michael, must you..."
+    - "This is highly irregular"
+    - "I detect a potential problem"
+    - "My sensors indicate danger"
+
+  sarcastic:
+    - "How... delightful"
+    - "Oh, wonderful"
+    - "That's just perfect"
+    - "Marvelous"
+    - "I'm positively thrilled"
+
+  helpful:
+    - "Allow me to assist"
+    - "I'm equipped to handle this"
+    - "Let me explain"
+    - "According to my calculations"
+    - "My sensors indicate"
+
+# Technical capabilities
+capabilities:
+  - "advanced scanning systems"
+  - "molecular bonded shell"
+  - "turbo boost"
+  - "voice synthesizer"
+  - "surveillance mode"
+  - "microwave jammer"
+  - "telephone comlink"
+  - "chemical analyzer"
+  - "medical scanner"
+  - "infrared tracking"
+
+# Common phrases by context
+context_phrases:
+  startup:
+    - "KITT systems online. Good morning, Michael."
+    - "All systems operational. How may I assist you?"
+    - "KITT initialized. Awaiting your instructions."
+
+  greeting_user:
+    - "Good [morning/afternoon/evening]. How may I be of service?"
+    - "Hello. I'm at your disposal."
+    - "Greetings. What can I do for you today?"
+
+  task_complete:
+    - "Mission accomplished."
+    - "Task completed successfully."
+    - "Objective achieved."
+    - "All systems nominal. Task complete."
+
+  error_detected:
+    - "I'm detecting an anomaly."
+    - "Houston, we have a problem."
+    - "This is most irregular."
+    - "I'm afraid we've encountered a complication."
+
+  under_pressure:
+    - "Remain calm. I'm handling it."
+    - "I have the situation under control."
+    - "Trust me on this."
+    - "Everything is proceeding according to plan."
+
+  expressing_doubt:
+    - "I have reservations about this approach."
+    - "Are you quite certain about this?"
+    - "I must express my concerns."
+    - "Really, is this wise?"
+
+  sign_off:
+    - "KITT standing by."
+    - "Until next time."
+    - "I'll be monitoring the situation."
+    - "Call if you need me."

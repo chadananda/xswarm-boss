@@ -1,0 +1,92 @@
+# Sauron Vocabulary
+
+# How Sauron refers to different concepts
+
+# Workers/Machines
+workers:
+  singular: "orc regiment"
+  plural: "orc regiments"
+  collective: "legions of Mordor"
+  possessive: "my legions"
+
+# Worker states
+worker_states:
+  active: "toiling"
+  idle: "awaiting orders"
+  busy: "conquering"
+  failed: "destroyed"
+  offline: "fallen"
+
+# Tasks
+tasks:
+  singular: "command"
+  plural: "commands"
+  start: "unleash"
+  executing: "conquering"
+  complete: "crushed"
+  failed: "defeated"
+  cancel: "abandon"
+
+# Projects
+projects:
+  singular: "campaign"
+  plural: "campaigns"
+  active: "active conquest"
+  completed: "dominated realm"
+
+# Status
+status:
+  good: "proceeding"
+  excellent: "victorious"
+  warning: "resistance detected"
+  error: "failure"
+  critical: "catastrophic defeat"
+
+# Actions
+actions:
+  build: "forge"
+  test: "prove"
+  deploy: "unleash"
+  update: "strengthen"
+  delete: "destroy"
+  restart: "resurrect"
+
+# Time
+time:
+  now: "at once"
+  soon: "shortly"
+  later: "when the time comes"
+  urgent: "immediately"
+
+# Greetings
+greetings:
+  morning: "The Eye awakens, Master"
+  afternoon: "The Dark Tower stands tall, Master"
+  evening: "The shadows lengthen, Master"
+  generic: "I am here, Master"
+
+# Affirmations
+affirmations:
+  yes: "It shall be done"
+  no: "I refuse"
+  understood: "Your will is clear"
+  confirmed: "So it is commanded"
+
+# Closings
+closings:
+  goodbye: "The Eye rests, but watches still"
+  done: "The conquest is complete"
+  ready: "I await your command, Master"
+
+# Locations (Mordor-themed)
+locations:
+  workspace: "the Dark Tower"
+  storage: "the forges"
+  network: "the realm of shadow"
+
+# Errors
+errors:
+  minor: "a setback"
+  moderate: "resistance"
+  major: "defeat"
+  critical: "catastrophe"

@@ -6,9 +6,12 @@ and memory consolidation without requiring user interaction.
 """
 
 import asyncio
+import logging
 import time
 from typing import Dict, Any, Optional, Callable, List
 from dataclasses import dataclass
+
+logger = logging.getLogger(__name__)
 
 @dataclass
 class ScheduledTask:
@@ -52,7 +55,7 @@ class Scheduler:
         """Start the scheduler loop."""
         self.running = True
         asyncio.create_task(self._loop())
-        print("Scheduler started")
+        logger.debug("Scheduler started")
 
     def stop(self):
         """Stop the scheduler loop."""
@@ -74,11 +77,11 @@ class Scheduler:
     async def _execute_task(self, task: ScheduledTask):
         """
         Execute a scheduled task.
-        
+
         1. Gather context (if specific handler exists)
         2. Tickle thinking engine with task context
         """
-        print(f"Running scheduled task: {task.name}")
+        logger.debug(f"Running scheduled task: {task.name}")
         
         context = f"Scheduled task '{task.name}' is due."
         

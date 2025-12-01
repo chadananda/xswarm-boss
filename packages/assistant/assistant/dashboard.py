@@ -19,6 +19,7 @@ from textual.widgets import Static, Label, Button, RadioButton, RadioSet, Input,
 from textual.screen import Screen
 from textual.reactive import reactive
 from textual.binding import Binding
+from textual.events import MouseScrollDown, MouseScrollUp
 import pyperclip
 from rich.text import Text
 from typing import Optional, List, Any, cast
@@ -36,14 +37,17 @@ from .dashboard_widgets import (
     WorkerDashboard,
     ScheduleWidget,
     ProjectDashboard,
-    ChatHistory
+    ChatHistory,
+    ExpandableInput
 )
 
 from .config import Config
 from .personas.manager import PersonaManager
 from .voice import VoiceBridgeOrchestrator, ConversationState
-from .memory import MemoryManager
+from .memory import MemoryManager, PersistentChatHistory
 from .thinking import DeepThinkingEngine
+from .chat_engine import ChatEngine, ChatEngineConfig
+from .auth import AnthropicAuth
 
 
 # ==============================================================================
@@ -145,6 +149,26 @@ def get_theme_preset(name: str) -> ColorPalette:
 # ==============================================================================
 # SCREENS (Consolidated from screens/*.py)
 # ==============================================================================
+
+class NoScrollContainer(Horizontal):
+    """Container that blocks scroll events to prevent TUI from scrolling away."""
+
+    @property
+    def allow_vertical_scroll(self) -> bool:
+        return False
+
+    @property
+    def allow_horizontal_scroll(self) -> bool:
+        return False
+
+    def on_mouse_scroll_down(self, event: MouseScrollDown) -> None:
+        event.stop()
+        event.prevent_default()
+
+    def on_mouse_scroll_up(self, event: MouseScrollUp) -> None:
+        event.stop()
+        event.prevent_default()
+
 
 class SettingsScreen(Screen):
     """Interactive settings configuration screen."""
@@ -701,6 +725,20 @@ class VoiceAssistantApp(App):
 
     CSS_PATH = "styles.tcss"
 
+    # Disable scroll on the entire app
+    SCROLL_SENSITIVITY_X = 0.0
+    SCROLL_SENSITIVITY_Y = 0.0
+
+    @property
+    def allow_vertical_scroll(self) -> bool:
+        """Disable vertical scrolling on the app."""
+        return False
+
+    @property
+    def allow_horizontal_scroll(self) -> bool:
+        """Disable horizontal scrolling on the app."""
+        return False
+
     def __init__(self, config: Config, personas_dir: Path, voice_server_process=None, voice_queues=None):
         super().__init__()
         self.config = config
@@ -715,8 +753,9 @@ class VoiceAssistantApp(App):
         self.moshi_client: Optional[object] = None  # Deprecated: kept for backwards compatibility
         self.audio_io: Optional[object] = None
         self.audio_buffer = []  # Buffer for capturing audio during listening
-        self.chat_history = []  # Store chat messages (user + assistant)
+        self.chat_history = []  # Store chat messages (user + assistant) - legacy list
         self.memory_manager: Optional[MemoryManager] = None  # Memory manager for persistence
+        self.persistent_chat_history: Optional[PersistentChatHistory] = None  # New file-based persistence
         self.user_id = "local-user"  # Default user ID
         self.thinking_engine: Optional[DeepThinkingEngine] = None  # Thinking engine for tool/memory decisions
         # Voice bridge orchestrator (initialized later)
@@ -773,6 +812,12 @@ class VoiceAssistantApp(App):
                             "tab-projects", "tab-schedule", "tab-workers"]
         self._focused_nav_index = 0  # Track which nav button has keyboard focus
 
+        # Chat engine for text-based AI conversations (fallback when voice is disabled)
+        self.chat_engine: Optional[ChatEngine] = None
+        self._chat_engine_initialized = False
+        self._initial_welcome_shown = False
+        self._ui_fully_initialized = False  # Set True after initial persona selector setup
+
     def _load_theme(self, theme_input: str):
         """
         Load theme palette from config.
@@ -790,13 +835,14 @@ class VoiceAssistantApp(App):
         # Otherwise treat as hex color
         return generate_palette(theme_input)
     
-    def switch_persona(self, persona_name: str) -> bool:
+    def switch_persona(self, persona_name: str, silent: bool = False) -> bool:
         """
         Centralized persona switching - handles theme, visualizer, and voice updates.
-        
+
         Args:
             persona_name: Name of persona to switch to
-            
+            silent: If True, don't show "Switched persona" message in chat
+
         Returns:
             True if switch successful, False otherwise
         """
@@ -837,13 +883,14 @@ class VoiceAssistantApp(App):
         if self.voice_orchestrator:
             asyncio.create_task(self.voice_orchestrator.set_persona(persona_name))
             
-        # Log to chat history
-        try:
-            chat_history = self.query_one("#chat-history-widget", ChatHistory)
-            chat_history.add_message("System", f"🎭 Switched persona to: {persona.name}")
-        except Exception:
-            pass
-            
+        # Log to chat history (unless silent mode for initial setup)
+        if not silent:
+            try:
+                chat_history = self.query_one("#chat-history-widget", ChatHistory)
+                chat_history.add_message("System", f"🎭 Switched persona to: {persona.name}")
+            except Exception:
+                pass
+
         return True
 
     def update_activity(self, message: str, msg_type: str = "info") -> None:
@@ -876,8 +923,8 @@ class VoiceAssistantApp(App):
                 
     def compose(self) -> ComposeResult:
         """Compose the dashboard layout: left column (visualizer + tabs) + right column (content) + footer at bottom"""
-        # Main content area with two columns
-        with Horizontal(id="main-layout"):
+        # Main content area with two columns - use NoScrollContainer to block scroll events
+        with NoScrollContainer(id="main-layout"):
             # LEFT COLUMN - Visualizer (top) + Tabs (bottom)
             with Vertical(id="left-column"):
                 # Voice visualizer - always show, but animation controlled by voice_enabled
@@ -1156,7 +1203,7 @@ class VoiceAssistantApp(App):
                 with Container(id="content-chat", classes="content-pane"):
                     yield Static("[dim]💬[/dim] Chat", classes="pane-header")
                     yield ChatHistory(id="chat-history-widget")
-                    yield Input(placeholder="Type a message...", id="chat-input")
+                    yield ExpandableInput(placeholder="Type a message... (Shift+Enter for newline)", id="chat-input")
 
                 # Projects content
                 with Container(id="content-projects", classes="content-pane"):
@@ -1215,11 +1262,9 @@ class VoiceAssistantApp(App):
             f.write("DEBUG: on_mount() - before initialize_memory()\n")
             f.flush()
         asyncio.create_task(self.initialize_memory())
-        # Add dummy chat messages
-        with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write("DEBUG: on_mount() - before add_dummy_chat_messages()\n")
-            f.flush()
-        self.add_dummy_chat_messages()
+
+        # Initialize chat engine in background so first message is instant
+        asyncio.create_task(self._init_chat_engine_background())
         # Initialize Moshi models in background with proper async loading
         # This uses threading + async polling to keep TUI responsive
         with open("/tmp/xswarm_debug.log", "a") as f:
@@ -1235,6 +1280,38 @@ class VoiceAssistantApp(App):
         
         # Manually trigger tab highlighting on startup
         self.watch_active_tab(self.active_tab)
+
+        # Focus chat input on startup (use call_later to ensure widgets are ready)
+        self.call_later(self._focus_chat_input)
+
+        # Show immediate welcome message with persona name (before chat engine loads)
+        self.call_later(self._show_initial_welcome)
+
+    def _focus_chat_input(self) -> None:
+        """Focus the chat input widget. Called on startup and when switching to chat pane."""
+        try:
+            # Only focus if we're on the chat tab
+            if self.active_tab == "chat":
+                chat_input = self.query_one("#chat-input", ExpandableInput)
+                chat_input.focus()
+        except Exception:
+            pass  # Widget not ready yet
+
+    def _show_initial_welcome(self) -> None:
+        """Show placeholder message while AI generates the real welcome."""
+        try:
+            chat_widget = self.query_one("#chat-history-widget", ChatHistory)
+            persona = self.persona_manager.get_current_persona()
+            persona_name = persona.name if persona else "Assistant"
+
+            # Show thinking indicator - will be replaced by AI-generated welcome
+            chat_widget.add_message(persona_name, "...")
+
+            # Mark that we showed the initial welcome placeholder
+            self._initial_welcome_shown = True
+        except Exception as e:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: Could not show initial welcome: {e}\n")
 
     async def _complete_voice_initialization(self):
         """Complete voice initialization: load models then initialize audio"""
@@ -1315,10 +1392,14 @@ class VoiceAssistantApp(App):
             options = [(p.name, p.name) for p in themed_personas]
             # Set options on Select widget
             persona_select.set_options(options)
-            # Set current value to active persona
+            # Set current value to active persona - mark as initializing to suppress switch message
+            self._setting_initial_persona = True
             current_persona = self.persona_manager.get_current_persona()
             if current_persona:
                 persona_select.value = current_persona.name
+            self._setting_initial_persona = False
+            # Mark UI as fully initialized (after this, persona changes should show messages)
+            self._ui_fully_initialized = True
             # Log how many personas we loaded
             self.update_activity(f"Loaded {len(themed_personas)} personas")
         except Exception as e:
@@ -1377,6 +1458,16 @@ class VoiceAssistantApp(App):
             self.handle_oauth_button(button_id, event.button)
         elif button_id == "btn-copy-logs":
             self.action_copy_logs()
+
+    def on_mouse_scroll_down(self, event: MouseScrollDown) -> None:
+        """Block mouse scroll down from scrolling the entire screen."""
+        event.stop()
+        event.prevent_default()
+
+    def on_mouse_scroll_up(self, event: MouseScrollUp) -> None:
+        """Block mouse scroll up from scrolling the entire screen."""
+        event.stop()
+        event.prevent_default()
 
     def _switch_to_tab(self, button_id: str) -> None:
         """Helper method to switch to a given tab based on its button ID."""
@@ -1564,6 +1655,11 @@ class VoiceAssistantApp(App):
                 active_pane.add_class("active-pane")
             except Exception:
                 pass  # Pane not found
+
+            # Auto-focus chat input when switching to chat tab
+            # (user requested: "input should always be selected when on chat pane")
+            if new_tab == "chat":
+                self.call_later(self._focus_chat_input)
         except Exception:
             pass  # Widgets not ready yet
 
@@ -1575,7 +1671,9 @@ class VoiceAssistantApp(App):
             # Handle persona selection change
             selected_persona_name = str(event.value) if event.value else None
             if selected_persona_name:
-                self.switch_persona(selected_persona_name)
+                # Don't show switch message during initial setup
+                silent = getattr(self, '_setting_initial_persona', False)
+                self.switch_persona(selected_persona_name, silent=silent)
 
         elif select_id == "ai-provider":
             # Update model options and auth options based on provider
@@ -1650,18 +1748,38 @@ class VoiceAssistantApp(App):
     def on_unmount(self) -> None:
         """Cleanup on exit - IMMEDIATE shutdown, no waiting"""
         try:
-            # STEP 1: Signal threads to stop (but don't wait)
+            # STEP 1: End chat session to save history
+            if hasattr(self, 'chat_engine') and self.chat_engine:
+                try:
+                    self.chat_engine.end_session()
+                except:
+                    pass
+
+            # STEP 2: Signal threads to stop (but don't wait)
             if hasattr(self, '_processing_thread_stop'):
                 self._processing_thread_stop.set()
 
-            # STEP 2: Stop audio I/O immediately
+            # STEP 3: Stop audio I/O immediately
             if hasattr(self, 'audio_io') and self.audio_io:
                 try:
                     self.audio_io.stop()
                 except:
                     pass
 
-            # STEP 3: DON'T wait for threads - let OS clean up
+            # STEP 4: Stop voice components
+            if hasattr(self, 'voice_orchestrator') and self.voice_orchestrator:
+                try:
+                    self.voice_orchestrator.stop()
+                except:
+                    pass
+
+            if hasattr(self, 'voice_server_process') and self.voice_server_process:
+                try:
+                    self.voice_server_process.terminate()
+                except:
+                    pass
+
+            # DON'T wait for threads - let OS clean up
             # The threads will die when the process exits
 
         except (KeyboardInterrupt, SystemExit):
@@ -1817,34 +1935,295 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
-    async def on_input_submitted(self, event: Input.Submitted) -> None:
-        """Handle chat input submission"""
-        with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write(f"DEBUG: on_input_submitted triggered. ID={event.input.id} Value='{event.value}'\n")
-            
+    def on_expandable_input_submitted(self, event: ExpandableInput.Submitted) -> None:
+        """Handle chat input submission - fully synchronous for instant response"""
         if event.input.id == "chat-input":
             text = event.value
             if not text.strip():
                 return
-            
-            event.input.value = ""
-            
-            # Add user message to chat
+
+            # Add user message IMMEDIATELY (fully synchronous)
             try:
-                chat_history = self.query_one("#chat-history-widget", ChatHistory)
-                chat_history.add_message("User", text)
-            except Exception as e:
+                chat_history_widget = self.query_one("#chat-history-widget", ChatHistory)
+                chat_history_widget.add_message("User", text)
+            except Exception:
+                chat_history_widget = None
+
+            # Schedule async work for LATER - don't block the UI thread at all
+            self.call_later(lambda: asyncio.create_task(self._process_chat_message(text, chat_history_widget)))
+
+    async def _process_chat_message(self, text: str, chat_history_widget) -> None:
+        """Process chat message asynchronously after UI has updated."""
+        if self.voice_orchestrator:
+            await self.voice_orchestrator.send_text(text)
+        else:
+            await self._handle_chat_text(text, chat_history_widget)
+
+    async def _handle_chat_text(self, text: str, chat_history_widget: Optional[ChatHistory]) -> None:
+        """Handle chat via ChatEngine (text mode fallback)."""
+        try:
+            # Don't wait for chat engine - it initializes in background
+            # If not ready yet, show a message and return immediately
+            if not self.chat_engine:
+                if not self._chat_engine_initialized:
+                    # Still initializing - let user know
+                    if chat_history_widget:
+                        chat_history_widget.add_message("System", "Initializing... please try again in a moment.")
+                else:
+                    # Initialization failed
+                    if chat_history_widget:
+                        chat_history_widget.add_message("System", "Chat engine not available. Check API configuration.")
+                return
+
+            # Get persona name for response attribution
+            current_persona = self.persona_manager.get_current_persona()
+            persona_name = current_persona.name if current_persona else "Assistant"
+
+            # Show typing indicator
+            if chat_history_widget:
+                chat_history_widget.add_message(persona_name, "▌")
+
+            # Stream the response progressively for natural feel
+            import re
+            response_text = ""
+            thinking_text = None
+            thinking_shown = False
+            in_thinking_block = False
+
+            async for chunk in self.chat_engine.send_message(text):
+                response_text += chunk
+
+                # Check if we're entering or in a thinking block
+                if "<thinking>" in response_text and "</thinking>" not in response_text:
+                    in_thinking_block = True
+                    continue
+
+                # Check if thinking block just completed - show it IMMEDIATELY
+                if in_thinking_block and "</thinking>" in response_text:
+                    in_thinking_block = False
+                    thinking_match = re.search(r'<thinking>(.*?)</thinking>', response_text, re.DOTALL)
+                    if thinking_match:
+                        thinking_text = thinking_match.group(1).strip()
+                        response_text = re.sub(r'<thinking>.*?</thinking>\s*', '', response_text, flags=re.DOTALL)
+
+                        # Show thinking IMMEDIATELY in debug mode
+                        if self.config.is_debug_mode and chat_history_widget and not thinking_shown:
+                            chat_history_widget.update_last_message("thinking", thinking_text)
+                            chat_history_widget.add_message(persona_name, "▌")
+                            thinking_shown = True
+
+                # Update display with current visible text
+                visible = re.sub(r'<thinking>.*?</thinking>\s*', '', response_text, flags=re.DOTALL).strip()
+                if visible and chat_history_widget:
+                    chat_history_widget.update_last_message(persona_name, visible + " ▌")
+
+            # Final update without cursor
+            final_text = re.sub(r'<thinking>.*?</thinking>\s*', '', response_text, flags=re.DOTALL).strip()
+            if chat_history_widget and final_text:
+                chat_history_widget.update_last_message(persona_name, final_text)
+
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: ChatEngine response complete. Length: {len(response_text)}\n")
+
+        except Exception as e:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"ERROR: ChatEngine error: {e}\n")
+            if chat_history_widget:
+                chat_history_widget.add_message("System", f"Error: {str(e)}")
+
+    async def _init_chat_engine(self) -> None:
+        """Initialize the ChatEngine for text-based chat."""
+        try:
+            # Run auth in thread pool - it does blocking subprocess calls (keychain)
+            import concurrent.futures
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                auth = await loop.run_in_executor(pool, AnthropicAuth)
+
+            # Check if we have valid auth
+            if not auth.is_connected():
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write(f"ERROR: Failed to add message to chat history: {e}\n")
-                pass
-            
-            # Send to Moshi
-            if self.voice_orchestrator:
-                await self.voice_orchestrator.send_text(text)
+                    f.write("WARNING: No Anthropic auth available for ChatEngine\n")
+                self._chat_engine_initialized = True
+                return
+
+            # Get current persona
+            current_persona = self.persona_manager.get_current_persona()
+            persona_name = current_persona.name if current_persona else "default"
+
+            # Initialize persistent chat history for session recall
+            self.persistent_chat_history = PersistentChatHistory(
+                persona=persona_name
+            )
+            self.persistent_chat_history.start_session()
+
+            # Note: Previous session messages are NOT displayed in chat pane
+            # Instead, context is sent to AI via get_context_for_injection() and UserProfile
+            # so AI can continue conversations naturally
+
+            # Create chat engine with persona and persistent history
+            config = ChatEngineConfig(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                temperature=0.7,
+                stream=True
+            )
+
+            self.chat_engine = ChatEngine(
+                auth=auth,
+                persona=current_persona,
+                config=config,
+                chat_history=self.persistent_chat_history,
+                app_config=self.config  # Pass main config for AI provider settings
+            )
+
+            self._chat_engine_initialized = True
+
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: ChatEngine initialized with persona: {persona_name}, memory enabled\n")
+
+        except Exception as e:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"ERROR: Failed to initialize ChatEngine: {e}\n")
+            self._chat_engine_initialized = True  # Mark as initialized to avoid retrying
+
+    async def _init_chat_engine_background(self) -> None:
+        """Initialize chat engine in background - doesn't block first message."""
+        try:
+            await self._init_chat_engine()
+            # Generate smart welcome message after engine is ready
+            await self._generate_welcome_message()
+        except Exception as e:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"ERROR: Background chat init failed: {e}\n")
+
+    async def _generate_welcome_message(self) -> None:
+        """Generate a contextual welcome message based on memory and time of day.
+
+        Updates the initial welcome message shown by _show_initial_welcome with
+        more context from memory (if available).
+        """
+        if not self.persistent_chat_history:
+            return
+
+        try:
+            chat_widget = self.query_one("#chat-history-widget", ChatHistory)
+            persona = self.persona_manager.get_current_persona()
+            persona_name = persona.name if persona else "Assistant"
+
+            # Get context from memory
+            context = self.persistent_chat_history.get_welcome_context()
+
+            # Get user name and profile facts
+            user_name = context.get("user_name") or getattr(self.config, 'user_name', None)
+            user_profile_context = ""
+            if self.chat_engine and self.chat_engine.user_profile:
+                user_profile_context = self.chat_engine.user_profile.get_context_string()
+
+            # Generate AI-powered welcome message
+            welcome = await self._generate_ai_welcome(
+                persona_name=persona_name,
+                user_name=user_name,
+                context=context,
+                user_profile=user_profile_context
+            )
+
+            # Only show welcome if AI generated one
+            if welcome:
+                # Update the initial welcome message (first message in chat)
+                if getattr(self, '_initial_welcome_shown', False):
+                    chat_widget.update_last_message(persona_name, welcome)
+                else:
+                    chat_widget.add_message(persona_name, welcome)
+
+        except Exception as e:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: Could not generate welcome: {e}\n")
+
+    async def _generate_ai_welcome(
+        self,
+        persona_name: str,
+        user_name: Optional[str],
+        context: dict,
+        user_profile: str
+    ) -> str:
+        """Generate a natural welcome message using AI."""
+        import httpx
+
+        # Determine time of day
+        hour = datetime.datetime.now().hour
+        time_of_day = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
+
+        # Build context summary for AI
+        recent_summary = ""
+        if context.get("recent_messages"):
+            recent_msgs = context["recent_messages"][-5:]  # Last 5 messages
+            recent_summary = "\n".join([
+                f"- {m['role']}: {m['content'][:100]}..." if len(m['content']) > 100 else f"- {m['role']}: {m['content']}"
+                for m in recent_msgs
+            ])
+
+        prompt = f"""Generate a brief, natural welcome message for a returning user.
+
+Context:
+- Your persona: {persona_name}
+- User's name: {user_name or "unknown"}
+- Time of day: {time_of_day}
+- Is new user: {context.get('is_new_user', False)}
+- Is new day: {context.get('is_new_day', False)}
+- Days since last session: {context.get('days_since_last', 0)}
+
+User profile facts:
+{user_profile or "(none known)"}
+
+Recent conversation (if any):
+{recent_summary or "(new conversation)"}
+
+Guidelines:
+- Keep it brief (1-2 sentences max)
+- Be natural and conversational, not robotic
+- If there's recent context, reference it naturally (don't quote it verbatim)
+- Don't assume what the user was "asking about" - they might have been stating something
+- Match the persona's style (e.g., Jarvis is formal but warm)
+- Don't be overly enthusiastic or use exclamation marks excessively
+
+Just output the welcome message, nothing else:"""
+
+        with open("/tmp/xswarm_debug.log", "a") as f:
+            f.write(f"DEBUG: _generate_ai_welcome called. user_name={user_name}, persona={persona_name}\n")
+            f.write(f"DEBUG: chat_engine exists: {self.chat_engine is not None}\n")
+
+        try:
+            # Try to get AI-generated welcome
+            if self.chat_engine and self.chat_engine.user_profile:
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"DEBUG: Trying local AI...\n")
+                content = await self.chat_engine.user_profile._call_local_ai(prompt, self.config)
+
+                if content is None and self.chat_engine.auth:
+                    with open("/tmp/xswarm_debug.log", "a") as f:
+                        f.write(f"DEBUG: Local AI returned None, trying cloud AI...\n")
+                    content = await self.chat_engine.user_profile._call_cloud_ai(
+                        prompt, self.chat_engine.auth, self.config
+                    )
+
+                with open("/tmp/xswarm_debug.log", "a") as f:
+                    f.write(f"DEBUG: AI response: {content[:100] if content else 'None'}...\n")
+
+                if content:
+                    return content.strip()
             else:
                 with open("/tmp/xswarm_debug.log", "a") as f:
-                    f.write("WARNING: No voice orchestrator available to send text.\n")
-                pass
+                    f.write(f"DEBUG: No chat_engine or user_profile available\n")
+        except Exception as e:
+            with open("/tmp/xswarm_debug.log", "a") as f:
+                f.write(f"DEBUG: AI welcome generation failed: {e}\n")
+                import traceback
+                f.write(f"DEBUG: Traceback: {traceback.format_exc()}\n")
+
+        # If AI is unavailable, return empty string (no welcome message)
+        # The persona name is already shown in the chat, so no need for hardcoded greeting
+        return ""
 
     def _on_voice_text(self, sender: str, text: str):
         """Handle text output from voice bridge"""
@@ -1889,9 +2268,4 @@ class VoiceAssistantApp(App):
             }
             return {"mic_amplitude": 0.0, "connection_amplitude": 0.0}
 
-    async def on_unmount(self):
-        """Cleanup when app is closing."""
-        if self.voice_orchestrator:
-            self.voice_orchestrator.stop()
-        if self.voice_server_process:
-            self.voice_server_process.terminate()
+    # Note: on_unmount defined earlier consolidates all cleanup

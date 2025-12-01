@@ -23,6 +23,9 @@ silero-vad>=4.0.0
 twilio>=8.0.0
 sendgrid>=6.11.0
 toml>=0.10.2
+libsql-experimental>=0.0.55
+sentence-transformers>=2.2.0
+moshi_mlx@ git+https://github.com/kyutai-labs/moshi.git#subdirectory=moshi_mlx
 
 [amd]
 amdsmi>=0.1.0

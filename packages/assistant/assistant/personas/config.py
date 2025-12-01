@@ -104,6 +104,8 @@ class PersonaConfig(BaseModel):
     name: str = Field(..., description="Persona display name")
     description: str = Field("", description="Brief description of persona")
     version: str = Field("1.0.0", description="Persona version")
+    purpose: Optional[str] = Field(None, description="Persona's stated purpose/mission (e.g., 'I am designed to...')")
+    agenda: Optional[str] = Field(None, description="Specific tasks/goals the persona focuses on")
 
     # Personality
     traits: PersonalityTraits = Field(default_factory=PersonalityTraits)
@@ -130,19 +132,57 @@ class PersonaConfig(BaseModel):
         description="Custom wake word (overrides default)"
     )
 
+    def get_personality_description(self) -> str:
+        """Generate natural language description from personality traits."""
+        if not self.traits:
+            return "I am a balanced, helpful assistant"
+        
+        descriptions = []
+        
+        # Formality
+        if self.traits.formality > 0.7:
+            descriptions.append("I maintain high professionalism")
+        elif self.traits.formality < 0.3:
+            descriptions.append("I keep things casual and relaxed")
+        
+        # Agreeableness
+        if self.traits.agreeableness > 0.7:
+            descriptions.append("I'm warm and approachable")
+        
+        # Conscientiousness
+        if self.traits.conscientiousness > 0.8:
+            descriptions.append("I'm highly organized")
+        
+        # Enthusiasm
+        if self.traits.enthusiasm > 0.7:
+            descriptions.append("I bring energy and excitement")
+        elif self.traits.enthusiasm < 0.3:
+            descriptions.append("I keep calm and measured")
+        
+        # Neuroticism (invert for calmness)
+        if self.traits.neuroticism < 0.3:
+            descriptions.append("I stay calm under pressure")
+        
+        return ", ".join(descriptions) + "."
+
     def build_system_prompt(self, include_personality: bool = True) -> str:
-        """Build complete system prompt for MOSHI"""
-        parts = []
+        """Build complete system prompt with template replacement."""
+        # Start with base system prompt
+        prompt = self.system_prompt or ""
+        
+        # Replace template variables
+        prompt = prompt.replace("{NAME}", self.name)
+        prompt = prompt.replace("{PURPOSE}", self.purpose or self.description)
+        prompt = prompt.replace("{AGENDA}", self.agenda or "various tasks")
+        prompt = prompt.replace("{PERSONALITY_SUMMARY}", self.get_personality_description())
+        
+        parts = [prompt] if prompt else []
 
-        # Base system prompt
-        if self.system_prompt:
-            parts.append(self.system_prompt)
-
-        # Personality traits
-        if include_personality and self.traits:
+        # Add personality traits (if not already in template)
+        if include_personality and self.traits and "{PERSONALITY_SUMMARY}" not in self.system_prompt:
             trait_desc = self.traits.to_prompt_text()
             if trait_desc:
-                parts.append(f"Your personality is: {trait_desc}.")
+                parts.append(f"My personality is: {trait_desc}.")
 
         # Detailed personality guide
         if include_personality and self.personality_guide:
@@ -152,10 +192,11 @@ class PersonaConfig(BaseModel):
         if self.vocabulary:
             if "preferred_phrases" in self.vocabulary:
                 phrases = ", ".join(self.vocabulary["preferred_phrases"])
-                parts.append(f"Preferred phrases: {phrases}.")
+                parts.append(f"My preferred phrases are: {phrases}.")
 
             if "avoid_phrases" in self.vocabulary:
                 avoid = ", ".join(self.vocabulary["avoid_phrases"])
-                parts.append(f"Avoid phrases like: {avoid}.")
+                parts.append(f"I avoid phrases like: {avoid}.")
 
         return "\n\n".join(parts)
+

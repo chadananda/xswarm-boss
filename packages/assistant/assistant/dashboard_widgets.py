@@ -31,8 +31,9 @@ from rich.panel import Panel
 from rich.text import Text
 from textual.reactive import reactive
 from textual.widget import Widget
-from textual.widgets import Static
+from textual.widgets import Static, RichLog, TextArea
 from textual.events import Key
+from textual.message import Message
 
 # Import from sibling package
 from .hardware import GPUCapability, detect_gpu_capability
@@ -2676,87 +2677,362 @@ class CyberpunkVisualizer(Static):
 
 # END OF FILE
 
-class ChatHistory(PanelBase):
+class ChatHistory(TextArea, can_focus=True):
     """
     Displays the conversation history between User and Moshi.
+
+    Uses TextArea (read-only) for:
+    - Native text selection with mouse
+    - Copy with Cmd+C / Ctrl+C
+    - Colored text via custom highlighting
+    - Scrolling and auto-scroll to bottom
     """
-    # messages = reactive([])  <-- Removed to avoid conflict with instance variable
+
+    # Add explicit copy binding (ctrl+c works, but be explicit)
+    BINDINGS = [
+        ("ctrl+c", "copy", "Copy selected text"),
+    ]
+
+    DEFAULT_CSS = """
+    ChatHistory {
+        width: 100%;
+        height: 1fr;
+        scrollbar-size: 1 1;
+        border: none;
+        padding: 0;
+        background: transparent;
+    }
+    """
 
     def __init__(self, **kwargs):
-        super().__init__(panel_id="chat_history", title="Conversation History", **kwargs)
-        self.messages = []
+        super().__init__(
+            read_only=True,
+            show_line_numbers=False,
+            soft_wrap=True,
+            **kwargs
+        )
+        # Store messages for reconstruction
+        self._messages: List[tuple] = []  # [(sender, text), ...]
+        self._last_assistant_response: str = ""
+
+    def on_mount(self) -> None:
+        """Set up custom theme for chat colors."""
+        from rich.style import Style
+        # Add custom styles to theme
+        # Text colors are bright, label colors are dimmed versions
+        if hasattr(self, '_theme') and self._theme:
+            # User: bright yellow text, dim yellow label
+            self._theme.syntax_styles["chat_user"] = Style(color="yellow")
+            self._theme.syntax_styles["chat_user_label"] = Style(color="yellow", dim=True)
+            # Assistant: bright green text, dim green label
+            self._theme.syntax_styles["chat_assistant"] = Style(color="green")
+            self._theme.syntax_styles["chat_assistant_label"] = Style(color="green", dim=True)
+            # System: gray text and label
+            self._theme.syntax_styles["chat_system"] = Style(color="bright_black")
+            self._theme.syntax_styles["chat_system_label"] = Style(color="bright_black", dim=True)
 
     def add_message(self, sender: str, text: str):
-        timestamp = datetime.now().strftime("%H:%M:%S")
-        now = time.time()
-        
-        # DEBUG: Log what we're receiving
-        with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write(f"DEBUG: ChatHistory.add_message sender='{sender}' text='{text}'\n")
-        
-        # Check if we should append to the last message
-        # Criteria: Same sender AND less than 2.0 seconds since last update
-        should_append = False
-        if self.messages and self.messages[-1]["sender"] == sender:
-            last_update = self.messages[-1].get("last_update", 0)
-            if now - last_update < 2.0:
-                should_append = True
-        
-        if should_append:
-            # Tokens from voice server often come WITHOUT leading spaces
-            # The voice server already handles spacing via sentencepiece decode
-            # So we should just concatenate directly
-            self.messages[-1]["text"] += text
-            self.messages[-1]["last_update"] = now
-            with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write(f"DEBUG: Appended to last message. New text: '{self.messages[-1]['text']}'\n")
-        else:
-            self.messages.append({
-                "sender": sender, 
-                "text": text, 
-                "time": timestamp,
-                "last_update": now
-            })
-            with open("/tmp/xswarm_debug.log", "a") as f:
-                f.write(f"DEBUG: Created new message.\n")
-        
-        # Keep last 50 messages
-        if len(self.messages) > 50:
-            self.messages.pop(0)
-        self.refresh()
+        """Add a message to the chat history."""
+        self._messages.append((sender, text))
 
-    def render_content(self) -> Text:
-        content = Text()
-        
-        # DEBUG: Log message count
-        with open("/tmp/xswarm_debug.log", "a") as f:
-            f.write(f"DEBUG: render_content called with {len(self.messages)} messages\n")
-            if self.messages:
-                f.write(f"DEBUG: Last message: {self.messages[-1]}\n")
-        
-        if not self.messages:
-            content.append("No conversation history.", style="dim italic")
-            return content
-            
-        for msg in self.messages:
-            # Color coding: Assistant = terminal green (darker), User = yellow, System = white (dim)
-            if msg["sender"] in ["User", "user"]:
-                sender_color = "yellow"
-            elif msg["sender"].lower() in ["system", "debug"]:
-                sender_color = "white" # dim white looks gray
+        # Track assistant responses for easy copy
+        if sender.lower() not in ["user", "system", "debug"]:
+            self._last_assistant_response = text
+
+        self._refresh_display()
+
+    def add_messages_batch(self, messages: List[tuple]):
+        """Add multiple messages at once (more efficient than individual add_message calls)."""
+        for sender, text in messages:
+            self._messages.append((sender, text))
+            # Track assistant responses
+            if sender.lower() not in ["user", "system", "debug"]:
+                self._last_assistant_response = text
+
+        # Only refresh once after all messages added
+        if messages:
+            self._refresh_display()
+
+    def update_last_message(self, sender: str, text: str):
+        """Update the last message (replaces typing indicator)."""
+        if self._messages:
+            self._messages[-1] = (sender, text)
+
+        # Track assistant responses
+        if sender.lower() not in ["user", "system", "debug"]:
+            self._last_assistant_response = text
+
+        self._refresh_display()
+
+    def _refresh_display(self):
+        """Rebuild the display with all messages and apply highlighting."""
+        # Build plain text content
+        # Use "sender:" format instead of "[sender]" to avoid bracket formatting issues
+        lines = []
+        for sender, text in self._messages:
+            lines.append(f"{sender}: {text}")
+
+        full_text = "\n".join(lines)
+
+        # Check if we're already at the bottom before loading new text
+        was_at_bottom = self.scroll_offset.y >= (self.virtual_size.height - self.size.height - 5)
+
+        self.load_text(full_text)
+
+        # Apply color highlighting
+        self._apply_highlights()
+
+        # Only auto-scroll if user was already at bottom (don't interrupt manual scrolling)
+        if was_at_bottom:
+            # Move cursor to end and scroll smoothly
+            self.move_cursor((len(self._messages) - 1, 0))
+            self.scroll_end(animate=False)
+
+    def _char_to_byte_pos(self, text: str, char_pos: int) -> int:
+        """Convert character position to byte position for TextArea highlighting."""
+        # TextArea uses byte positions internally (for tree-sitter compatibility)
+        return len(text[:char_pos].encode('utf-8'))
+
+    def _apply_highlights(self):
+        """Apply color highlighting to messages.
+
+        TextArea rows correspond to actual newlines in the document, not visual wraps.
+        Each message is one row (separated by \n), so row index = message index.
+        We highlight the entire row with the appropriate style.
+        """
+        from rich.style import Style
+
+        # Clear existing highlights and line cache to force re-render
+        if hasattr(self, '_highlights'):
+            self._highlights.clear()
+        if hasattr(self, '_line_cache'):
+            self._line_cache.clear()
+
+        # Get the actual document lines from the TextArea
+        # This ensures we're working with the real row indices
+        document = self.document
+
+        # Process each document row
+        for row in range(document.line_count):
+            line = document.get_line(row)
+            line_bytes = line.encode('utf-8')
+            line_end_byte = len(line_bytes)
+
+            # Parse the sender from the line format "Sender: text"
+            if ": " in line:
+                colon_pos = line.index(": ")
+                sender = line[:colon_pos]
+                label_end_char = colon_pos + 2  # includes ":" and " "
             else:
-                # Assistant messages (any other sender) - use terminal green (color 2)
-                sender_color = "#00AA00"  # Terminal green (darker than bright green)
-                
-            content.append(f"[{msg['time']}] ", style="dim")
-            content.append(f"{msg['sender']}: ", style=f"bold {sender_color}")
-            # Enable wrapping by NOT truncating - Rich Text will wrap automatically
-            # For system messages, make the text dim as well
-            text_style = sender_color if sender_color != "white" else "dim white"
-            content.append(f"{msg['text']}\n", style=text_style)
-        return content
+                # Continuation or malformed line - use previous message's style
+                # For now, default to assistant style
+                sender = ""
+                label_end_char = 0
+
+            # Convert to byte positions
+            label_end_byte = self._char_to_byte_pos(line, label_end_char)
+
+            # Determine colors based on sender
+            # Each speaker type has a text style and a dimmed label style
+            sender_lower = sender.lower()
+            if sender_lower == "user":
+                text_style = "chat_user"
+                label_style = "chat_user_label"
+            elif sender_lower in ["system", "debug", "thinking"]:
+                text_style = "chat_system"
+                label_style = "chat_system_label"
+            else:
+                text_style = "chat_assistant"
+                label_style = "chat_assistant_label"
+
+            # Apply highlights to this row
+            if hasattr(self, '_highlights'):
+                self._highlights.setdefault(row, [])
+                if label_end_byte > 0:
+                    # Has a label - highlight label in dimmed color, text in bright color
+                    self._highlights[row].append((0, label_end_byte, label_style))
+                    self._highlights[row].append((label_end_byte, line_end_byte, text_style))
+                else:
+                    # No label (shouldn't happen normally) - highlight whole line
+                    self._highlights[row].append((0, line_end_byte, text_style))
+
+    def action_copy(self) -> None:
+        """Copy selected text to clipboard using pyperclip (works on macOS Terminal)."""
+        selected = self.selected_text
+        if selected:
+            try:
+                import pyperclip
+                pyperclip.copy(selected)
+                self.app.notify("Copied to clipboard", timeout=2)
+            except Exception as e:
+                # Fallback to Textual's copy
+                self.app.copy_to_clipboard(selected)
+        else:
+            # No selection - copy last response instead
+            if self.copy_last_response():
+                self.app.notify("Last response copied to clipboard", timeout=2)
+
+    def copy_last_response(self) -> bool:
+        """Copy the last assistant response to clipboard."""
+        if self._last_assistant_response:
+            try:
+                import pyperclip
+                pyperclip.copy(self._last_assistant_response)
+                return True
+            except Exception:
+                pass
+        return False
+
+    def copy_all_history(self) -> bool:
+        """Copy all chat history to clipboard."""
+        if self._messages:
+            try:
+                import pyperclip
+                lines = [f"[{s}] {t}" for s, t in self._messages]
+                pyperclip.copy("\n".join(lines))
+                return True
+            except Exception:
+                pass
+        return False
+
+    def on_key(self, event: Key) -> None:
+        """Handle keyboard navigation and copy commands.
+
+        Redirects most keyboard input to the chat input widget,
+        keeping only copy commands and navigation local.
+        """
+        key = event.key
+
+        # Handle Ctrl+C / Cmd+C for copy (primary copy method)
+        if key in ("ctrl+c", "cmd+c"):
+            self.action_copy()
+            event.stop()
+            return
+
+        # Allow navigation keys for scrolling and text selection
+        if key in ("up", "down", "pageup", "pagedown", "home", "end", "left", "right"):
+            pass  # Let TextArea handle these
+        elif key.startswith("shift+") or key.startswith("ctrl+") or key.startswith("cmd+"):
+            # Allow modifier+key combinations (for selection, etc.)
+            pass  # Let TextArea handle these
+        elif key == "escape":
+            # Return focus to chat input
+            try:
+                chat_input = self.app.query_one("#chat-input")
+                chat_input.focus()
+            except Exception:
+                pass
+            event.stop()
+        else:
+            # Redirect all other typing to the chat input
+            try:
+                chat_input = self.app.query_one("#chat-input")
+                chat_input.focus()
+                # If it's a printable character, insert it into the input
+                if event.character and event.character.isprintable():
+                    chat_input.insert(event.character)
+                event.stop()
+            except Exception:
+                pass  # Input not found, let key pass through
 
 
+class ExpandableInput(TextArea, can_focus=True):
+    """
+    Multi-line input that expands vertically as the user types.
+    Submits on Enter, allows Shift+Enter for newlines.
+    Max height of 5 lines before scrolling.
+    """
+
+    DEFAULT_CSS = """
+    ExpandableInput {
+        height: auto;
+        min-height: 3;
+        max-height: 7;
+        width: 100%;
+        border: solid $primary;
+        background: $surface;
+        padding: 0 1;
+    }
+    ExpandableInput:focus {
+        border: solid $accent;
+    }
+    """
+
+    class Submitted(Message):
+        """Posted when user presses Enter to submit."""
+        def __init__(self, input: "ExpandableInput", value: str) -> None:
+            super().__init__()
+            self.input = input
+            self.value = value
+
+    def __init__(self, placeholder: str = "", **kwargs):
+        super().__init__(
+            show_line_numbers=False,
+            soft_wrap=True,
+            **kwargs
+        )
+        self.placeholder = placeholder
+        self._placeholder_visible = True
+
+    def on_mount(self) -> None:
+        """Show placeholder initially."""
+        if not self.text:
+            self.load_text(self.placeholder)
+            self._placeholder_visible = True
+            # Style placeholder as dim
+            self.add_class("placeholder")
+
+    def on_focus(self) -> None:
+        """Clear placeholder on focus."""
+        if self._placeholder_visible:
+            self.load_text("")
+            self._placeholder_visible = False
+            self.remove_class("placeholder")
+
+    def on_blur(self) -> None:
+        """Restore placeholder if empty."""
+        if not self.text.strip():
+            self.load_text(self.placeholder)
+            self._placeholder_visible = True
+            self.add_class("placeholder")
+
+    def on_key(self, event: Key) -> None:
+        """Handle Enter for submit, Shift+Enter for newline."""
+        # Check if shift is held by looking at the key name
+        is_shift_enter = event.key == "shift+enter" or "shift+enter" in getattr(event, 'aliases', [])
+
+        if event.key == "enter" and not is_shift_enter:
+            # Submit on Enter (but not Shift+Enter)
+            text = self.text
+            if text.strip() and not self._placeholder_visible:
+                self.post_message(self.Submitted(self, text))
+                self.load_text("")
+            event.stop()
+            event.prevent_default()
+        elif event.key == "escape":
+            # Return focus to sidebar on Escape
+            if hasattr(self.app, 'action_focus_sidebar'):
+                self.app.action_focus_sidebar()
+            event.stop()
+        # Other keys (including shift+enter) are handled by TextArea's default behavior
+
+    @property
+    def value(self) -> str:
+        """Get current value (compatibility with Input widget)."""
+        if self._placeholder_visible:
+            return ""
+        return self.text
+
+    @value.setter
+    def value(self, new_value: str) -> None:
+        """Set value (compatibility with Input widget)."""
+        if new_value:
+            self.load_text(new_value)
+            self._placeholder_visible = False
+            self.remove_class("placeholder")
+        else:
+            self.load_text("")
+            self._placeholder_visible = False
 
 
 

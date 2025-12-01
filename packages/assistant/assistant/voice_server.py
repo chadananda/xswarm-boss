@@ -18,15 +18,11 @@ import logging # Added by user instruction
 import queue # Added to resolve missing import for queue.Empty
 
 import numpy as np
-try:
-    import mlx.core as mx
-    import mlx.nn as nn
-    import sentencepiece
-    import huggingface_hub
-    from moshi_mlx import models, utils
-except ImportError:
-    # Allow import for tests even if dependencies are missing
-    pass
+import mlx.core as mx
+import mlx.nn as nn
+import sentencepiece
+import huggingface_hub
+from moshi_mlx import models, utils
 
 
 def hf_hub_download(repo, path: str) -> str:
@@ -42,6 +38,7 @@ def server_process(
     status_queue: multiprocessing.Queue,
     hf_repo: str,
     quantized: int,
+    log_file: str = "/tmp/xswarm_voice_server.log",
     max_steps: int = 2000
 ):
     """
@@ -56,8 +53,26 @@ def server_process(
         status_queue: Queue for sending status messages back to main process
         hf_repo: HuggingFace repo for model weights
         quantized: Quantization level (4 or 8) or None for bf16
+        log_file: Path to log file
         max_steps: Maximum generation steps
     """
+    import sys
+    import os
+
+    # CRITICAL: Redirect stdout/stderr to prevent TUI corruption
+    # Must be done IMMEDIATELY before any other code runs
+    sys.stdout = open(log_file, 'a')
+    sys.stderr = sys.stdout
+
+    # Also suppress any warnings
+    import warnings
+    warnings.filterwarnings("ignore")
+
+    # Suppress HuggingFace warnings
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+    os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+
     # Setup logging
     logging.basicConfig(
         level=logging.INFO,
@@ -134,10 +149,12 @@ def server_process(
         model.warmup()
         log("Model warmed up")
 
-        # Create generator
+        # Create generator with large max_steps for long conversations
+        # NOTE: This is a temporary fix. True duplex operation requires rearchitecting
+        # the server to handle simultaneous input/output streams.
         gen = models.LmGen(
             model=model,
-            max_steps=max_steps + 5,
+            max_steps=50000,  # Large enough for extended conversations
             text_sampler=utils.Sampler(),
             audio_sampler=utils.Sampler(),
             check=False,
@@ -147,182 +164,165 @@ def server_process(
         server_to_client.put("ready")
         log("Server ready!")
 
-        # Main inference loop
+        # Define silence tokens (8 codebooks, each with silence code 1685)
+        # These codes represent silence in Moshi's audio vocabulary
+        SILENCE_CODES = [1685, 618, 1258, 701, 1725, 359, 1939, 782]
+        SILENCE_TOKENS = mx.array(SILENCE_CODES, dtype=mx.uint32).reshape(1, 8)
+        
+        # Pending input queue for multi-step audio chunks
+        pending_input = queue.Queue()
+        
+        log("🔄 Starting continuous duplex generation loop...")
+        step_count = 0
+        client_connected = False  # Wait for first client message before generating
+        
+        # CONTINUOUS GENERATION LOOP (True Duplex)
+        # This loop NEVER blocks - it always generates, feeding silence when no user audio
         while True:
-            # Get encoded audio from client
+            # 1. GET USER AUDIO (non-blocking)
+            user_tokens = None
+            
+            # Check for stop signal
             try:
-                data = client_to_server.get(timeout=0.1) # Faster timeout for checking
-                log(f"DEBUG: Server received data: {type(data)}")
-            except queue.Empty:
-                continue
-            except Exception as e:
-                log(f"Error getting data: {e}")
-                continue
-
-            if isinstance(data, str) and data == "stop":
-                break
+                data = client_to_server.get_nowait()
                 
-            # Handle system prompts / persona injection
-            if isinstance(data, tuple):
-                msg_type = data[0]
-                content = data[1]
+                if isinstance(data, str) and data == "stop":
+                    log("🛑 Received stop signal")
+                    break
                 
-                if msg_type == "system":
-                    system_prompt = content
-                    log(f"📝 Injecting system prompt: {len(system_prompt)} chars")
-                    try:
-                        # Encode the system prompt to text tokens
-                        tokens = text_tokenizer.encode(system_prompt)
-                        log(f"🎭 Priming model with {len(tokens)} text tokens...")
-                        
-                        # Prime the generator by forcing it to process these text tokens
-                        # CRITICAL FIX: Use actual silence codes, not zeros (which is noise)
-                        # Codes extracted from test_server_integration.py
-                        silence_codes = [1685, 618, 1258, 701, 1725, 359, 1939, 782]
-                        silence_audio = mx.array(silence_codes, dtype=mx.uint32).reshape(1, 8)
-                        
-                        for i, token in enumerate(tokens):
-                            if gen.step_idx >= gen.max_steps:
-                                log("⚠️ Reached max steps during priming")
-                                break
-                            
-                            # Manually set the text token in the sequence
-                            gen.gen_sequence[0, 0, gen.step_idx] = token
-                            
-                            # Step with silence to advance the generator
-                            _ = gen.step(silence_audio)
-                        
-                        log(f"✅ Persona injected successfully ({len(tokens)} tokens)")
-                        
-                    except Exception as e:
-                        log(f"❌ Failed to inject system prompt: {e}")
-                        import traceback
-                        log(traceback.format_exc())
-                    continue
+                # Handle tuples (system prompts, text input, etc)
+                if isinstance(data, tuple):
+                    msg_type = data[0]
+                    text = data[1]
                     
-                elif msg_type == "inject":
-                    # Subconscious injection (Bicameral Thinking)
-                    injection_text = content
-                    log(f"💉 Processing injection: '{injection_text}'")
-                    try:
-                        tokens = text_tokenizer.encode(injection_text)
-                        log(f"💉 Forcing {len(tokens)} tokens into stream...")
-                        
-                        # For injection during active conversation, we don't just prime.
-                        # We need to set the NEXT text tokens that will be generated.
-                        # But we can't easily "queue" them for future steps in this loop structure
-                        # without modifying the LmGen class or maintaining a buffer here.
-                        
-                        # HACK: For now, we'll use the same priming approach but this might 
-                        # cause a slight audio gap or "fast forward" effect if we do it 
-                        # while audio is playing. 
-                        # Ideally, we should have a 'forced_tokens' buffer that we check 
-                        # inside the main inference loop below.
-                        
-                        # Let's try to just insert them into the sequence at the CURRENT step
-                        # and advance the generator. This effectively makes Moshi "say" them
-                        # immediately, consuming time steps.
-                        
-                        silence_audio = mx.zeros((1, 8), dtype=mx.uint32)
-                        
-                        for token in tokens:
-                            if gen.step_idx >= gen.max_steps:
-                                break
-                                
-                            # Force the token
-                            gen.gen_sequence[0, 0, gen.step_idx] = token
+                    if msg_type == "user_text":
+                        # User text input - treat as if spoken
+                        # We tokenize it and feed it to the model, then let it generate a response
+                        log(f"💬 Processing user text: {text[:50]}...")
+                        try:
+                            # Tokenize text
+                            ids = text_tokenizer.encode(text)
+                            text_tokens = mx.array(ids)
                             
-                            # Step to generate the audio for this token
-                            _ = gen.step(silence_audio)
-                            
-                            # Send audio back
-                            audio_tokens = gen.last_audio_tokens()
-                            if audio_tokens is not None:
-                                audio_arr = np.array(audio_tokens).astype(np.uint32)
-                                server_to_client.put(("audio", audio_arr.T, None))
+                            # Feed tokens as user input (this will trigger a response)
+                            for i in range(len(ids)):
+                                token = text_tokens[i].reshape(1, 1)
+                                # Feed with silence audio, model will generate response
+                                gen.step(SILENCE_TOKENS, token)
                                 
-                            # Send text back so client knows what was said
-                            piece = text_tokenizer.decode(token)
-                            piece = piece.replace(" ", " ")
-                            if piece:
-                                server_to_client.put(("text", None, piece))
-                                
-                        log(f"✅ Injection complete")
+                            log(f"✅ Processed {len(ids)} user text tokens")
+                        except Exception as e:
+                            log(f"❌ User text processing failed: {e}")
+                        # DON'T continue - let the loop generate response
                         
-                    except Exception as e:
-                        log(f"❌ Failed to inject thought: {e}")
-                    continue
-
-
-            # Convert to MLX array
-            # data comes in as (8, T) from encoder
-            data = mx.array(data)
+                    elif msg_type == "inject" or msg_type == "system":
+                        log(f"💉 Processing {msg_type}: {text[:50]}...")
+                        try:
+                            # Tokenize text
+                            ids = text_tokenizer.encode(text)
+                            text_tokens = mx.array(ids)
+                            
+                            # Feed tokens into the generator
+                            # We feed them alongside silence audio tokens
+                            # This effectively "forces" the model to process this text context
+                            for i in range(len(ids)):
+                                token = text_tokens[i].reshape(1, 1)
+                                # Assuming gen.step(audio_tokens, text_tokens) signature
+                                # We discard the output during injection as we are "forcing" context
+                                gen.step(SILENCE_TOKENS, token)
+                                
+                            log(f"✅ Processed {len(ids)} tokens for {msg_type}")
+                        except Exception as e:
+                            log(f"❌ Processing failed: {e}")
+                        continue
+                
+                # Normal audio data
+                if isinstance(data, np.ndarray):
+                    client_connected = True  # Mark client as connected
+                    data = mx.array(data)
+                    
+                    # Ensure shape is (1, 8, T)
+                    if len(data.shape) == 2:
+                        data = data[None, :, :]
+                    
+                    T = data.shape[-1]
+                    
+                    # Use first time step immediately
+                    user_tokens = data[:, :, 0]
+                    
+                    # Queue remaining time steps for future iterations
+                    for t in range(1, T):
+                        pending_input.put(data[:, :, t])
+                        
+            except queue.Empty:
+                pass
+            except Exception as e:
+                log(f"Error reading input: {e}")
             
-            # Ensure we have (1, 8, T) shape
-            if len(data.shape) == 2:
-                data = data[None, :, :]
+            # WAIT FOR CLIENT CONNECTION before generating
+            if not client_connected:
+                # Sleep briefly to avoid busy-waiting
+                time.sleep(0.001)
+                continue
             
-            # Iterate over time steps
-            # Moshi LmGen.step() expects (Batch=1, Codebooks=8) or (Batch=1, Codebooks=8, Time=1)
-            # We must feed it one step at a time if T > 1
+            # 2. CHECK PENDING QUEUE if we didn't get fresh input
+            if user_tokens is None:
+                try:
+                    user_tokens = pending_input.get_nowait()
+                except queue.Empty:
+                    # Use silence when no input available
+                    user_tokens = SILENCE_TOKENS
             
-            T = data.shape[-1]
+            # 3. STEP GENERATOR (ALWAYS - this is the key to duplex)
+            try:
+                text_token = gen.step(user_tokens)
+                text_token_id = text_token[0].item()
+                step_count += 1
+                
+                # Log progress occasionally
+                if step_count % 1000 == 0:
+                    log(f"Generated {step_count} steps, queue size: {pending_input.qsize()}")
+                
+            except ValueError as e:
+                if "reached max-steps" in str(e):
+                    log(f"❌ Reached max steps ({gen.max_steps}) - this shouldn't happen with 50000 limit")
+                else:
+                    log(f"❌ Generation error: {e}")
+                continue
             
-            # Lists to collect outputs if we process multiple steps
-            all_audio_tokens = []
-            last_text_piece = ""
-            
-            for t in range(T):
-                # Extract single time step: (1, 8, 1) -> squeeze to (1, 8)
-                # shape: (Batch, Codebooks, Time) -> slice -> (Batch, Codebooks)
-                step_data = data[:, :, t] 
+            # 4. STREAM AUDIO OUTPUT (immediately)
+            audio_tokens = gen.last_audio_tokens()
+            if audio_tokens is not None:
+                audio_arr = np.array(audio_tokens).astype(np.uint32)
+                # Reshape to (8, T) format for client
+                if audio_arr.ndim == 2 and audio_arr.shape[0] != 8:
+                    audio_arr = audio_arr.T
                 
                 try:
-                    # Run inference step
-                    text_token = gen.step(step_data)
-                    text_token_id = text_token[0].item()
+                    server_to_client.put_nowait(("audio", audio_arr, None))
+                except queue.Full:
+                    log("⚠️ Output queue full, dropping audio frame")
+            
+            # 5. STREAM TEXT OUTPUT (immediately)
+            if text_token_id not in (0, 3):  # Skip special tokens
+                try:
+                    # Use id_to_piece to get the raw token string (e.g., " world" -> "\u2581world")
+                    # This preserves the spacing information which is critical for reconstruction
+                    piece = text_tokenizer.id_to_piece(text_token_id)
                     
-                    # Collect audio tokens from this step
-                    step_audio = gen.last_audio_tokens()
-                    if step_audio is not None:
-                        all_audio_tokens.append(np.array(step_audio).astype(np.uint32))
+                    # Replace the SentencePiece space marker (U+2581) with a normal space
+                    # Note: Punctuation usually attaches to the previous word (no leading space)
+                    # Words usually start with a leading space
+                    piece = piece.replace("\u2581", " ")
                     
-                    # Decode text token (only keep the last one if multiple steps, 
-                    # or accumulate? For now, let's just send the last one or all?
-                    # Moshi usually generates text slower than audio, so text might be sparse.
-                    # But we should probably send every text token.
-                    
-                    if text_token_id not in (0, 3):
-                        piece = text_tokenizer.decode(text_token_id)
-                        piece = piece.replace(" ", " ")
-                        if piece:
-                            # Send text immediately to avoid lag
-                            server_to_client.put(("text", None, piece))
-                            last_text_piece = piece
+                    if piece:
+                        server_to_client.put_nowait(("text", None, piece))
+                except queue.Full:
+                    pass  # Silently drop text if queue full
+                except Exception as e:
+                    log(f"Text decode error: {e}")
 
-                except ValueError as e:
-                    log(f"❌ Inference Error at step {t}: {e}")
-                    continue
 
-            # Send accumulated audio tokens
-            if all_audio_tokens:
-                # Stack audio tokens: List of (1, 8) -> (T, 8) or similar?
-                # gen.last_audio_tokens() returns shape (1, 8) usually?
-                # Let's check what client expects. 
-                # Client expects (8, T) or (T, 8)? 
-                # Audio tokenizer decode expects (8, T).
-                
-                # Concatenate along time dimension
-                # Each step_audio is (1, 8) or (8,)
-                # We want final shape (8, T)
-                
-                # Convert list of arrays to single array
-                # [ (1, 8), (1, 8) ] -> (T, 8) -> transpose to (8, T)
-                combined_audio = np.concatenate(all_audio_tokens, axis=0) # (T, 8)
-                combined_audio = combined_audio.T # (8, T)
-                
-                if combined_audio.size > 0:
-                    server_to_client.put(("audio", combined_audio, None))
 
     except Exception as e:
         status_queue.put(("error", str(e)))
@@ -330,7 +330,7 @@ def server_process(
         traceback.print_exc()
 
 
-def start_server_process(quality: str = "q8", max_steps: int = 2000):
+def start_server_process(quality: str = "q4", max_steps: int = 2000):
     """
     Start the Voice server process.
 
@@ -343,6 +343,15 @@ def start_server_process(quality: str = "q8", max_steps: int = 2000):
     Returns:
         Tuple of (process, client_to_server, server_to_client, status_queue)
     """
+    import sys
+    import os
+
+    # CRITICAL: Suppress all output during multiprocessing spawn
+    # This prevents TUI corruption from spawn-related errors/warnings
+    os.environ["PYTHONWARNINGS"] = "ignore"
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+
     # Map quality to repo and quantization
     quality_map = {
         "bf16": ("kyutai/moshiko-mlx-bf16", None),
@@ -363,12 +372,22 @@ def start_server_process(quality: str = "q8", max_steps: int = 2000):
     server_to_client = ctx.Queue()
     status_queue = ctx.Queue()
 
+    log_file = "/tmp/xswarm_voice_server.log"
+
     # Start server process using the spawn context
     process = ctx.Process(
         target=server_process,
-        args=(client_to_server, server_to_client, status_queue, hf_repo, quantized, max_steps),
+        args=(client_to_server, server_to_client, status_queue, hf_repo, quantized, log_file, max_steps),
         daemon=True
     )
-    process.start()
+
+    # Redirect stderr during process start to prevent TUI corruption
+    old_stderr = sys.stderr
+    try:
+        sys.stderr = open(log_file, 'a')
+        process.start()
+    finally:
+        sys.stderr.close()
+        sys.stderr = old_stderr
 
     return process, client_to_server, server_to_client, status_queue

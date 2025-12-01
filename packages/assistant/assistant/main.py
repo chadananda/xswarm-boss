@@ -10,20 +10,41 @@ Brings together all components:
 - Memory integration
 """
 
+import os
+import warnings
+
+# Suppress HuggingFace/Tokenizers warnings BEFORE any imports
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
+os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
+os.environ["TRANSFORMERS_NO_ADVISORY_WARNINGS"] = "1"
+
+# Suppress all tokenizer/transformers warnings that corrupt TUI
+warnings.filterwarnings("ignore", message=".*tokenizer.*")
+warnings.filterwarnings("ignore", message=".*Tokenizer.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="transformers")
+warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub")
+warnings.filterwarnings("ignore", category=FutureWarning)
+
 import asyncio
 import sys
 from pathlib import Path
 from typing import Optional, cast
 import argparse
-import os
 import atexit
+import logging
 
-from .config import Config
-from .dashboard import VoiceAssistantApp, WizardScreen
-from .personas import PersonaManager
-from .memory import MemoryManager
-from .wake_word import WakeWordDetector
-from .scheduler import Scheduler
+# Defer logging setup to main() to avoid multiprocessing pickle issues
+logger = logging.getLogger(__name__)
+
+# Lazy imports - these are heavy and slow down startup
+# Actual imports happen in main() after argument parsing
+if False:  # TYPE_CHECKING - for IDE support only
+    from .config import Config
+    from .dashboard import VoiceAssistantApp, WizardScreen
+    from .personas import PersonaManager
+    from .memory import MemoryManager
+    from .wake_word import WakeWordDetector
+    from .scheduler import Scheduler
 
 
 class SingletonLock:
@@ -46,7 +67,7 @@ class SingletonLock:
                 os.kill(pid, 0)  # Doesn't actually kill, just checks existence
 
                 # Process exists - kill it to free GPU
-                print(f"Found existing instance (PID {pid}). Killing...")
+                logger.debug(f"Found existing instance (PID {pid}). Killing...")
                 try:
                     os.kill(pid, signal.SIGTERM)
                     time.sleep(0.5)
@@ -92,15 +113,15 @@ class VoiceAssistant:
     Integrates all components into cohesive system.
     """
 
-    def __init__(self, config: Config, personas_dir: Path, voice_server_process=None, voice_queues=None):
+    def __init__(self, config: "Config", personas_dir: Path, voice_server_process=None, voice_queues=None):
         self.config = config
         self.personas_dir = personas_dir
         self.voice_server_process = voice_server_process
         self.voice_queues = voice_queues
-        self.app: Optional[VoiceAssistantApp] = None
-        self.persona_manager: Optional[PersonaManager] = None
-        self.memory_manager: Optional[MemoryManager] = None
-        self.wake_word_detector: Optional[WakeWordDetector] = None
+        self.app: Optional["VoiceAssistantApp"] = None
+        self.persona_manager: Optional["PersonaManager"] = None
+        self.memory_manager: Optional["MemoryManager"] = None
+        self.wake_word_detector: Optional["WakeWordDetector"] = None
         self.scheduler: Optional['Scheduler'] = None
 
         # State
@@ -109,6 +130,14 @@ class VoiceAssistant:
 
     async def initialize(self):
         """Initialize all components"""
+        # Import here since these are lazy-loaded for fast startup
+        from .config import Config
+        from .personas import PersonaManager
+        from .memory import MemoryManager
+        from .wake_word import WakeWordDetector
+        from .dashboard import VoiceAssistantApp
+        from .scheduler import Scheduler
+
         # 1. Load personas
         if not self.personas_dir.exists():
             self.personas_dir.mkdir(parents=True, exist_ok=True)
@@ -121,11 +150,20 @@ class VoiceAssistant:
             if hasattr(self.config, 'default_persona') and self.config.default_persona:
                 persona_name = self.config.default_persona
             else:
-                import random
-                persona_name = random.choice(available_personas)
-                print(f"🎲 Randomly selected persona: {persona_name}")
+                persona_name = "JARVIS" # Default to JARVIS instead of random
 
-            self.persona_manager.set_current_persona(persona_name)
+            # Try to set the persona
+            if not self.persona_manager.set_current_persona(persona_name):
+                logger.debug(f"Default persona '{persona_name}' not found.")
+                # Try JARVIS explicitly
+                if self.persona_manager.set_current_persona("JARVIS"):
+                    logger.debug("Falling back to JARVIS")
+                elif available_personas:
+                    # Fallback to first available
+                    fallback = available_personas[0]
+                    logger.debug(f"Falling back to first available: {fallback}")
+                    self.persona_manager.set_current_persona(fallback)
+            
             current_persona = self.persona_manager.get_current_persona()
 
             if current_persona:
@@ -189,9 +227,10 @@ class VoiceAssistant:
 
         try:
             # Run TUI dashboard (Textual handles SIGINT/SIGTERM internally)
-            await self.app.run_async()
+            # mouse=True enables clicking on tabs/buttons (required for proper TUI interaction)
+            await self.app.run_async(mouse=True)
         except KeyboardInterrupt:
-            print("\nShutting down...")
+            logger.debug("Shutting down...")
         finally:
             await self.cleanup()
 
@@ -207,7 +246,7 @@ class VoiceAssistant:
             await self.memory_manager.close()
 
 
-async def show_wizard(personas_dir: Path) -> Config:
+async def show_wizard(personas_dir: Path) -> "Config":
     """Show first-run wizard and return configured config"""
     from textual.app import App
 
@@ -236,6 +275,16 @@ async def show_wizard(personas_dir: Path) -> Config:
 
 def main():
     """CLI entry point"""
+    # Configure logging to file to prevent TUI corruption
+    # Must be inside main() to avoid multiprocessing pickle issues
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler('/tmp/xswarm_main.log', mode='w')
+        ]
+    )
+
     parser = argparse.ArgumentParser(
         description="xSwarm Voice Assistant - Interactive TUI with flexible persona system",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -294,12 +343,33 @@ Configuration:
     if not lock.acquire():
         # Another instance is already running
         pid = lockfile.read_text().strip()
-        print(f"❌ Voice assistant is already running (PID {pid})")
-        print("💡 Use 'pkill -f assistant.main' to kill the running instance if needed")
+        logger.warning(f"Voice assistant is already running (PID {pid})")
         sys.exit(1)
 
-    # Get personas directory
-    personas_dir = Path(__file__).parent.parent.parent.parent / "personas"
+    # Get personas directory from installed package location
+    # The personas are bundled in the package at assistant/personas/
+    # Path: packages/assistant/assistant/personas/
+    personas_dir = Path(__file__).parent / "personas"
+
+    if not personas_dir.exists():
+        logger.debug(f"Personas directory not found at {personas_dir}, trying fallbacks...")
+        # Fallback: check project root personas directory
+        project_root_personas = Path(__file__).parents[3] / "personas"
+        if project_root_personas.exists():
+            personas_dir = project_root_personas
+        else:
+            # Fallback: check cwd
+            personas_dir = Path.cwd() / "personas"
+
+    logger.debug(f"Using personas from: {personas_dir}")
+
+    # Lazy imports - do heavy imports AFTER argument parsing for fast --help/--version
+    from .config import Config
+    from .dashboard import VoiceAssistantApp, WizardScreen
+    from .personas import PersonaManager
+    from .memory import MemoryManager
+    from .wake_word import WakeWordDetector
+    from .scheduler import Scheduler
 
     # GPU detection and service selection
     from .hardware import detect_gpu_capability, select_services
@@ -314,6 +384,10 @@ Configuration:
     # Set debug mode flag
     config.is_debug_mode = args.debug
 
+    # Voice disabled by default until voice interface is complete
+    # TODO: Re-enable when Moshi voice server is production-ready
+    config.voice_enabled = False
+
     # Load API keys from .env if in debug mode
     if args.debug:
         config = Config.load_env_keys(config)
@@ -327,16 +401,15 @@ Configuration:
     # Check if first run (no config file exists)
     # Skip wizard in debug mode for faster local testing
     if not args.debug and not (args.config or Config.get_config_path().exists()):
-        print("👋 Welcome! Let's set up your voice assistant...\n")
+        logger.info("First run - showing wizard")
         try:
             # Show wizard in TUI
             config = asyncio.run(show_wizard(personas_dir))
             if not config:
-                print("Setup cancelled. Using defaults.")
+                logger.debug("Setup cancelled. Using defaults.")
                 config = Config()
         except Exception as e:
-            print(f"Wizard error: {e}")
-            print("Using default configuration.")
+            logger.warning(f"Wizard error: {e}")
             config = Config()
     elif args.debug and not (args.config or Config.get_config_path().exists()):
         config = Config()
@@ -345,22 +418,42 @@ Configuration:
     # The server runs MLX inference in a separate process for proper Metal GPU utilization
     voice_server_process = None
     voice_queues = None
-    
-    print(f"DEBUG: Moshi Mode: {service_config.moshi_mode}")
-    if service_config.moshi_mode == "local":
-        print(f"🚀 Starting voice server (quality={service_config.moshi_quality})...")
+
+    logger.debug(f"Moshi Mode: {service_config.moshi_mode}")
+    if service_config.moshi_mode == "local" and config.voice_enabled:
+        logger.debug(f"Starting voice server (quality={service_config.moshi_quality})...")
         try:
             from .voice_server import start_server_process
             # Unpack the tuple returned by start_server_process
             process, c2s, s2c, status = start_server_process(quality=service_config.moshi_quality)
             voice_server_process = process
             voice_queues = (c2s, s2c, status)
-            print("✅ Voice server process started")
+            logger.debug("Voice server process started")
         except Exception as e:
-            print(f"⚠️  Failed to start voice server: {e}")
+            logger.warning(f"Failed to start voice server: {e}")
             if args.debug:
                 import traceback
-                traceback.print_exc()
+                logger.debug(traceback.format_exc())
+
+    # ===== TUNNEL INTEGRATION =====
+    # Tunnels are started in the BACKGROUND after TUI launches for fast startup.
+    # Two-tier tunneling system:
+    # - FREE: Cloudflare tunnel for HTTP webhooks (email, SMS)
+    # - PREMIUM: ngrok for WebSocket (Twilio voice)
+    http_tunnel = None
+    voice_tunnel = None
+
+    # Store tunnel config for background startup
+    tunnel_config = {
+        'enabled': config.tunnel_enabled,
+        'sendgrid_enabled': config.sendgrid_enabled,
+        'has_phone_subscription': config.has_phone_subscription,
+        'voice_enabled': config.voice_enabled,
+        'moshi_mode': service_config.moshi_mode,
+        'webhook_server_port': config.webhook_server_port,
+        'voice_server_port': config.voice_server_port,
+        'debug': args.debug
+    }
 
     # Create and run assistant
     assistant = VoiceAssistant(config, personas_dir, voice_server_process=voice_server_process, voice_queues=voice_queues)
@@ -369,12 +462,18 @@ Configuration:
         asyncio.run(assistant.initialize())
         asyncio.run(assistant.run())
     except Exception as e:
-        print(f"Error: {e}")
+        logger.error(f"Error: {e}")
         if args.debug:
             import traceback
-            traceback.print_exc()
+            logger.debug(traceback.format_exc())
         sys.exit(1)
     finally:
+        # Cleanup tunnels
+        if http_tunnel:
+            http_tunnel.stop()
+        if voice_tunnel:
+            voice_tunnel.stop()
+
         # Cleanup voice server
         if voice_server_process:
             voice_server_process.terminate()
