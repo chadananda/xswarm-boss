@@ -1350,15 +1350,29 @@ class UserProfile:
         return [f for f in self.facts if f.category == category]
 
     def get_user_name(self) -> Optional[str]:
-        """Get the user's name from identity facts."""
+        """Get the user's name from identity facts.
+
+        Only matches explicit name statements like:
+        - "User's name is Chad"
+        - "Name is Chad"
+        - "User is called Chad"
+        - "Goes by Chad"
+
+        Does NOT match activity patterns like "User is hiring" or "User is working".
+        """
+        import re
         for fact in self.get_facts_by_category("identity"):
             fact_lower = fact.fact.lower()
-            if "name is" in fact_lower or "called" in fact_lower:
-                # Extract name from fact
-                import re
-                match = re.search(r"(?:name is|called|i'm|i am)\s+(\w+)", fact_lower)
+            # Only match explicit name declarations, not activity statements
+            # Require "name" keyword or "called/goes by" for names
+            if "name is" in fact_lower:
+                match = re.search(r"name is\s+([A-Z][a-z]+)", fact.fact)
                 if match:
-                    return match.group(1).capitalize()
+                    return match.group(1)
+            elif "called" in fact_lower or "goes by" in fact_lower:
+                match = re.search(r"(?:called|goes by)\s+([A-Z][a-z]+)", fact.fact)
+                if match:
+                    return match.group(1)
         return None
 
     def get_context_string(self) -> str:

@@ -12,6 +12,7 @@ assistant/mailer.py
 assistant/main.py
 assistant/memory.py
 assistant/phone.py
+assistant/planner.py
 assistant/scheduler.py
 assistant/styles.tcss
 assistant/subconscious.py
@@ -87,6 +88,7 @@ assistant/plugins/manager.py
 assistant/scripts/download_models.py
 assistant/scripts/parallel_download.py
 assistant/scripts/robust_download.py
+assistant/scripts/run_twilio_server.py
 assistant/scripts/verified_fast_download.py
 voice_assistant.egg-info/PKG-INFO
 voice_assistant.egg-info/SOURCES.txt

@@ -26,15 +26,71 @@ warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub"
 warnings.filterwarnings("ignore", category=FutureWarning)
 
 import asyncio
+import signal
 import sys
 from pathlib import Path
 from typing import Optional, cast
 import argparse
 import atexit
 import logging
+import shutil
 
 # Defer logging setup to main() to avoid multiprocessing pickle issues
 logger = logging.getLogger(__name__)
+
+
+# ASCII art logo for splash screen (simple, no box)
+SPLASH_LOGO = """
+██╗  ██╗███████╗██╗    ██╗ █████╗ ██████╗ ███╗   ███╗
+╚██╗██╔╝██╔════╝██║    ██║██╔══██╗██╔══██╗████╗ ████║
+ ╚███╔╝ ███████╗██║ █╗ ██║███████║██████╔╝██╔████╔██║
+ ██╔██╗ ╚════██║██║███╗██║██╔══██║██╔══██╗██║╚██╔╝██║
+██╔╝ ██╗███████║╚███╔███╔╝██║  ██║██║  ██║██║ ╚═╝ ██║
+╚═╝  ╚═╝╚══════╝ ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝     ╚═╝
+"""
+
+
+def show_splash():
+    """Display ASCII art splash screen while loading."""
+    import sys
+    import os
+
+    # Suppress any buffered output first
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    # Clear screen completely (works on most terminals)
+    os.system('clear' if os.name != 'nt' else 'cls')
+
+    # Get terminal size
+    term_width = shutil.get_terminal_size().columns
+    term_height = shutil.get_terminal_size().lines
+
+    # Calculate centering
+    logo_lines = SPLASH_LOGO.strip().split('\n')
+    logo_width = max(len(line) for line in logo_lines)
+    logo_height = len(logo_lines)
+
+    # Vertical centering (account for loading text below)
+    vertical_padding = max(0, (term_height - logo_height - 4) // 2)
+
+    # Horizontal centering
+    horizontal_padding = max(0, (term_width - logo_width) // 2)
+
+    # Print vertical padding
+    print('\n' * vertical_padding, end='')
+
+    # Print logo with horizontal centering
+    for line in logo_lines:
+        print(' ' * horizontal_padding + line)
+
+    # Print tagline and loading message
+    print()
+    tagline = "AI Assistant"
+    print(' ' * ((term_width - len(tagline)) // 2) + tagline)
+    print()
+    loading_text = "Loading..."
+    print(' ' * ((term_width - len(loading_text)) // 2) + loading_text, flush=True)
 
 # Lazy imports - these are heavy and slow down startup
 # Actual imports happen in main() after argument parsing
@@ -225,6 +281,24 @@ class VoiceAssistant:
         """Run the application"""
         self.is_running = True
 
+        # Aggressively clean up terminal state before TUI starts
+        # This prevents stray characters from appearing after splash screen
+        try:
+            import termios
+            import select
+
+            # Flush stdin buffer
+            termios.tcflush(sys.stdin.fileno(), termios.TCIFLUSH)
+
+            # Also consume any pending input using non-blocking read
+            while select.select([sys.stdin], [], [], 0)[0]:
+                sys.stdin.read(1)
+        except (ImportError, termios.error, OSError, ValueError):
+            pass  # Not a TTY or not Unix
+
+        # Clear screen before TUI to remove any stray output
+        print("\033[2J\033[H", end="", flush=True)
+
         try:
             # Run TUI dashboard (Textual handles SIGINT/SIGTERM internally)
             # mouse=True enables clicking on tabs/buttons (required for proper TUI interaction)
@@ -335,47 +409,66 @@ Configuration:
 
     args = parser.parse_args()
 
-    # Ensure only one instance runs at a time
-    config_dir = Path.home() / ".config" / "xswarm"
-    lockfile = config_dir / "assistant.lock"
-    lock = SingletonLock(lockfile)
+    # Show splash screen immediately (before heavy imports)
+    # This clears any stray output and shows the logo while loading
+    show_splash()
 
-    if not lock.acquire():
-        # Another instance is already running
-        pid = lockfile.read_text().strip()
-        logger.warning(f"Voice assistant is already running (PID {pid})")
-        sys.exit(1)
+    # Suppress ALL stdout/stderr during imports to prevent stray output
+    # This prevents any library from printing during initialization
+    import io
+    _real_stdout = sys.stdout
+    _real_stderr = sys.stderr
+    sys.stdout = io.StringIO()
+    sys.stderr = io.StringIO()
 
-    # Get personas directory from installed package location
-    # The personas are bundled in the package at assistant/personas/
-    # Path: packages/assistant/assistant/personas/
-    personas_dir = Path(__file__).parent / "personas"
+    try:
+        # Ensure only one instance runs at a time
+        config_dir = Path.home() / ".config" / "xswarm"
+        lockfile = config_dir / "assistant.lock"
+        lock = SingletonLock(lockfile)
 
-    if not personas_dir.exists():
-        logger.debug(f"Personas directory not found at {personas_dir}, trying fallbacks...")
-        # Fallback: check project root personas directory
-        project_root_personas = Path(__file__).parents[3] / "personas"
-        if project_root_personas.exists():
-            personas_dir = project_root_personas
-        else:
-            # Fallback: check cwd
-            personas_dir = Path.cwd() / "personas"
+        if not lock.acquire():
+            # Another instance is already running
+            sys.stdout = _real_stdout
+            sys.stderr = _real_stderr
+            pid = lockfile.read_text().strip()
+            logger.warning(f"Voice assistant is already running (PID {pid})")
+            sys.exit(1)
 
-    logger.debug(f"Using personas from: {personas_dir}")
+        # Get personas directory from installed package location
+        # The personas are bundled in the package at assistant/personas/
+        # Path: packages/assistant/assistant/personas/
+        personas_dir = Path(__file__).parent / "personas"
 
-    # Lazy imports - do heavy imports AFTER argument parsing for fast --help/--version
-    from .config import Config
-    from .dashboard import VoiceAssistantApp, WizardScreen
-    from .personas import PersonaManager
-    from .memory import MemoryManager
-    from .wake_word import WakeWordDetector
-    from .scheduler import Scheduler
+        if not personas_dir.exists():
+            logger.debug(f"Personas directory not found at {personas_dir}, trying fallbacks...")
+            # Fallback: check project root personas directory
+            project_root_personas = Path(__file__).parents[3] / "personas"
+            if project_root_personas.exists():
+                personas_dir = project_root_personas
+            else:
+                # Fallback: check cwd
+                personas_dir = Path.cwd() / "personas"
 
-    # GPU detection and service selection
-    from .hardware import detect_gpu_capability, select_services
+        logger.debug(f"Using personas from: {personas_dir}")
 
-    gpu = detect_gpu_capability()
-    service_config = select_services(gpu)
+        # Lazy imports - do heavy imports AFTER argument parsing for fast --help/--version
+        from .config import Config
+        from .dashboard import VoiceAssistantApp, WizardScreen
+        from .personas import PersonaManager
+        from .memory import MemoryManager
+        from .wake_word import WakeWordDetector
+        from .scheduler import Scheduler
+
+        # GPU detection and service selection
+        from .hardware import detect_gpu_capability, select_services
+
+        gpu = detect_gpu_capability()
+        service_config = select_services(gpu)
+    finally:
+        # Restore stdout/stderr
+        sys.stdout = _real_stdout
+        sys.stderr = _real_stderr
 
     # Load or create config
     config_path = args.config if args.config else None
@@ -458,9 +551,33 @@ Configuration:
     # Create and run assistant
     assistant = VoiceAssistant(config, personas_dir, voice_server_process=voice_server_process, voice_queues=voice_queues)
 
+    # Final clear screen before TUI starts to remove any stray output from imports
+    # This catches any output from libraries that write directly to stdout/stderr
+    sys.stdout.flush()
+    sys.stderr.flush()
+    os.system('clear' if os.name != 'nt' else 'cls')
+
+    # Set up signal handler for clean exit (no traceback on Ctrl+C)
+    # Use KeyboardInterrupt instead of sys.exit() to avoid threading shutdown issues
+    _shutdown_requested = False
+
+    def signal_handler(sig, frame):
+        nonlocal _shutdown_requested
+        if _shutdown_requested:
+            # Second signal - force exit
+            os._exit(0)
+        _shutdown_requested = True
+        raise KeyboardInterrupt()
+
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+
     try:
         asyncio.run(assistant.initialize())
         asyncio.run(assistant.run())
+    except (KeyboardInterrupt, SystemExit):
+        # Clean exit on Ctrl+C - no traceback needed
+        pass
     except Exception as e:
         logger.error(f"Error: {e}")
         if args.debug:
@@ -468,16 +585,24 @@ Configuration:
             logger.debug(traceback.format_exc())
         sys.exit(1)
     finally:
-        # Cleanup tunnels
-        if http_tunnel:
-            http_tunnel.stop()
-        if voice_tunnel:
-            voice_tunnel.stop()
+        # Suppress any exceptions during cleanup
+        try:
+            # Cleanup tunnels
+            if http_tunnel:
+                http_tunnel.stop()
+            if voice_tunnel:
+                voice_tunnel.stop()
 
-        # Cleanup voice server
-        if voice_server_process:
-            voice_server_process.terminate()
-            voice_server_process.join(timeout=2)
+            # Cleanup voice server
+            if voice_server_process:
+                voice_server_process.terminate()
+                voice_server_process.join(timeout=2)
+
+            # Shutdown any remaining ThreadPoolExecutor threads gracefully
+            import concurrent.futures
+            concurrent.futures.thread._threads_queues.clear()
+        except (KeyboardInterrupt, Exception):
+            pass
 
 
 if __name__ == "__main__":

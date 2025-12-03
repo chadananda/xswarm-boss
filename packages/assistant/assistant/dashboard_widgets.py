@@ -1803,22 +1803,71 @@ class CompactCyberpunkHeader(Static):
 
 class ProjectDashboard(Static, can_focus=True):
     """
-    Project status dashboard showing active projects and progress.
+    Project status dashboard showing active projects from planner.
     Keyboard navigation: left/escape returns to sidebar.
+    Auto-refreshes every 5 seconds to pick up changes.
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Mock data
-        self.projects = [
-            {"name": "Authentication", "status": "In Progress", "progress": 78, "priority": "High"},
-            {"name": "Marketing Site", "status": "Review", "progress": 92, "priority": "Medium"},
-            {"name": "Mobile App", "status": "Planning", "progress": 15, "priority": "High"},
-            {"name": "API Integration", "status": "Blocked", "progress": 45, "priority": "Critical"},
-        ]
+        self._last_data_hash: Optional[str] = None
+
+    def on_mount(self) -> None:
+        """Start auto-refresh timer when mounted."""
+        self.set_interval(5.0, self._check_for_updates)
+
+    def _check_for_updates(self) -> None:
+        """Check if planner data changed and refresh if needed."""
+        try:
+            from .tools import get_planner_data
+            planner = get_planner_data()
+            planner.reload()
+
+            # Hash includes projects, goals, and habits for comprehensive refresh
+            projects = planner.get_projects()
+            goals = planner.get_goals()
+            habits = planner.get_habits()
+            data_hash = f"{len(projects)}:{len(goals)}:{len(habits)}"
+
+            if data_hash != self._last_data_hash:
+                self._last_data_hash = data_hash
+                self.refresh()
+        except Exception:
+            pass
+
+    def _get_projects(self):
+        """Get projects from planner data with fresh data from disk."""
+        try:
+            from .tools import get_planner_data
+            planner = get_planner_data()
+            # Force reload to get latest data (AI may have added projects)
+            planner.reload()
+            return planner.get_projects()
+        except Exception:
+            return []
+
+    def _get_goals(self):
+        """Get goals from planner data."""
+        try:
+            from .tools import get_planner_data
+            planner = get_planner_data()
+            planner.reload()
+            return planner.get_goals()
+        except Exception:
+            return []
+
+    def _get_habits(self):
+        """Get habits from planner data."""
+        try:
+            from .tools import get_planner_data
+            planner = get_planner_data()
+            planner.reload()
+            return planner.get_habits()
+        except Exception:
+            return []
 
     def render(self) -> Text:
-        """Render project list with progress bars"""
+        """Render project list with health indicators, goals, and habit streaks."""
         result = Text()
 
         # Use theme colors if available
@@ -1834,40 +1883,163 @@ class ProjectDashboard(Static, can_focus=True):
             shade_3 = "#4d5966"
             shade_4 = "#6b7a8a"
 
-        result.append("ACTIVE PROJECTS\n", style=f"bold {primary}")
-        result.append("─" * 30 + "\n", style=shade_3)
+        # Top padding
+        result.append("\n")
 
-        for proj in self.projects:
-            # Project Name and Status
-            result.append(f" {proj['name']:<20}", style="bold white")
-            
-            status_colors = {
-                "In Progress": "blue",
-                "Review": "yellow",
-                "Planning": "dim white",
-                "Blocked": "red",
-                "Done": "green"
-            }
-            color = status_colors.get(proj['status'], "white")
-            result.append(f" {proj['status']:<12}", style=color)
+        # === GOALS SECTION ===
+        goals = self._get_goals()
+        if goals:
+            result.append("GOALS\n", style=f"bold {primary}")
+            result.append("─" * 50 + "\n", style=shade_3)
+
+            for goal in goals:
+                progress = goal.progress_percent()
+                # Progress bar (20 chars wide)
+                bar_width = 20
+                filled = int(progress / 100 * bar_width)
+                empty = bar_width - filled
+                bar = "█" * filled + "░" * empty
+
+                # Direction arrow
+                if goal.direction == "down":
+                    arrow = "↓"
+                    trend_color = "green" if goal.current_value <= goal.start_value else "red"
+                else:
+                    arrow = "↑"
+                    trend_color = "green" if goal.current_value >= goal.start_value else "red"
+
+                result.append(f" {goal.name}: ", style="bold white")
+                result.append(f"{goal.current_value}{goal.unit}", style=trend_color)
+                result.append(f" {arrow} {goal.target_value}{goal.unit}\n", style="dim")
+                result.append(f"   [{bar}] {progress:.0f}%\n", style=shade_4)
+
             result.append("\n")
 
-            # Progress Bar
-            bar_width = 30
-            filled = int(proj['progress'] / 100 * bar_width)
-            
-            # Progress color based on percentage
-            if proj['progress'] < 30:
-                prog_color = "red"
-            elif proj['progress'] < 70:
-                prog_color = "yellow"
-            else:
-                prog_color = "green"
-                
-            result.append(" [", style=shade_3)
-            result.append("█" * filled, style=prog_color)
-            result.append("░" * (bar_width - filled), style=shade_2)
-            result.append(f"] {proj['progress']}%\n", style=shade_3)
+        # === STREAKS SECTION ===
+        habits = self._get_habits()
+        if habits:
+            result.append("HABIT STREAKS\n", style=f"bold {primary}")
+            result.append("─" * 50 + "\n", style=shade_3)
+
+            today = datetime.now().date()
+            for habit in habits:
+                # Get streak counts
+                current_streak = habit.current_streak if hasattr(habit, 'current_streak') else 0
+                longest_streak = habit.longest_streak if hasattr(habit, 'longest_streak') else current_streak
+                history = getattr(habit, 'completion_history', []) or []
+                total_completions = len(history)
+
+                result.append(f" {habit.name}\n", style="bold white")
+
+                # Adaptive display based on data available
+                if total_completions == 0:
+                    # No data yet - just show prompt
+                    result.append("   Not started yet\n", style="dim italic")
+                elif total_completions == 1:
+                    # Just started - textual only
+                    result.append(f"   Started! 1 day logged\n", style="green")
+                elif total_completions <= 3:
+                    # Few days - textual with mini stats
+                    result.append(f"   {total_completions} days logged", style="white")
+                    if current_streak > 0:
+                        result.append(f" · {current_streak} day streak", style="green")
+                    result.append("\n")
+                else:
+                    # Enough data - show calendar + stats
+                    # Build mini calendar (last 14 days for more context)
+                    days_to_show = min(14, max(7, total_completions))
+                    calendar = ""
+                    for i in range(days_to_show - 1, -1, -1):
+                        check_date = (today - timedelta(days=i)).isoformat()
+                        if check_date in history:
+                            calendar += "■"
+                        else:
+                            calendar += "□"
+
+                    result.append(f"   {calendar}\n", style="green" if current_streak > 0 else "dim")
+
+                    # Current vs longest streak comparison
+                    if current_streak > 0:
+                        if current_streak >= longest_streak and longest_streak > 1:
+                            result.append(f"   🔥 {current_streak} days ", style="bold yellow")
+                            result.append("(best streak!)\n", style="green")
+                        elif longest_streak > current_streak:
+                            result.append(f"   🔥 {current_streak} days ", style="yellow")
+                            result.append(f"(best: {longest_streak})\n", style="dim")
+                        else:
+                            result.append(f"   🔥 {current_streak} day streak\n", style="yellow")
+                    else:
+                        if longest_streak > 0:
+                            result.append(f"   Streak broken (best was {longest_streak})\n", style="dim")
+
+            result.append("\n")
+
+        # === PROJECTS SECTION ===
+        projects = self._get_projects()
+
+        result.append("PROJECTS\n", style=f"bold {primary}")
+        result.append("─" * 50 + "\n", style=shade_3)
+
+        if not projects:
+            result.append("\n No projects yet.\n", style="dim")
+            result.append(" Ask the AI to create a project for you.\n", style="dim italic")
+            return result
+
+        # Health indicator colors
+        health_colors = {
+            "green": "green",
+            "yellow": "yellow",
+            "red": "red",
+        }
+
+        # Status display
+        status_colors = {
+            "active": "blue",
+            "paused": "yellow",
+            "completed": "green",
+            "archived": "dim",
+        }
+
+        for proj in projects:
+            # Health indicator dot
+            health_color = health_colors.get(proj.health, "white")
+            result.append(" ● ", style=health_color)
+
+            # Project name
+            result.append(f"{proj.name}", style="bold white")
+
+            # Status badge
+            status_color = status_colors.get(proj.status, "white")
+            result.append(f"  [{proj.status}]", style=status_color)
+            result.append("\n")
+
+            # Description
+            if proj.description:
+                result.append(f"   {proj.description}\n", style="dim")
+
+            # Area tag
+            if proj.area:
+                result.append(f"   #{proj.area}", style=shade_4)
+
+            # Target date if set
+            if proj.target_date:
+                result.append(f"  Due: {proj.target_date}", style=shade_4)
+            result.append("\n")
+
+            # Folders
+            folders = getattr(proj, 'folders', None)
+            if folders:
+                for folder in folders:
+                    result.append(f"   {folder}\n", style=shade_4)
+
+            # Next action (most important for GTD)
+            if proj.next_action:
+                result.append(f"   → {proj.next_action}\n", style="italic")
+
+            # Health reason if not green
+            if proj.health != "green" and proj.health_reason:
+                result.append(f"   ⚠ {proj.health_reason}\n", style=health_color)
+
             result.append("\n")
 
         return result
@@ -1940,21 +2112,132 @@ class WorkerDashboard(Static, can_focus=True):
 
 class ScheduleWidget(Static, can_focus=True):
     """
-    Schedule/Calendar widget showing upcoming events.
+    Schedule/Calendar widget showing today's schedule and upcoming events.
+    Pulls from planner calendar events and tasks.
+    Auto-refreshes every 5 seconds to pick up changes.
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # Mock data
-        self.events = [
-            {"time": "10:00", "title": "Daily Standup", "type": "meeting"},
-            {"time": "11:30", "title": "Code Review: Auth", "type": "work"},
-            {"time": "14:00", "title": "Client Demo", "type": "meeting"},
-            {"time": "16:00", "title": "Deep Work Block", "type": "focus"},
-        ]
+        self._last_data_hash: Optional[str] = None
+
+    def on_mount(self) -> None:
+        """Start auto-refresh timer when mounted."""
+        self.set_interval(5.0, self._check_for_updates)
+
+    def _check_for_updates(self) -> None:
+        """Check if planner data changed and refresh display if needed.
+        Auto-scheduling happens when data is modified (add/complete/update task)."""
+        try:
+            from .tools import get_planner_data
+            planner = get_planner_data()
+            planner.reload()
+
+            # Build hash of current data state to detect changes
+            events = planner.get_calendar_events()
+            tasks = planner.get_tasks()
+            # Include task count, priorities, and scheduled times in hash
+            task_data = ":".join(f"{t.id}:{t.priority}:{t.scheduled_time or ''}" for t in tasks[:20])
+            data_hash = f"{len(events)}:{len(tasks)}:{task_data}"
+
+            if data_hash != self._last_data_hash:
+                self._last_data_hash = data_hash
+                # Only reschedule when data actually changed
+                planner.auto_schedule_tasks()
+                self.refresh()
+        except Exception:
+            pass
+
+    def _get_planner_data(self):
+        """Get planner data instance with fresh data from disk."""
+        try:
+            from .tools import get_planner_data
+            planner = get_planner_data()
+            # Force reload to get latest data (AI may have added events)
+            planner.reload()
+            return planner
+        except Exception:
+            return None
+
+    def _get_todays_events(self):
+        """Get today's calendar events."""
+        planner = self._get_planner_data()
+        if not planner:
+            return []
+        try:
+            return planner.get_todays_events()
+        except Exception:
+            return []
+
+    def _get_upcoming_events(self, days=7):
+        """Get upcoming calendar events for the week."""
+        planner = self._get_planner_data()
+        if not planner:
+            return []
+        try:
+            return planner.get_upcoming_events(days=days)
+        except Exception:
+            return []
+
+    def _get_todays_tasks(self):
+        """Get tasks to show today: inbox, next, scheduled, and completed today."""
+        planner = self._get_planner_data()
+        if not planner:
+            return []
+        try:
+            today_date = datetime.now().date().isoformat()
+
+            # Get tasks with status 'inbox', 'next', or 'scheduled'
+            # Include inbox so users see tasks they just added
+            inbox = planner.get_tasks(status="inbox")
+            tasks = planner.get_tasks(status="next")
+            scheduled = planner.get_tasks(status="scheduled")
+
+            # Also get tasks completed TODAY to show with strikethrough
+            completed = planner.get_tasks(status="complete")
+            completed_today = [
+                t for t in completed
+                if t.completed_at and t.completed_at[:10] == today_date
+            ]
+
+            return inbox + tasks + scheduled + completed_today
+        except Exception:
+            return []
+
+    def _get_habits_due_today(self):
+        """Get all habits for today (both due and completed)."""
+        planner = self._get_planner_data()
+        if not planner:
+            return []
+        try:
+            today = datetime.now().date()
+            today_str = today.isoformat()
+            weekday = today.weekday()  # 0=Monday, 6=Sunday
+
+            # Get ALL habits and filter for today's applicable ones
+            all_habits = planner.get_habits()
+            todays_habits = []
+
+            for habit in all_habits:
+                # Check if this habit should appear today based on frequency
+                show_today = False
+                if habit.frequency == "daily":
+                    show_today = True
+                elif habit.frequency == "weekdays" and weekday < 5:
+                    show_today = True
+                elif habit.frequency == "weekly":
+                    # Show weekly habits any day of the week
+                    show_today = True
+
+                if show_today:
+                    todays_habits.append(habit)
+
+            return todays_habits
+        except Exception:
+            return []
 
     def render(self) -> Text:
-        """Render schedule"""
+        """Render schedule as a checklist with tasks, habits, and meetings."""
         result = Text()
 
         # Use theme colors if available
@@ -1962,34 +2245,157 @@ class ScheduleWidget(Static, can_focus=True):
         if theme:
             primary = theme["primary"]
             shade_3 = theme["shade_3"]
+            shade_4 = theme["shade_4"]
         else:
             primary = "cyan"
             shade_3 = "#4d5966"
+            shade_4 = "#6b7a8a"
 
-        result.append("TODAY'S SCHEDULE\n", style=f"bold {primary}")
-        result.append("─" * 30 + "\n", style=shade_3)
+        now = datetime.now()
+        current_time = now.strftime("%H:%M")
+        current_hour = now.hour
+        today_str = now.strftime("%A, %B %d")
+        today_date = now.date().isoformat()
 
-        current_hour = datetime.now().hour
+        # Top padding for visual breathing room
+        result.append("\n")
 
-        for event in self.events:
-            # Parse hour for simple highlighting
-            event_hour = int(event['time'].split(':')[0])
-            is_past = event_hour < current_hour
-            is_next = event_hour >= current_hour and event_hour < current_hour + 2
+        # === TODAY'S CHECKLIST ===
+        result.append(f"TODAY - {today_str}\n", style=f"bold {primary}")
+        result.append("─" * 50 + "\n", style=shade_3)
 
-            time_style = "dim white" if is_past else "bold yellow" if is_next else "white"
-            title_style = "dim white" if is_past else "bold white" if is_next else "white"
-            
-            # Icon based on type
-            icons = {"meeting": "👥", "work": "💻", "focus": "🧠", "break": "☕"}
-            icon = icons.get(event['type'], "📅")
+        # Collect all items: (time, type, title, duration, done, id)
+        timed_items = []
 
-            result.append(f" {event['time']} ", style=time_style)
-            result.append(f"{icon} ", style="white")
-            result.append(f"{event['title']}\n", style=title_style)
-            
-            if is_next:
-                result.append(" " * 30 + "\n", style=shade_3) # Spacer
+        # 1. Calendar events
+        for event in self._get_todays_events():
+            try:
+                time = event.start_time[11:16] if "T" in event.start_time else "00:00"
+                timed_items.append((time, "event", event.title, 60, False, event.id))
+            except Exception:
+                continue
+
+        # 2. Scheduled tasks (use scheduled_time field or fall back to notes)
+        for task in self._get_todays_tasks():
+            try:
+                sched_time = task.scheduled_time or ""
+                # Fall back to notes for backwards compatibility
+                if not sched_time and task.notes and "Scheduled for " in task.notes:
+                    sched_time = task.notes.split("Scheduled for ")[1][:5]
+                done = task.status == "complete"
+                timed_items.append((sched_time, "task", task.title, task.duration_min, done, task.id))
+            except Exception:
+                continue
+
+        # 3. Habits due today
+        for habit in self._get_habits_due_today():
+            try:
+                time_map = {"morning": "08:00", "afternoon": "14:00", "evening": "19:00", "anytime": ""}
+                pref_time = time_map.get(habit.preferred_time, "")
+                done = habit.last_completed == today_date
+                timed_items.append((pref_time, "habit", habit.name, habit.min_duration, done, habit.id))
+            except Exception:
+                continue
+
+        # Sort: timed items first (by time), then untimed
+        timed_items.sort(key=lambda x: (x[0] == "", x[0]))
+
+        if not timed_items:
+            result.append(" No items scheduled for today.\n", style="dim")
+            result.append(" Say \"plan my day\" to get started.\n\n", style="dim italic")
+        else:
+            # Separate completed and pending items
+            completed_items = [item for item in timed_items if item[4]]  # done=True
+            pending_items = [item for item in timed_items if not item[4]]  # done=False
+
+            # Render completed items first (grayed out, at top)
+            # Completed items: no time or duration, just checkmark and title
+            if completed_items:
+                for time, item_type, title, duration, done, item_id in completed_items:
+                    checkbox = "[✓]"
+                    # Only show icon for events (meetings) - not for tasks/habits
+                    type_icon = "📅 " if item_type == "event" else ""
+
+                    # Completed: green checkbox, gray strikethrough, NO time/duration
+                    result.append(f" {checkbox} ", style="bold green")
+                    result.append(f"{type_icon}", style="dim")
+                    result.append(f"{title}\n", style="dim strike")
+
+                # Add separator between completed and pending
+                if pending_items:
+                    result.append("\n")
+
+            # Render pending items - all should show time and duration
+            for time, item_type, title, duration, done, item_id in pending_items:
+                checkbox = "[ ]"
+                # Always show time (scheduled or "TBD" if not yet scheduled)
+                time_str = f"{time} " if time else "  --  "
+                # Only show icon for events (meetings) - not for tasks/habits
+                type_icon = "📅 " if item_type == "event" else ""
+                # Always show duration
+                dur_str = f" ({duration}min)" if duration else ""
+
+                # Check if past/current/future
+                is_past = time and time < current_time
+                is_current = time and time[:2] == current_time[:2]
+
+                if is_current:
+                    # Current item - highlighted
+                    result.append(f"▶{checkbox} ", style=f"bold {primary}")
+                    result.append(f"{time_str}{type_icon}", style=f"bold {primary}")
+                    result.append(f"{title}", style="bold white")
+                    result.append(f"{dur_str}\n", style="dim")
+                elif is_past:
+                    # Past item - dimmed (missed)
+                    result.append(f" {checkbox} ", style="dim red")
+                    result.append(f"{time_str}{type_icon}", style="dim")
+                    result.append(f"{title}", style="dim")
+                    result.append(f"{dur_str}\n", style="dim")
+                else:
+                    # Future item - normal
+                    result.append(f" {checkbox} ", style="white")
+                    result.append(f"{time_str}{type_icon}", style=shade_4)
+                    result.append(f"{title}", style="white")
+                    result.append(f"{dur_str}\n", style="dim")
+
+        result.append("\n")
+
+        # === UPCOMING THIS WEEK ===
+        result.append("UPCOMING THIS WEEK\n", style=f"bold {primary}")
+        result.append("─" * 50 + "\n", style=shade_3)
+
+        upcoming = self._get_upcoming_events(days=7)
+        # Filter out today's events (already shown above)
+        today_date = datetime.now().date()
+        future_events = []
+        for event in upcoming:
+            try:
+                event_date = datetime.fromisoformat(event.start_time.replace("Z", "+00:00")).date()
+                if event_date > today_date:
+                    future_events.append(event)
+            except Exception:
+                continue
+
+        if not future_events:
+            result.append(" No upcoming events this week.\n", style="dim")
+        else:
+            current_date = None
+            for event in future_events[:10]:  # Limit display
+                try:
+                    event_datetime = datetime.fromisoformat(event.start_time.replace("Z", "+00:00"))
+                    event_date = event_datetime.date()
+
+                    # Show date header if new day
+                    if event_date != current_date:
+                        current_date = event_date
+                        day_name = event_datetime.strftime("%A %m/%d")
+                        result.append(f"\n {day_name}\n", style=f"bold {shade_4}")
+
+                    time_part = event_datetime.strftime("%H:%M")
+                    result.append(f"   {time_part} ", style="white")
+                    result.append(f"{event.title}\n", style="white")
+                except Exception:
+                    continue
 
         return result
 
@@ -2714,6 +3120,9 @@ class ChatHistory(TextArea, can_focus=True):
         # Store messages for reconstruction
         self._messages: List[tuple] = []  # [(sender, text), ...]
         self._last_assistant_response: str = ""
+        # Streaming optimization: track if we're in a streaming update
+        self._streaming_sender: str = ""
+        self._last_line_start: int = 0  # Character position where last message starts
 
     def on_mount(self) -> None:
         """Set up custom theme for chat colors."""
@@ -2754,7 +3163,11 @@ class ChatHistory(TextArea, can_focus=True):
             self._refresh_display()
 
     def update_last_message(self, sender: str, text: str):
-        """Update the last message (replaces typing indicator)."""
+        """Update the last message (replaces typing indicator).
+
+        Optimized for streaming: instead of rebuilding the entire document
+        on every token, we only replace the last line when possible.
+        """
         if self._messages:
             self._messages[-1] = (sender, text)
 
@@ -2762,14 +3175,104 @@ class ChatHistory(TextArea, can_focus=True):
         if sender.lower() not in ["user", "system", "debug"]:
             self._last_assistant_response = text
 
-        self._refresh_display()
+        # Streaming optimization: if same sender and we have a valid position,
+        # just replace the last line instead of rebuilding everything
+        if self._streaming_sender == sender and self._last_line_start >= 0:
+            self._update_last_line_only(sender, text)
+        else:
+            # First update or sender changed - do full refresh and track position
+            self._streaming_sender = sender
+            self._refresh_display()
+            # After refresh, calculate where the last line starts
+            document = self.document
+            if document.line_count > 0:
+                # Sum up lengths of all lines except the last (plus newlines)
+                total = 0
+                for i in range(document.line_count - 1):
+                    total += len(document.get_line(i)) + 1  # +1 for newline
+                self._last_line_start = total
+
+    def _update_last_line_only(self, sender: str, text: str):
+        """Efficiently update only the last line during streaming.
+
+        This avoids the expensive full document rebuild and highlight reapplication
+        that causes jerky scrolling during streaming responses.
+        """
+        document = self.document
+        if document.line_count == 0:
+            return
+
+        # Check if we're at the bottom before update
+        was_at_bottom = self.scroll_offset.y >= (self.virtual_size.height - self.size.height - 5)
+
+        # Build the new last line
+        new_line = f"{sender}: {text}"
+
+        # Get the last row index
+        last_row = document.line_count - 1
+
+        # Replace the entire last line using edit()
+        # TextArea.edit() takes (start, end, replacement) where positions are (row, col)
+        old_line = document.get_line(last_row)
+        self.edit(
+            ((last_row, 0), (last_row, len(old_line))),
+            new_line
+        )
+
+        # Re-apply highlight for just the last row
+        self._apply_highlight_for_row(last_row, new_line, sender)
+
+        # Auto-scroll if we were at the bottom
+        if was_at_bottom:
+            self.scroll_end(animate=False)
+
+    def _apply_highlight_for_row(self, row: int, line: str, sender: str):
+        """Apply highlighting for a single row (optimized for streaming)."""
+        line_bytes = line.encode('utf-8')
+        line_end_byte = len(line_bytes)
+
+        # Parse label position
+        if ": " in line:
+            colon_pos = line.index(": ")
+            label_end_char = colon_pos + 2
+        else:
+            label_end_char = 0
+
+        label_end_byte = self._char_to_byte_pos(line, label_end_char)
+
+        # Determine styles based on sender
+        sender_lower = sender.lower()
+        if sender_lower == "user":
+            text_style = "chat_user"
+            label_style = "chat_user_label"
+        elif sender_lower in ["system", "debug", "thinking"]:
+            text_style = "chat_system"
+            label_style = "chat_system_label"
+        else:
+            text_style = "chat_assistant"
+            label_style = "chat_assistant_label"
+
+        # Update highlights for this row
+        if hasattr(self, '_highlights'):
+            self._highlights[row] = []
+            if label_end_byte > 0:
+                self._highlights[row].append((0, label_end_byte, label_style))
+                self._highlights[row].append((label_end_byte, line_end_byte, text_style))
+            else:
+                self._highlights[row].append((0, line_end_byte, text_style))
 
     def _refresh_display(self):
         """Rebuild the display with all messages and apply highlighting."""
-        # Build plain text content
+        # Reset streaming state - next update will recalculate positions
+        self._streaming_sender = ""
+        self._last_line_start = -1
+
+        # Build plain text content with blank lines between messages for readability
         # Use "sender:" format instead of "[sender]" to avoid bracket formatting issues
         lines = []
-        for sender, text in self._messages:
+        for i, (sender, text) in enumerate(self._messages):
+            if i > 0:
+                lines.append("")  # Blank line between messages
             lines.append(f"{sender}: {text}")
 
         full_text = "\n".join(lines)

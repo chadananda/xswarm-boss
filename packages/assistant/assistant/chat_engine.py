@@ -17,7 +17,6 @@ IMPORTANT: OAuth tokens from Claude Code require the EXACT system prompt
 Persona/agenda must be injected via a preamble in the first user message.
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, List, Dict, Any, AsyncGenerator, Callable
@@ -28,13 +27,14 @@ import httpx
 from .auth import (
     AnthropicAuth,
     get_anthropic_client_headers,
-    get_oauth_system_prompt,
     requires_system_prompt,
     ANTHROPIC_API_URL,
     CLAUDE_CODE_SYSTEM_PROMPT
 )
 from .personas.config import PersonaConfig
 from .memory import PersistentChatHistory, EnhancedMemoryAgent, UserProfile
+from .planner import PlannerData, PlanningSession
+from .tools import set_planner_data, registry as tool_registry
 
 
 # Default persona preamble for when no persona is set
@@ -160,6 +160,15 @@ class ChatEngine:
         # User profile for persistent facts (always in context)
         self.user_profile = UserProfile()
 
+        # Planning system for daily planning and habit tracking
+        self.planner = PlannerData()
+        self.planning_session = PlanningSession(
+            self.planner,
+            user_name=self.user_profile.get_user_name()
+        )
+        # Wire up tools to use the same planner instance
+        set_planner_data(self.planner)
+
         # Start persistent session if chat_history provided
         if self.chat_history:
             self.chat_history.start_session()
@@ -213,6 +222,12 @@ class ChatEngine:
             if user_context:
                 parts.append(f"\n{user_context}")
 
+        # Add planning context (daily planning, habits, tasks, etc.)
+        if self.planning_session:
+            planning_context = self.planning_session.get_planning_context()
+            if planning_context:
+                parts.append(f"\n{planning_context}")
+
         # Add memory context from previous sessions (automatic recall without search)
         if self.chat_history:
             memory_context = self.chat_history.get_context_for_injection()
@@ -222,6 +237,11 @@ class ChatEngine:
         # Add agenda if set
         if self.agenda:
             parts.append(f"\n## Current Agenda\n{self.agenda}")
+
+        # Add tools context
+        tools_context = self._build_tools_context()
+        if tools_context:
+            parts.append(tools_context)
 
         # Add instructions for showing thinking
         if self.config.show_thinking:
@@ -236,6 +256,68 @@ class ChatEngine:
             )
 
         return "\n".join(parts)
+
+    def _build_tools_context(self) -> str:
+        """
+        Build context about available tools and suggested integrations.
+
+        This helps the AI understand what it can do and suggest missing capabilities.
+        """
+        lines = ["\n## Available Tools & Capabilities"]
+
+        # Group tools by category
+        tool_categories = {
+            "Planning & Tasks": [],
+            "Calendar & Schedule": [],
+            "Habits & Goals": [],
+            "Projects": [],
+            "Ideas & Capture": [],
+            "System": []
+        }
+
+        # Categorize tools
+        for name, tool in tool_registry._tools.items():
+            desc = tool.description if hasattr(tool, 'description') else ""
+            entry = f"- {name}: {desc}"
+
+            if any(k in name for k in ['task', 'commitment', 'planning', 'priority']):
+                tool_categories["Planning & Tasks"].append(entry)
+            elif any(k in name for k in ['calendar', 'event', 'schedule', 'meeting']):
+                tool_categories["Calendar & Schedule"].append(entry)
+            elif any(k in name for k in ['habit', 'streak']):
+                tool_categories["Habits & Goals"].append(entry)
+            elif 'project' in name:
+                tool_categories["Projects"].append(entry)
+            elif 'idea' in name:
+                tool_categories["Ideas & Capture"].append(entry)
+            else:
+                tool_categories["System"].append(entry)
+
+        # Add categorized tools
+        for category, tools in tool_categories.items():
+            if tools:
+                lines.append(f"\n### {category}")
+                lines.extend(tools)
+
+        # Add suggested integrations
+        lines.append("\n### Suggested Integrations (Not Yet Configured)")
+        lines.append(
+            "If the user asks about these, suggest they set them up in Settings > Integrations:"
+        )
+        lines.append("- Email: Read, search, draft, and send emails (requires email integration)")
+        lines.append("- External Calendar: Sync with Google Calendar, Outlook (requires OAuth)")
+        lines.append("- File Search: Index and search local files (enable in Settings)")
+        lines.append("- Smart Home: Control lights, thermostat (requires Home Assistant)")
+        lines.append("- Music: Control playback (requires Spotify/Apple Music)")
+
+        lines.append("\n### Tool Usage")
+        lines.append(
+            "When the user requests an action you can perform, confirm what you're doing "
+            "and report the result. For actions requiring missing integrations, explain "
+            "what's needed and offer to help set it up."
+        )
+
+        return "\n".join(lines)
 
     def _build_persona_preamble(self) -> str:
         """
@@ -274,6 +356,12 @@ class ChatEngine:
             user_context = self.user_profile.get_context_string()
             if user_context:
                 parts.append(f"\n{user_context}")
+
+        # Add planning context (daily planning, habits, tasks, etc.)
+        if self.planning_session:
+            planning_context = self.planning_session.get_planning_context()
+            if planning_context:
+                parts.append(f"\n<planning>\n{planning_context}\n</planning>")
 
         # Add memory context from previous sessions
         if self.chat_history:
@@ -359,6 +447,206 @@ class ChatEngine:
 
         return None, content
 
+    async def _stream_with_tools(
+        self,
+        client: httpx.AsyncClient,
+        headers: dict,
+        request_body: dict,
+        api_messages: list,
+        max_tool_rounds: int = 5
+    ) -> AsyncGenerator[str, None]:
+        """
+        Stream response with tool call handling.
+
+        This method handles the full conversation flow including:
+        1. Streaming the initial response
+        2. Detecting tool_use blocks
+        3. Executing tools
+        4. Sending tool results back
+        5. Streaming the final response
+
+        Args:
+            client: HTTP client
+            headers: API headers
+            request_body: Initial request body
+            api_messages: Current conversation messages
+            max_tool_rounds: Maximum tool call rounds to prevent infinite loops
+        """
+        import json
+
+        current_messages = api_messages.copy()
+        tool_round = 0
+
+        while tool_round < max_tool_rounds:
+            tool_round += 1
+
+            # Update request with current messages
+            request_body["messages"] = current_messages
+            request_body["stream"] = True
+
+            async with client.stream(
+                "POST",
+                f"{ANTHROPIC_API_URL}/v1/messages",
+                headers=headers,
+                json=request_body,
+                timeout=120.0  # 2 min timeout for streaming
+            ) as response:
+                if response.status_code != 200:
+                    error_text = await response.aread()
+                    error_msg = f"API error: {error_text.decode()[:200]}"
+                    self.messages.append(ChatMessage(
+                        role=MessageRole.ASSISTANT,
+                        content=error_msg
+                    ))
+                    yield error_msg
+                    return
+
+                # Track content blocks (text and tool_use)
+                full_text = ""
+                tool_calls = []
+                current_tool_call = None
+                current_tool_input = ""
+                stop_reason = None
+
+                async for line in response.aiter_lines():
+                    if line.startswith("data: "):
+                        data_str = line[6:]
+                        if data_str == "[DONE]":
+                            break
+                        try:
+                            event = json.loads(data_str)
+                            event_type = event.get("type", "")
+
+                            if event_type == "message_start":
+                                # Message started
+                                pass
+
+                            elif event_type == "content_block_start":
+                                block = event.get("content_block", {})
+                                if block.get("type") == "tool_use":
+                                    current_tool_call = {
+                                        "id": block.get("id"),
+                                        "name": block.get("name"),
+                                        "input": {}
+                                    }
+                                    current_tool_input = ""
+
+                            elif event_type == "content_block_delta":
+                                delta = event.get("delta", {})
+                                delta_type = delta.get("type", "")
+
+                                if delta_type == "text_delta":
+                                    text = delta.get("text", "")
+                                    full_text += text
+                                    yield text
+
+                                elif delta_type == "input_json_delta":
+                                    # Tool input JSON streaming
+                                    partial = delta.get("partial_json", "")
+                                    current_tool_input += partial
+
+                            elif event_type == "content_block_stop":
+                                if current_tool_call:
+                                    # Parse the accumulated JSON input
+                                    try:
+                                        current_tool_call["input"] = json.loads(current_tool_input) if current_tool_input else {}
+                                    except json.JSONDecodeError:
+                                        current_tool_call["input"] = {}
+                                    tool_calls.append(current_tool_call)
+                                    current_tool_call = None
+                                    current_tool_input = ""
+
+                            elif event_type == "message_delta":
+                                delta = event.get("delta", {})
+                                stop_reason = delta.get("stop_reason")
+
+                        except json.JSONDecodeError:
+                            pass
+
+            # Process any text response
+            if full_text:
+                thinking, main_response = self._parse_thinking(full_text)
+
+                if thinking and self.on_thinking:
+                    self.messages.append(ChatMessage(
+                        role=MessageRole.THINKING,
+                        content=thinking
+                    ))
+                    self.on_thinking(thinking)
+
+                # Only add assistant message if there's actual content
+                if main_response.strip():
+                    self.messages.append(ChatMessage(
+                        role=MessageRole.ASSISTANT,
+                        content=main_response
+                    ))
+
+                    if self.chat_history:
+                        self.chat_history.add_message("assistant", main_response)
+
+                    if self.on_message:
+                        self.on_message("assistant", main_response)
+
+            # If no tool calls, we're done
+            if not tool_calls:
+                return
+
+            # Execute tool calls and prepare tool results
+            yield "\n\n"  # Visual separator
+            tool_results = []
+
+            for tool_call in tool_calls:
+                tool_name = tool_call["name"]
+                tool_input = tool_call["input"]
+                tool_id = tool_call["id"]
+
+                # Show tool execution to user
+                yield f"🔧 Executing: {tool_name}...\n"
+
+                # Execute the tool
+                result = await tool_registry.execute_tool(tool_name, tool_input)
+
+                if result["success"]:
+                    result_text = str(result["result"])
+                    yield f"✓ {result_text}\n"
+                else:
+                    result_text = f"Error: {result['message']}"
+                    yield f"✗ {result_text}\n"
+
+                tool_results.append({
+                    "type": "tool_result",
+                    "tool_use_id": tool_id,
+                    "content": result_text
+                })
+
+            yield "\n"
+
+            # Build assistant message with tool_use blocks for API
+            assistant_content = []
+            if full_text:
+                assistant_content.append({"type": "text", "text": full_text})
+            for tc in tool_calls:
+                assistant_content.append({
+                    "type": "tool_use",
+                    "id": tc["id"],
+                    "name": tc["name"],
+                    "input": tc["input"]
+                })
+
+            # Add assistant message with tool calls to conversation
+            current_messages.append({
+                "role": "assistant",
+                "content": assistant_content
+            })
+
+            # Add tool results as user message
+            current_messages.append({
+                "role": "user",
+                "content": tool_results
+            })
+
+            # Continue loop to get next response with tool results
+
     async def send_message(
         self,
         user_message: str,
@@ -423,73 +711,22 @@ class ChatEngine:
             "stream": should_stream
         }
 
+        # Add tools to request
+        tool_schemas = tool_registry.get_anthropic_tool_schemas()
+        if tool_schemas:
+            request_body["tools"] = tool_schemas
+
         if self.config.temperature != 1.0:
             request_body["temperature"] = self.config.temperature
 
         try:
             async with httpx.AsyncClient(timeout=60.0) as client:
                 if should_stream:
-                    # Streaming response
-                    async with client.stream(
-                        "POST",
-                        f"{ANTHROPIC_API_URL}/v1/messages",
-                        headers=headers,
-                        json=request_body
-                    ) as response:
-                        if response.status_code != 200:
-                            error_text = await response.aread()
-                            error_msg = f"API error: {error_text.decode()[:200]}"
-                            self.messages.append(ChatMessage(
-                                role=MessageRole.ASSISTANT,
-                                content=error_msg
-                            ))
-                            yield error_msg
-                            return
-
-                        full_response = ""
-                        async for line in response.aiter_lines():
-                            if line.startswith("data: "):
-                                data = line[6:]
-                                if data == "[DONE]":
-                                    break
-                                try:
-                                    import json
-                                    event = json.loads(data)
-
-                                    # Handle different event types
-                                    if event.get("type") == "content_block_delta":
-                                        delta = event.get("delta", {})
-                                        if delta.get("type") == "text_delta":
-                                            text = delta.get("text", "")
-                                            full_response += text
-                                            yield text
-
-                                except json.JSONDecodeError:
-                                    pass
-
-                        # Parse thinking from full response
-                        thinking, main_response = self._parse_thinking(full_response)
-
-                        # Add thinking message if present
-                        if thinking and self.on_thinking:
-                            self.messages.append(ChatMessage(
-                                role=MessageRole.THINKING,
-                                content=thinking
-                            ))
-                            self.on_thinking(thinking)
-
-                        # Add assistant message
-                        self.messages.append(ChatMessage(
-                            role=MessageRole.ASSISTANT,
-                            content=main_response
-                        ))
-
-                        # Save to persistent history
-                        if self.chat_history:
-                            self.chat_history.add_message("assistant", main_response)
-
-                        if self.on_message:
-                            self.on_message("assistant", main_response)
+                    # Streaming response with tool support
+                    async for text_chunk in self._stream_with_tools(
+                        client, headers, request_body, api_messages
+                    ):
+                        yield text_chunk
                 else:
                     # Non-streaming response
                     response = await client.post(

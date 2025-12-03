@@ -277,7 +277,11 @@ Footer {
     row-span: 1;
     column-span: 1;
     border: solid $shade-3;
+    border-title-align: left;
+    border-title-style: bold;
+    border-title-color: $shade-4;
     padding: 0 0;
+    overflow-y: auto;
 }
 
 .content-pane.active-pane {
@@ -309,14 +313,20 @@ RadioButton:focus {
     border-left: solid $shade-5;
 }
 
-.pane-header {
-    width: 100%;
+/* Copy logs button positioned in top-right of status pane */
+.copy-logs-btn {
+    dock: top;
+    width: auto;
     height: 1;
-    padding: 0 2;
-    margin: 1 0 1 0;
-    text-style: bold;
+    margin: 0 1 0 0;
+    align: right top;
+    background: transparent;
+    border: none;
     color: $shade-4;
-    background: $dark-bg;
+}
+
+.copy-logs-btn:hover {
+    color: $shade-5;
 }
 
 #content-settings {
@@ -391,6 +401,22 @@ RadioButton:focus {
 
 #content-schedule {
     padding: 0 0;
+}
+
+#schedule-widget {
+    width: 100%;
+    height: auto;
+    padding: 0 2;
+}
+
+#content-projects {
+    padding: 0 0;
+}
+
+#projects-dashboard {
+    width: 100%;
+    height: auto;
+    padding: 0 2;
 }
 
 #content-workers {
@@ -625,6 +651,24 @@ RadioButton:focus {
 
 .hidden {
     display: none;
+}
+
+/* ▓▒░ PANE INPUT - Compact chat input for each pane ░▒▓ */
+.pane-input {
+    width: 100%;
+    height: auto;
+    min-height: 2;
+    max-height: 4;
+    margin-top: 1;
+    dock: bottom;
+    border: solid $shade-3;
+    background: $dark-bg;
+    color: $shade-4;
+    padding: 0 2;
+}
+
+.pane-input:focus {
+    border: solid $shade-4;
 }
 
 /* ▓▒░ END TRANSMISSION ░▒▓ */

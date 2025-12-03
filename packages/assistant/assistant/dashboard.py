@@ -682,9 +682,9 @@ class VoiceAssistantApp(App):
 
     # Key bindings
     BINDINGS = [
-        ("q", "quit", "Quit"),
-        ("ctrl+q", "quit", "Quit"),
-        ("ctrl+c", "quit", "Quit"),  # User requested CTRL-C to exit
+        ("q", "quit", "Quit"),  # Only works when not in input field
+        Binding("ctrl+q", "quit", "Quit", priority=True),
+        Binding("ctrl+c", "quit", "Quit", priority=True),  # User requested CTRL-C to exit
         ("ctrl+l", "copy_logs", "Copy Logs"), # Rebound copy logs to CTRL-L
         # Navigation bindings
         ("j", "nav_down", "Next Tab"),
@@ -695,17 +695,17 @@ class VoiceAssistantApp(App):
         ("left", "focus_sidebar", "Focus Sidebar"),
         ("h", "focus_sidebar", "Focus Sidebar"),
         ("l", "focus_content", "Focus Content"),
-        ("escape", "focus_sidebar", "Back to Sidebar"),
+        Binding("escape", "escape_handler", "Cancel/Back", priority=True),
         # Tab key zone cycling (priority=True to override default focus chain)
         Binding("tab", "cycle_focus_zone", "Next Pane", priority=True),
         Binding("shift+tab", "cycle_focus_zone_reverse", "Prev Pane", priority=True),
         # Quick tab access (new order: Chat first, Settings second)
         ("1", "goto_chat", "Chat"),
-        ("2", "goto_settings", "Settings"),
-        ("3", "goto_status", "Status"),
-        ("4", "goto_tools", "Tools"),
-        ("5", "goto_projects", "Projects"),
-        ("6", "goto_schedule", "Schedule"),
+        ("2", "goto_schedule", "Schedule"),
+        ("3", "goto_projects", "Projects"),
+        ("4", "goto_settings", "Settings"),
+        ("5", "goto_status", "Status"),
+        ("6", "goto_tools", "Tools"),
         ("7", "goto_workers", "Workers"),
     ]
 
@@ -808,8 +808,8 @@ class VoiceAssistantApp(App):
         self.tool_registry.register_tool(make_call_tool)
 
         # Keyboard navigation state (new order: Chat first, Settings second)
-        self._nav_buttons = ["tab-chat", "tab-settings", "tab-status", "tab-tools",
-                            "tab-projects", "tab-schedule", "tab-workers"]
+        self._nav_buttons = ["tab-chat", "tab-schedule", "tab-projects", "tab-settings",
+                            "tab-status", "tab-tools", "tab-workers"]
         self._focused_nav_index = 0  # Track which nav button has keyboard focus
 
         # Chat engine for text-based AI conversations (fallback when voice is disabled)
@@ -817,6 +817,7 @@ class VoiceAssistantApp(App):
         self._chat_engine_initialized = False
         self._initial_welcome_shown = False
         self._ui_fully_initialized = False  # Set True after initial persona selector setup
+        self._current_chat_task: Optional[asyncio.Task] = None  # For cancellation
 
     def _load_theme(self, theme_input: str):
         """
@@ -905,14 +906,46 @@ class VoiceAssistantApp(App):
         except Exception:
             pass
 
+    def action_quit(self) -> None:
+        """Quit the application with proper cleanup."""
+        # Cancel any running chat task first
+        if self._current_chat_task and not self._current_chat_task.done():
+            self._current_chat_task.cancel()
+        # Trigger cleanup via on_unmount, then exit
+        self.exit()
+
+    def action_cancel_chat(self) -> None:
+        """Cancel the current chat request if running."""
+        if self._current_chat_task and not self._current_chat_task.done():
+            self._current_chat_task.cancel()
+            self._current_chat_task = None
+            # Show cancellation in chat
+            try:
+                chat_widget = self.query_one("#chat-history-widget", ChatHistory)
+                chat_widget.update_last_message("System", "(Cancelled)")
+            except Exception:
+                pass
+            self.update_activity("Chat cancelled", "info")
+            return True  # Indicate we handled something
+        return False  # Nothing to cancel
+
+    def action_escape_handler(self) -> None:
+        """Handle Escape: cancel chat if running, otherwise focus sidebar."""
+        # First try to cancel any running chat
+        if self._current_chat_task and not self._current_chat_task.done():
+            self.action_cancel_chat()
+        else:
+            # No chat running, focus sidebar
+            self.action_focus_sidebar()
+
     def action_copy_logs(self) -> None:
         """Copy activity logs to clipboard."""
         try:
             activity_feed = self.query_one("#activity", ActivityFeed)
             # Extract messages from the deque
-            logs = "\n".join([f"[{msg['timestamp']}] [{msg['type'].upper()}] {msg['message']}" 
+            logs = "\n".join([f"[{msg['timestamp']}] [{msg['type'].upper()}] {msg['message']}"
                              for msg in activity_feed.messages])
-            
+
             if logs:
                 pyperclip.copy(logs)
                 self.update_activity("Activity logs copied to clipboard!", "success")
@@ -938,25 +971,24 @@ class VoiceAssistantApp(App):
                 # Tab buttons below visualizer (new order: Chat first, Settings second)
                 with Vertical(id="sidebar"):
                     yield Button(" 💬  Chat", id="tab-chat", classes="tab-button")
+                    yield Button(" 📅  Schedule", id="tab-schedule", classes="tab-button")
+                    yield Button(" 📁  Projects", id="tab-projects", classes="tab-button")
                     yield Button(" ⚙️   Settings", id="tab-settings", classes="tab-button")
                     yield Button(" 📊  Status", id="tab-status", classes="tab-button")
                     yield Button(" 🔧  Tools", id="tab-tools", classes="tab-button")
-                    yield Button(" 📁  Projects", id="tab-projects", classes="tab-button")
-                    yield Button(" 📅  Schedule", id="tab-schedule", classes="tab-button")
                     yield Button(" 💻  Workers", id="tab-workers", classes="tab-button")
 
             # RIGHT COLUMN - Content area
             with Container(id="content-area"):
                 # Status content - Activity feed only (event/error log)
-                with Container(id="content-status", classes="content-pane active-pane"):
-                    with Horizontal(classes="pane-header-row"):
-                        yield Static("[dim]📊[/dim] Status", classes="pane-header")
-                        yield Button("📋 Copy Logs", id="btn-copy-logs", classes="action-button")
+                with Container(id="content-status", classes="content-pane active-pane") as status_pane:
+                    status_pane.border_title = "◉ Status"
+                    yield Button("📋 Copy Logs", id="btn-copy-logs", classes="action-button copy-logs-btn")
                     yield ActivityFeed(id="activity")
 
                 # Settings content
-                with Container(id="content-settings", classes="content-pane"):
-                    yield Static("[dim]⚙️[/dim] Settings", classes="pane-header")
+                with Container(id="content-settings", classes="content-pane") as settings_pane:
+                    settings_pane.border_title = "⚙ Settings"
 
                     # AI Thinking section (new - at top)
                     with Container(classes="settings-group compact", id="ai-thinking-group") as ai_group:
@@ -1125,99 +1157,86 @@ class VoiceAssistantApp(App):
                                 yield Button("Disconnect", id="oauth-zoom-btn", classes="oauth-button oauth-disconnect")
 
                 # Tools content
-                with Container(id="content-tools", classes="content-pane"):
-                    yield Static("[dim]🔧[/dim] Tools", classes="pane-header")
+                with Container(id="content-tools", classes="content-pane") as tools_pane:
+                    tools_pane.border_title = "🔧 Tools"
 
-                    # Create tools tree with feature groups
+                    # Create tools tree dynamically from registry
                     tree = Tree("", id="tools-tree")
                     tree.show_root = False
                     tree.root.expand()
 
-                    # Email Management
-                    email_node = tree.root.add("📧 Email Management", expand=True)
-                    email_node.add_leaf("☑ Read Unread Email")
-                    email_node.add_leaf("☐ Search Email Archive")
-                    email_node.add_leaf("☐ Draft Email Response")
-                    email_node.add_leaf("☐ Send Email")
-                    email_node.add_leaf("☐ Prune Old Email")
-                    email_node.add_leaf("☐ Email Analytics")
+                    # Import tool registry
+                    from .tools import registry as tool_registry
 
-                    # xSwarm Theme & Persona
-                    xswarm_node = tree.root.add("🎨 xSwarm Customization", expand=True)
-                    xswarm_node.add_leaf("☑ Change Theme")
-                    xswarm_node.add_leaf("☑ Switch Persona")
-                    xswarm_node.add_leaf("☐ Customize Voice")
-                    xswarm_node.add_leaf("☐ Adjust Wake Word")
+                    # Categorize tools dynamically
+                    categories = {
+                        "📋 Planning & Tasks": [],
+                        "📅 Calendar & Schedule": [],
+                        "🎯 Habits & Streaks": [],
+                        "📁 Projects": [],
+                        "💡 Ideas & Capture": [],
+                        "⚙️ System": []
+                    }
 
-                    # Project Management
-                    project_node = tree.root.add("📋 Project Management", expand=True)
-                    project_node.add_leaf("☑ View Projects")
-                    project_node.add_leaf("☐ Create Project")
-                    project_node.add_leaf("☐ Update Task Status")
-                    project_node.add_leaf("☐ Assign Tasks")
-                    project_node.add_leaf("☐ Generate Reports")
-                    project_node.add_leaf("☐ Schedule Meetings")
+                    for name, tool in tool_registry._tools.items():
+                        desc = tool.description if hasattr(tool, 'description') else name
+                        # Truncate long descriptions
+                        if len(desc) > 40:
+                            desc = desc[:37] + "..."
+                        entry = f"☑ {desc}"
 
-                    # Worker Management
-                    worker_node = tree.root.add("⚙️  Worker Management", expand=True)
-                    worker_node.add_leaf("☑ View Workers")
-                    worker_node.add_leaf("☐ Start Worker Task")
-                    worker_node.add_leaf("☐ Stop Worker Task")
-                    worker_node.add_leaf("☐ Worker Health Check")
-                    worker_node.add_leaf("☐ Resource Monitoring")
+                        if any(k in name for k in ['task', 'commitment', 'planning', 'priority']):
+                            categories["📋 Planning & Tasks"].append(entry)
+                        elif any(k in name for k in ['calendar', 'event', 'schedule', 'meeting']):
+                            categories["📅 Calendar & Schedule"].append(entry)
+                        elif any(k in name for k in ['habit', 'streak', 'log_habit']):
+                            categories["🎯 Habits & Streaks"].append(entry)
+                        elif 'project' in name:
+                            categories["📁 Projects"].append(entry)
+                        elif 'idea' in name:
+                            categories["💡 Ideas & Capture"].append(entry)
+                        else:
+                            categories["⚙️ System"].append(entry)
 
-                    # File Search & Management
-                    file_node = tree.root.add("🔍 File Operations", expand=True)
-                    file_node.add_leaf("☐ Index Local Files")
-                    file_node.add_leaf("☐ Search Files")
-                    file_node.add_leaf("☐ Find Duplicates")
-                    file_node.add_leaf("☐ Organize Files")
-                    file_node.add_leaf("☐ Backup Files")
+                    # Add categorized tools to tree
+                    for category, tools in categories.items():
+                        if tools:
+                            node = tree.root.add(f"{category} ({len(tools)})", expand=False)
+                            for tool_entry in sorted(tools):
+                                node.add_leaf(tool_entry)
 
-                    # System Control
-                    system_node = tree.root.add("💻 System Control", expand=True)
-                    system_node.add_leaf("☐ Adjust Volume")
-                    system_node.add_leaf("☐ Control Music Playback")
-                    system_node.add_leaf("☐ Set System Preferences")
-                    system_node.add_leaf("☐ Manage Applications")
-                    system_node.add_leaf("☐ System Monitoring")
-
-                    # Voice Commands
-                    voice_node = tree.root.add("🎤 Voice Commands", expand=True)
-                    voice_node.add_leaf("☑ Voice Recognition")
-                    voice_node.add_leaf("☑ Voice Synthesis")
-                    voice_node.add_leaf("☐ Custom Commands")
-                    voice_node.add_leaf("☐ Command Shortcuts")
-
-                    # AI & Automation
-                    ai_node = tree.root.add("🤖 AI Capabilities", expand=True)
-                    ai_node.add_leaf("☑ Natural Language Processing")
-                    ai_node.add_leaf("☑ Context Understanding")
-                    ai_node.add_leaf("☐ Task Automation")
-                    ai_node.add_leaf("☐ Smart Suggestions")
-                    ai_node.add_leaf("☐ Learning Mode")
+                    # Add suggested integrations (not yet available)
+                    suggested_node = tree.root.add("🔮 Suggested Integrations", expand=False)
+                    suggested_node.add_leaf("☐ Email (Gmail/Outlook)")
+                    suggested_node.add_leaf("☐ External Calendar Sync")
+                    suggested_node.add_leaf("☐ File Search & Index")
+                    suggested_node.add_leaf("☐ Smart Home (HomeKit)")
+                    suggested_node.add_leaf("☐ Music (Spotify/Apple)")
+                    suggested_node.add_leaf("☐ Notes (Obsidian/Notion)")
 
                     yield tree
 
                 # Chat content
-                with Container(id="content-chat", classes="content-pane"):
-                    yield Static("[dim]💬[/dim] Chat", classes="pane-header")
+                with Container(id="content-chat", classes="content-pane") as chat_pane:
+                    chat_pane.border_title = "◇ Chat"
                     yield ChatHistory(id="chat-history-widget")
                     yield ExpandableInput(placeholder="Type a message... (Shift+Enter for newline)", id="chat-input")
 
                 # Projects content
-                with Container(id="content-projects", classes="content-pane"):
-                    yield Static("[dim]📁[/dim] Projects", classes="pane-header")
+                with Container(id="content-projects", classes="content-pane") as projects_pane:
+                    projects_pane.border_title = "▣ Projects"
                     yield ProjectDashboard(id="projects-dashboard")
+                    yield ExpandableInput(placeholder="Add project, update status...", id="projects-input", classes="pane-input")
 
                 # Schedule content
-                with Container(id="content-schedule", classes="content-pane"):
-                    yield Static("[dim]📅[/dim] Schedule", classes="pane-header")
+                with Container(id="content-schedule", classes="content-pane") as schedule_pane:
+                    schedule_pane.border_title = "◷ Schedule"
                     yield ScheduleWidget(id="schedule-widget")
+                    yield ExpandableInput(placeholder="Add meeting, change time...", id="schedule-input", classes="pane-input")
 
                 # Workers content
-                with Container(id="content-workers", classes="content-pane"):
-                    yield Static("[dim]💻[/dim] Workers", classes="pane-header")
+                with Container(id="content-workers", classes="content-pane") as workers_pane:
+                    workers_pane.border_title = "⬡ Workers"
                     yield WorkerDashboard(id="workers-dashboard")
         # Footer outside main-layout to span full width at bottom
         yield CyberpunkFooter(id="footer")
@@ -1555,24 +1574,24 @@ class VoiceAssistantApp(App):
         """Jump to Chat tab (1)."""
         self._goto_tab_by_index(0)
 
-    def action_goto_settings(self) -> None:
-        """Jump to Settings tab (2)."""
+    def action_goto_schedule(self) -> None:
+        """Jump to Schedule tab (2)."""
         self._goto_tab_by_index(1)
 
-    def action_goto_status(self) -> None:
-        """Jump to Status tab (3)."""
+    def action_goto_projects(self) -> None:
+        """Jump to Projects tab (3)."""
         self._goto_tab_by_index(2)
 
-    def action_goto_tools(self) -> None:
-        """Jump to Tools tab (4)."""
+    def action_goto_settings(self) -> None:
+        """Jump to Settings tab (4)."""
         self._goto_tab_by_index(3)
 
-    def action_goto_projects(self) -> None:
-        """Jump to Projects tab (5)."""
+    def action_goto_status(self) -> None:
+        """Jump to Status tab (5)."""
         self._goto_tab_by_index(4)
 
-    def action_goto_schedule(self) -> None:
-        """Jump to Schedule tab (6)."""
+    def action_goto_tools(self) -> None:
+        """Jump to Tools tab (6)."""
         self._goto_tab_by_index(5)
 
     def action_goto_workers(self) -> None:
@@ -1656,12 +1675,21 @@ class VoiceAssistantApp(App):
             except Exception:
                 pass  # Pane not found
 
-            # Auto-focus chat input when switching to chat tab
+            # Auto-focus chat input and scroll to bottom when switching to chat tab
             # (user requested: "input should always be selected when on chat pane")
             if new_tab == "chat":
                 self.call_later(self._focus_chat_input)
+                self.call_later(self._scroll_chat_to_bottom)
         except Exception:
             pass  # Widgets not ready yet
+
+    def _scroll_chat_to_bottom(self) -> None:
+        """Scroll chat history to bottom when entering chat pane"""
+        try:
+            chat_history = self.query_one("#chat-history-widget")
+            chat_history.scroll_end(animate=False)
+        except Exception:
+            pass  # Widget not ready yet
 
     def on_select_changed(self, event: Select.Changed) -> None:
         """Handle Select widget changes (persona, AI provider, etc.)"""
@@ -1936,21 +1964,39 @@ class VoiceAssistantApp(App):
             pass
 
     def on_expandable_input_submitted(self, event: ExpandableInput.Submitted) -> None:
-        """Handle chat input submission - fully synchronous for instant response"""
-        if event.input.id == "chat-input":
-            text = event.value
-            if not text.strip():
-                return
+        """Handle chat input submission from any pane - fully synchronous for instant response"""
+        text = event.value
+        if not text.strip():
+            return
 
-            # Add user message IMMEDIATELY (fully synchronous)
-            try:
-                chat_history_widget = self.query_one("#chat-history-widget", ChatHistory)
-                chat_history_widget.add_message("User", text)
-            except Exception:
-                chat_history_widget = None
+        input_id = event.input.id
 
-            # Schedule async work for LATER - don't block the UI thread at all
-            self.call_later(lambda: asyncio.create_task(self._process_chat_message(text, chat_history_widget)))
+        # Get the chat history widget (always show in chat history)
+        try:
+            chat_history_widget = self.query_one("#chat-history-widget", ChatHistory)
+        except Exception:
+            chat_history_widget = None
+
+        # Handle input from different panes with context hints
+        if input_id == "projects-input":
+            # Add context hint for projects
+            text = f"[Context: Projects pane] {text}"
+        elif input_id == "schedule-input":
+            # Add context hint for schedule
+            text = f"[Context: Schedule pane] {text}"
+
+        # Always show user message in chat history (without context prefix)
+        if chat_history_widget:
+            display_text = text
+            for prefix in ["[Context: Projects pane] ", "[Context: Schedule pane] "]:
+                display_text = display_text.replace(prefix, "")
+            chat_history_widget.add_message("User", display_text)
+
+        # Schedule async work for LATER - don't block the UI thread at all
+        # Store the task so it can be cancelled with Escape
+        def start_chat():
+            self._current_chat_task = asyncio.create_task(self._process_chat_message(text, chat_history_widget))
+        self.call_later(start_chat)
 
     async def _process_chat_message(self, text: str, chat_history_widget) -> None:
         """Process chat message asynchronously after UI has updated."""
