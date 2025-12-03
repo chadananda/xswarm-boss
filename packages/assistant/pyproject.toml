@@ -1,6 +1,6 @@
 [project]
 name = "voice-assistant"
-version = "0.32.1"
+version = "0.32.2"
 description = "Developer-centric AI assistant for managing multiple software projects with TUI and optional voice interface"
 authors = [{name = "xSwarm", email = "support@xswarm.io"}]
 requires-python = ">=3.11"

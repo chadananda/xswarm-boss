@@ -1,20 +1,14 @@
-# VHS tape for capturing xSwarm TUI screenshot
-Output assets/tui-screenshot-new.svg
-Output assets/tui-screenshot-new.gif
+# VHS tape for xSwarm TUI screenshot
+Output assets/tui-demo.gif
 
-# Terminal settings
 Set Shell "bash"
-Set FontSize 14
-Set Width 1200
-Set Height 700
-Set Padding 20
-Set Theme "Dracula"
+Set FontSize 13
+Set Width 1400
+Set Height 900
+Set Theme "Catppuccin Mocha"
+Set Padding 15
 
-# Start the app
+# Launch the TUI
 Type "xswarm"
 Enter
-Sleep 6s
-
-# Press q to quit cleanly
-Type "q"
-Sleep 1s
+Sleep 5s
