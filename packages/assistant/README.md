@@ -2,7 +2,7 @@
 
 **Your AI-powered personal productivity system** — GTD task management, adaptive scheduling, habit tracking, and goal monitoring with the personality of your favorite sci-fi AI.
 
-![TUI Demo](../../assets/tui-demo.gif)
+![TUI Screenshot](../../assets/tui-screenshot.svg)
 
 ## Why xSwarm?
 
