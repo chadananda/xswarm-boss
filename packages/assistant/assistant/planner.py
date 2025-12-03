@@ -175,10 +175,95 @@ class Task:
     completed_at: Optional[str] = None  # ISO datetime when completed
     notes: str = ""
     created_at: str = ""
+    # GTD tracking fields
+    defer_count: int = 0  # Times task was bumped/deferred
+    last_scheduled: Optional[str] = None  # YYYY-MM-DD when last scheduled
 
     def __post_init__(self):
         if not self.created_at:
             self.created_at = datetime.now().isoformat()
+
+    def days_old(self) -> int:
+        """Calculate task age in days."""
+        try:
+            created = datetime.fromisoformat(self.created_at)
+            return (datetime.now() - created).days
+        except Exception:
+            return 0
+
+    def gtd_score(self, current_energy: str = "medium") -> float:
+        """
+        Calculate GTD-style priority score for scheduling.
+        Higher score = schedule sooner.
+
+        Factors:
+        - Base priority (critical=50, high=35, medium=20, low=10)
+        - Quick win bonus (short tasks clear faster)
+        - Urgency (due date proximity)
+        - Age bonus (older tasks need attention)
+        - Energy match bonus
+        - Defer penalty (repeatedly bumped = deprioritize)
+        """
+        score = 0.0
+        today = date.today()
+
+        # 1. Base priority weight
+        priority_weights = {"critical": 50, "high": 35, "medium": 20, "low": 10}
+        score += priority_weights.get(self.priority, 20)
+
+        # 2. Quick win bonus - short tasks bubble up to clear queue
+        # This is KEY for GTD: clearing small tasks reduces mental overhead
+        duration = self.duration_min or 30
+        if duration <= 10:
+            score += 30  # 2-minute rule extended - do it now
+        elif duration <= 15:
+            score += 25  # Quick win
+        elif duration <= 30:
+            score += 10  # Reasonable chunk
+        # Longer tasks get no bonus (not penalized, just not boosted)
+
+        # 3. Urgency bonus - due dates matter
+        if self.due_date:
+            try:
+                due = date.fromisoformat(self.due_date)
+                days_until = (due - today).days
+
+                if days_until < 0:
+                    score += 60  # OVERDUE - highest urgency
+                elif days_until == 0:
+                    score += 40  # Due TODAY
+                elif days_until <= 2:
+                    score += 25  # Due very soon
+                elif days_until <= 7:
+                    score += 10  # Due this week
+            except Exception:
+                pass
+
+        # 4. Age bonus - older tasks get slight boost (procrastination prevention)
+        # But not too much - we don't want to force irrelevant old tasks
+        age_days = self.days_old()
+        if age_days >= 14:
+            score += 15  # Been around 2 weeks - needs attention
+        elif age_days >= 7:
+            score += 8  # Week old - gentle nudge
+        elif age_days >= 3:
+            score += 3  # Few days - slight boost
+
+        # 5. Energy match bonus
+        if self.energy == current_energy:
+            score += 5  # Matches current energy level
+
+        # 6. Defer penalty - tasks that keep getting bumped
+        # If bumped many times, might belong in Someday/Maybe
+        defer_count = self.defer_count or 0
+        if defer_count >= 5:
+            score -= 20  # Heavily penalize - probably doesn't really need doing
+        elif defer_count >= 3:
+            score -= 10  # Moderate penalty
+        elif defer_count >= 1:
+            score -= 3  # Slight penalty
+
+        return score
 
 
 @dataclass
@@ -860,16 +945,29 @@ class PlannerData:
                 return Task(**t)
         return None
 
-    def auto_schedule_tasks(self, work_start: str = "09:00", work_end: str = "18:00") -> int:
+    def auto_schedule_tasks(
+        self,
+        work_start: str = "09:00",
+        work_end: str = "18:00",
+        current_energy: str = "medium"
+    ) -> int:
         """
-        Auto-schedule unscheduled tasks into available time slots.
+        Auto-schedule unscheduled tasks into available time slots using GTD scoring.
         Returns number of tasks scheduled.
 
-        Algorithm:
-        0. Clear scheduled_time for past tasks (GPS-like: adjust to reality)
-        1. Build timeline of blocked time (events, habits, already-scheduled tasks)
-        2. Find gaps in timeline
-        3. Assign unscheduled tasks to gaps by priority
+        GTD-Inspired Algorithm:
+        0. Clear scheduled times (GPS-like: recalculate from reality)
+        1. Build timeline of blocked time (events, habits)
+        2. Find available slots
+        3. Score tasks using gtd_score() - considers:
+           - Priority (critical > high > medium > low)
+           - Duration (short tasks bubble up - 2-minute rule)
+           - Urgency (due dates)
+           - Age (older tasks need attention)
+           - Defer count (repeatedly bumped tasks deprioritized)
+        4. Schedule by score (highest first)
+        5. Increment defer_count for tasks that don't fit
+        6. Auto-move to Someday if defer_count exceeds threshold
         """
         from datetime import datetime as dt
 
@@ -980,6 +1078,9 @@ class PlannerData:
         if prev_end < work_end_mins:
             available.append((prev_end, work_end_mins))
 
+        # Calculate total available time
+        total_available = sum(end - start for start, end in available)
+
         # 3. Get unscheduled tasks (inbox, next, scheduled without time)
         unscheduled = []
         for task in self.get_tasks():
@@ -987,14 +1088,14 @@ class PlannerData:
                 if not task.scheduled_time:
                     unscheduled.append(task)
 
-        # Sort by priority (critical first, then high, medium, low)
-        priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
-        unscheduled.sort(key=lambda t: priority_order.get(t.priority, 2))
+        # 4. Sort by GTD score (highest first) - this is the KEY change
+        # Short tasks bubble up, urgent tasks prioritized, stale tasks get attention
+        unscheduled.sort(key=lambda t: t.gtd_score(current_energy), reverse=True)
 
-        # 4. Schedule tasks into available slots using bin-packing approach
-        # Track used time per slot: [(slot_idx, used_minutes), ...]
+        # 5. Schedule tasks into available slots using bin-packing approach
         slot_usage = [0] * len(available)  # Minutes used in each slot
         scheduled_count = 0
+        not_scheduled = []
 
         for task in unscheduled:
             duration = task.duration_min or 30
@@ -1008,13 +1109,36 @@ class PlannerData:
                 if duration <= slot_remaining:
                     # Schedule this task in this slot
                     scheduled_time = minutes_to_time(slot_start + slot_usage[slot_idx])
-                    self.update_task(task.id, scheduled_time=scheduled_time, status="scheduled")
+                    self.update_task(
+                        task.id,
+                        scheduled_time=scheduled_time,
+                        status="scheduled",
+                        last_scheduled=today_str
+                    )
                     slot_usage[slot_idx] += duration
                     scheduled_count += 1
                     scheduled = True
                     break
 
-            # If task didn't fit anywhere, it stays unscheduled (skip it, try next task)
+            if not scheduled:
+                not_scheduled.append(task)
+
+        # 6. Handle tasks that didn't fit (GTD: they get deferred)
+        for task in not_scheduled:
+            # Track that this task was bumped today
+            was_scheduled_today = task.last_scheduled == today_str
+            if not was_scheduled_today:
+                # Only increment if this is a new day of not fitting
+                new_defer_count = (task.defer_count or 0) + 1
+                updates = {"defer_count": new_defer_count, "last_scheduled": today_str}
+
+                # Auto-move to Someday if bumped too many times
+                # GTD principle: if it keeps getting deferred, it's not that important
+                if new_defer_count >= 7:
+                    updates["status"] = "someday"
+                    updates["notes"] = (task.notes or "") + f"\n[Auto-deferred to Someday after {new_defer_count} deferrals]"
+
+                self.update_task(task.id, **updates)
 
         return scheduled_count
 
@@ -1046,6 +1170,89 @@ class PlannerData:
                     overdue.append(task)
 
         return overdue
+
+    def get_someday_tasks(self) -> List[Task]:
+        """Get all tasks in Someday/Maybe list."""
+        return self.get_tasks(status="someday")
+
+    def activate_task(self, task_id: str) -> Optional[Task]:
+        """Move a Someday task back to active status, reset defer count."""
+        return self.update_task(
+            task_id,
+            status="next",
+            defer_count=0,
+            scheduled_time=None
+        )
+
+    def get_stale_tasks(self, days: int = 14) -> List[Task]:
+        """Get tasks that haven't been touched in N days."""
+        stale = []
+        for task in self.get_tasks():
+            if task.status not in ["complete", "someday"]:
+                age = task.days_old()
+                if age >= days:
+                    stale.append(task)
+        return sorted(stale, key=lambda t: t.days_old(), reverse=True)
+
+    def get_frequently_deferred(self, min_deferrals: int = 3) -> List[Task]:
+        """Get tasks that have been deferred multiple times (procrastination candidates)."""
+        deferred = []
+        for task in self.get_tasks():
+            if task.status not in ["complete", "someday"]:
+                if (task.defer_count or 0) >= min_deferrals:
+                    deferred.append(task)
+        return sorted(deferred, key=lambda t: t.defer_count or 0, reverse=True)
+
+    def get_weekly_review_data(self) -> Dict[str, Any]:
+        """
+        Get data for weekly review session.
+        GTD Weekly Review: clarify, organize, reflect.
+        """
+        today = date.today()
+        week_ago = (today - timedelta(days=7)).isoformat()
+
+        # Tasks completed this week
+        completed = [
+            t for t in self.get_tasks(status="complete")
+            if t.completed_at and t.completed_at[:10] >= week_ago
+        ]
+
+        # Stale tasks (need attention)
+        stale = self.get_stale_tasks(days=14)
+
+        # Frequently deferred (procrastination)
+        procrastinating = self.get_frequently_deferred(min_deferrals=3)
+
+        # Someday list (review if still relevant)
+        someday = self.get_someday_tasks()
+
+        # Unprocessed inbox
+        inbox = self.get_tasks(status="inbox")
+
+        # Projects without next actions
+        projects = self.get_projects(status="active")
+        stalled_projects = []
+        for p in projects:
+            project_tasks = self.get_tasks(project_id=p.id)
+            active_tasks = [t for t in project_tasks if t.status in ["next", "scheduled"]]
+            if not active_tasks and not p.next_action:
+                stalled_projects.append(p)
+
+        return {
+            "completed_count": len(completed),
+            "completed_tasks": [{"title": t.title, "completed": t.completed_at} for t in completed],
+            "stale_tasks": [{"title": t.title, "age_days": t.days_old(), "id": t.id} for t in stale[:10]],
+            "procrastinating_tasks": [
+                {"title": t.title, "defer_count": t.defer_count, "id": t.id}
+                for t in procrastinating[:10]
+            ],
+            "someday_count": len(someday),
+            "someday_tasks": [{"title": t.title, "id": t.id} for t in someday[:10]],
+            "inbox_count": len(inbox),
+            "inbox_tasks": [{"title": t.title, "id": t.id} for t in inbox[:10]],
+            "stalled_projects": [{"name": p.name, "id": p.id} for p in stalled_projects],
+            "needs_attention": len(stale) + len(procrastinating) + len(inbox) + len(stalled_projects)
+        }
 
     # ==========================================================================
     # COMMITMENTS CRUD
@@ -1516,9 +1723,18 @@ class PlannerData:
             if p.health in ("yellow", "red")
         ]
 
-        # Tasks
-        pending_tasks = self.get_tasks(status="next") + self.get_tasks(status="inbox")
+        # Tasks by GTD status
+        all_tasks = self.get_tasks()
+        inbox_tasks = [t for t in all_tasks if t.status == "inbox"]
+        next_tasks = [t for t in all_tasks if t.status == "next"]
+        scheduled_tasks = [t for t in all_tasks if t.status == "scheduled"]
+        someday_tasks = [t for t in all_tasks if t.status == "someday"]
+        pending_tasks = inbox_tasks + next_tasks + scheduled_tasks
         overdue_tasks = self.get_overdue_tasks()
+
+        # GTD health metrics
+        stale_tasks = self.get_stale_tasks(days=14)
+        procrastinating_tasks = self.get_frequently_deferred(min_deferrals=3)
 
         # Group tasks by context
         tasks_by_context: Dict[str, int] = {}
@@ -1564,6 +1780,14 @@ class PlannerData:
         # Ideas
         unprocessed_ideas = len(self.get_ideas(processed=False))
 
+        # Suggest weekly review on Sundays or if many items need attention
+        needs_weekly_review = (
+            today.weekday() == 6 or  # Sunday
+            len(stale_tasks) >= 5 or
+            len(procrastinating_tasks) >= 3 or
+            len(inbox_tasks) >= 10
+        )
+
         return {
             "date": today_str,
             "planning_done": self.was_planning_done_today(),
@@ -1580,14 +1804,31 @@ class PlannerData:
                 for p in projects_needing_attention
             ],
 
-            # Tasks
+            # Tasks - GTD status breakdown
             "pending_tasks_count": len(pending_tasks),
+            "inbox_count": len(inbox_tasks),
+            "next_count": len(next_tasks),
+            "scheduled_count": len(scheduled_tasks),
+            "someday_count": len(someday_tasks),
             "overdue_tasks_count": len(overdue_tasks),
             "overdue_tasks": [
                 {"title": t.title, "due": t.due_date, "priority": t.priority}
                 for t in overdue_tasks
             ],
             "tasks_by_context": tasks_by_context,
+
+            # GTD health metrics
+            "stale_tasks_count": len(stale_tasks),
+            "stale_tasks": [
+                {"title": t.title, "age_days": t.days_old()}
+                for t in stale_tasks[:5]
+            ],
+            "procrastinating_tasks_count": len(procrastinating_tasks),
+            "procrastinating_tasks": [
+                {"title": t.title, "defer_count": t.defer_count}
+                for t in procrastinating_tasks[:5]
+            ],
+            "needs_weekly_review": needs_weekly_review,
 
             # Habits
             "habits_count": len(habits),
