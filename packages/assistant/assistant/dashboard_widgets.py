@@ -2237,7 +2237,7 @@ class ScheduleWidget(Static, can_focus=True):
             return []
 
     def render(self) -> Text:
-        """Render schedule as a checklist with tasks, habits, and meetings."""
+        """Render schedule as GTD-style checklist with scheduled and backlog sections."""
         result = Text()
 
         # Use theme colors if available
@@ -2253,37 +2253,37 @@ class ScheduleWidget(Static, can_focus=True):
 
         now = datetime.now()
         current_time = now.strftime("%H:%M")
-        current_hour = now.hour
         today_str = now.strftime("%A, %B %d")
         today_date = now.date().isoformat()
 
         # Top padding for visual breathing room
         result.append("\n")
 
-        # === TODAY'S CHECKLIST ===
-        result.append(f"TODAY - {today_str}\n", style=f"bold {primary}")
-        result.append("─" * 50 + "\n", style=shade_3)
+        # Collect all items: (time, type, title, duration, done, id, priority, task_obj)
+        scheduled_items = []
+        unscheduled_items = []
+        completed_items = []
 
-        # Collect all items: (time, type, title, duration, done, id)
-        timed_items = []
-
-        # 1. Calendar events
+        # 1. Calendar events (always scheduled)
         for event in self._get_todays_events():
             try:
                 time = event.start_time[11:16] if "T" in event.start_time else "00:00"
-                timed_items.append((time, "event", event.title, 60, False, event.id))
+                scheduled_items.append((time, "event", event.title, 60, False, event.id, "high", None))
             except Exception:
                 continue
 
-        # 2. Scheduled tasks (use scheduled_time field or fall back to notes)
+        # 2. Tasks - separate scheduled vs unscheduled
         for task in self._get_todays_tasks():
             try:
-                sched_time = task.scheduled_time or ""
-                # Fall back to notes for backwards compatibility
-                if not sched_time and task.notes and "Scheduled for " in task.notes:
-                    sched_time = task.notes.split("Scheduled for ")[1][:5]
                 done = task.status == "complete"
-                timed_items.append((sched_time, "task", task.title, task.duration_min, done, task.id))
+                item = (task.scheduled_time or "", "task", task.title, task.duration_min, done, task.id, task.priority, task)
+
+                if done:
+                    completed_items.append(item)
+                elif task.scheduled_time:
+                    scheduled_items.append(item)
+                else:
+                    unscheduled_items.append(item)
             except Exception:
                 continue
 
@@ -2293,46 +2293,54 @@ class ScheduleWidget(Static, can_focus=True):
                 time_map = {"morning": "08:00", "afternoon": "14:00", "evening": "19:00", "anytime": ""}
                 pref_time = time_map.get(habit.preferred_time, "")
                 done = habit.last_completed == today_date
-                timed_items.append((pref_time, "habit", habit.name, habit.min_duration, done, habit.id))
+                item = (pref_time, "habit", habit.name, habit.min_duration, done, habit.id, "medium", None)
+
+                if done:
+                    completed_items.append(item)
+                elif pref_time:
+                    scheduled_items.append(item)
+                else:
+                    unscheduled_items.append(item)
             except Exception:
                 continue
 
-        # Sort: timed items first (by time), then untimed
-        timed_items.sort(key=lambda x: (x[0] == "", x[0]))
+        # Sort scheduled by time
+        scheduled_items.sort(key=lambda x: x[0])
 
-        if not timed_items:
-            result.append(" No items scheduled for today.\n", style="dim")
-            result.append(" Say \"plan my day\" to get started.\n\n", style="dim italic")
-        else:
-            # Separate completed and pending items
-            completed_items = [item for item in timed_items if item[4]]  # done=True
-            pending_items = [item for item in timed_items if not item[4]]  # done=False
+        # Sort unscheduled by GTD score (priority + duration bonus)
+        def gtd_sort_key(item):
+            time, item_type, title, duration, done, item_id, priority, task_obj = item
+            if task_obj and hasattr(task_obj, 'gtd_score'):
+                return -task_obj.gtd_score()  # Negative for descending
+            # Fallback: priority order + quick win bonus
+            priority_order = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+            score = priority_order.get(priority, 2) * 10
+            if duration and duration <= 15:
+                score -= 5  # Quick wins bubble up
+            return score
 
-            # Render completed items first (grayed out, at top)
-            # Completed items: no time or duration, just checkmark and title
-            if completed_items:
-                for time, item_type, title, duration, done, item_id in completed_items:
-                    checkbox = "[✓]"
-                    # Only show icon for events (meetings) - not for tasks/habits
-                    type_icon = "📅 " if item_type == "event" else ""
+        unscheduled_items.sort(key=gtd_sort_key)
 
-                    # Completed: green checkbox, gray strikethrough, NO time/duration
-                    result.append(f" {checkbox} ", style="bold green")
-                    result.append(f"{type_icon}", style="dim")
-                    result.append(f"{title}\n", style="dim strike")
-
-                # Add separator between completed and pending
-                if pending_items:
-                    result.append("\n")
-
-            # Render pending items - all should show time and duration
-            for time, item_type, title, duration, done, item_id in pending_items:
-                checkbox = "[ ]"
-                # Always show time (scheduled or "TBD" if not yet scheduled)
-                time_str = f"{time} " if time else "  --  "
-                # Only show icon for events (meetings) - not for tasks/habits
+        # === COMPLETED TODAY ===
+        if completed_items:
+            result.append("✓ COMPLETED\n", style="bold green")
+            result.append("─" * 50 + "\n", style=shade_3)
+            for time, item_type, title, duration, done, item_id, priority, task_obj in completed_items:
                 type_icon = "📅 " if item_type == "event" else ""
-                # Always show duration
+                result.append(f" [✓] {type_icon}{title}\n", style="dim strike")
+            result.append("\n")
+
+        # === TODAY'S SCHEDULE (timed items) ===
+        result.append(f"📅 SCHEDULED - {today_str}\n", style=f"bold {primary}")
+        result.append("─" * 50 + "\n", style=shade_3)
+
+        if not scheduled_items:
+            result.append(" No timed items today.\n", style="dim")
+        else:
+            for time, item_type, title, duration, done, item_id, priority, task_obj in scheduled_items:
+                checkbox = "[ ]"
+                time_str = f"{time} "
+                type_icon = "📅 " if item_type == "event" else ""
                 dur_str = f" ({duration}min)" if duration else ""
 
                 # Check if past/current/future
@@ -2340,23 +2348,70 @@ class ScheduleWidget(Static, can_focus=True):
                 is_current = time and time[:2] == current_time[:2]
 
                 if is_current:
-                    # Current item - highlighted
                     result.append(f"▶{checkbox} ", style=f"bold {primary}")
                     result.append(f"{time_str}{type_icon}", style=f"bold {primary}")
                     result.append(f"{title}", style="bold white")
                     result.append(f"{dur_str}\n", style="dim")
                 elif is_past:
-                    # Past item - dimmed (missed)
                     result.append(f" {checkbox} ", style="dim red")
-                    result.append(f"{time_str}{type_icon}", style="dim")
-                    result.append(f"{title}", style="dim")
-                    result.append(f"{dur_str}\n", style="dim")
+                    result.append(f"{time_str}{type_icon}{title}{dur_str}\n", style="dim")
                 else:
-                    # Future item - normal
                     result.append(f" {checkbox} ", style="white")
                     result.append(f"{time_str}{type_icon}", style=shade_4)
                     result.append(f"{title}", style="white")
                     result.append(f"{dur_str}\n", style="dim")
+
+        result.append("\n")
+
+        # === BACKLOG (unscheduled items, GTD-sorted) ===
+        if unscheduled_items:
+            result.append("📋 BACKLOG (by priority)\n", style=f"bold {primary}")
+            result.append("─" * 50 + "\n", style=shade_3)
+
+            # Group by priority for cleaner display
+            by_priority = {"critical": [], "high": [], "medium": [], "low": []}
+            quick_wins = []  # < 15 min tasks
+
+            for item in unscheduled_items:
+                time, item_type, title, duration, done, item_id, priority, task_obj = item
+                if duration and duration <= 15:
+                    quick_wins.append(item)
+                else:
+                    by_priority.get(priority, by_priority["medium"]).append(item)
+
+            # Render quick wins first (GTD 2-minute rule extended)
+            if quick_wins:
+                result.append(" ⚡ Quick wins (<15min)\n", style="bold yellow")
+                for item in quick_wins[:5]:  # Limit display
+                    time, item_type, title, duration, done, item_id, priority, task_obj = item
+                    dur_str = f"({duration}min)" if duration else ""
+                    result.append(f"   [ ] {title} ", style="white")
+                    result.append(f"{dur_str}\n", style="dim")
+
+            # Render by priority
+            priority_labels = {
+                "critical": ("🔴 Critical", "bold red"),
+                "high": ("🟠 High", "bold #ff8800"),
+                "medium": ("🟡 Medium", "bold yellow"),
+                "low": ("🟢 Low", "bold green"),
+            }
+
+            for prio in ["critical", "high", "medium", "low"]:
+                items = by_priority[prio]
+                if items:
+                    label, style = priority_labels[prio]
+                    result.append(f" {label}\n", style=style)
+                    for item in items[:5]:  # Limit per priority
+                        time, item_type, title, duration, done, item_id, priority, task_obj = item
+                        dur_str = f"({duration}min)" if duration else ""
+                        result.append(f"   [ ] {title} ", style="white")
+                        result.append(f"{dur_str}\n", style="dim")
+
+            # Show overflow count
+            total_unscheduled = len(unscheduled_items)
+            shown = len(quick_wins[:5]) + sum(len(by_priority[p][:5]) for p in by_priority)
+            if total_unscheduled > shown:
+                result.append(f"\n   ...and {total_unscheduled - shown} more in backlog\n", style="dim italic")
 
         result.append("\n")
 
