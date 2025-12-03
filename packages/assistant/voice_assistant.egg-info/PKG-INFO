@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: voice-assistant
-Version: 0.32.2
+Version: 0.32.3
 Summary: Developer-centric AI assistant for managing multiple software projects with TUI and optional voice interface
 Author-email: xSwarm <support@xswarm.io>
 License: MIT
@@ -51,7 +51,7 @@ Requires-Dist: amdsmi>=0.1.0; extra == "amd"
 
 **Your AI-powered personal productivity system** — GTD task management, adaptive scheduling, habit tracking, and goal monitoring with the personality of your favorite sci-fi AI.
 
-![TUI Demo](../../assets/tui-demo.gif)
+![TUI Screenshot](../../assets/tui-screenshot.svg)
 
 ## Why xSwarm?
 

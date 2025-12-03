@@ -876,6 +876,129 @@ class PlannerData:
                 return t
         return None
 
+    def find_similar_tasks(
+        self,
+        description: str,
+        threshold: float = 0.7,
+        include_completed: bool = False
+    ) -> List[Dict[str, Any]]:
+        """
+        Find existing tasks that are semantically similar to the description.
+        Uses embeddings for fuzzy matching - catches duplicates like:
+        - "Review the PR" vs "Check the pull request"
+        - "Fix login bug" vs "Debug authentication issue"
+
+        Args:
+            description: The task description to match against
+            threshold: Similarity threshold (0.0-1.0), default 0.7 = 70% similar
+            include_completed: Whether to include completed tasks
+
+        Returns:
+            List of similar tasks with similarity scores, sorted by similarity
+        """
+        import asyncio
+
+        # Get active tasks to compare against
+        tasks = self.get_tasks()
+        if not include_completed:
+            tasks = [t for t in tasks if t.status != "complete"]
+
+        if not tasks:
+            return []
+
+        # Try to use embeddings for semantic matching
+        try:
+            from .memory import Embedder, EmbeddingConfig
+
+            embedder = Embedder(EmbeddingConfig(prefer_local=True))
+
+            # Get embedding for the new description
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                new_embedding = loop.run_until_complete(embedder.embed(description))
+            finally:
+                loop.close()
+
+            # Compare against existing tasks
+            similar = []
+            for task in tasks:
+                # Get or compute embedding for existing task
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    task_embedding = loop.run_until_complete(embedder.embed(task.title))
+                finally:
+                    loop.close()
+
+                # Compute cosine similarity
+                similarity = self._cosine_similarity(new_embedding, task_embedding)
+
+                if similarity >= threshold:
+                    similar.append({
+                        "task": task,
+                        "similarity": round(similarity, 2),
+                        "title": task.title,
+                        "id": task.id,
+                        "status": task.status
+                    })
+
+            # Sort by similarity (highest first)
+            similar.sort(key=lambda x: x["similarity"], reverse=True)
+            return similar
+
+        except Exception as e:
+            logger.warning(f"Semantic matching failed, using fuzzy string matching: {e}")
+            # Fallback to simple fuzzy matching
+            return self._fuzzy_match_tasks(description, tasks, threshold)
+
+    def _cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
+        """Compute cosine similarity between two vectors."""
+        import math
+        dot_product = sum(a * b for a, b in zip(vec1, vec2))
+        norm1 = math.sqrt(sum(a * a for a in vec1))
+        norm2 = math.sqrt(sum(b * b for b in vec2))
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+        return dot_product / (norm1 * norm2)
+
+    def _fuzzy_match_tasks(
+        self,
+        description: str,
+        tasks: List[Task],
+        threshold: float
+    ) -> List[Dict[str, Any]]:
+        """Fallback fuzzy string matching when embeddings unavailable."""
+        similar = []
+        desc_lower = description.lower()
+        desc_words = set(desc_lower.split())
+
+        for task in tasks:
+            title_lower = task.title.lower()
+            title_words = set(title_lower.split())
+
+            # Jaccard similarity of words
+            intersection = len(desc_words & title_words)
+            union = len(desc_words | title_words)
+            word_sim = intersection / union if union > 0 else 0
+
+            # Substring matching bonus
+            substring_bonus = 0.2 if desc_lower in title_lower or title_lower in desc_lower else 0
+
+            similarity = min(1.0, word_sim + substring_bonus)
+
+            if similarity >= threshold:
+                similar.append({
+                    "task": task,
+                    "similarity": round(similarity, 2),
+                    "title": task.title,
+                    "id": task.id,
+                    "status": task.status
+                })
+
+        similar.sort(key=lambda x: x["similarity"], reverse=True)
+        return similar
+
     def add_task(
         self,
         title: str,
@@ -890,7 +1013,23 @@ class PlannerData:
         notes: str = "",
         auto_schedule: bool = True
     ) -> Task:
-        """Add a new task. Auto-schedules by default."""
+        """
+        Add a new task. Auto-schedules by default.
+
+        IMPORTANT: Before calling add_task, the AI should ALWAYS call find_similar_tasks()
+        first to check for potential duplicates. If similar tasks are found, present them
+        to the user and ask if they want to:
+        1. Update an existing task instead
+        2. Create a new task anyway
+
+        Example workflow:
+            similar = planner.find_similar_tasks("Review the PR")
+            if similar:
+                # Ask user: "I found similar tasks: ['Check pull request']. Update that one?"
+                pass
+            else:
+                planner.add_task("Review the PR")
+        """
         data = self._load()
         task = Task(
             id=self._generate_id("task"),

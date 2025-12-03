@@ -605,6 +605,36 @@ def set_planner_data(planner: "PlannerData"):  # noqa: F821
     _planner_data = planner
 
 
+@registry.register("find_similar_tasks", "Check for existing tasks similar to a description (ALWAYS call before add_task)")
+def find_similar_tasks(description: str, threshold: float = 0.6) -> str:
+    """
+    Find existing tasks semantically similar to a description.
+    ALWAYS call this before add_task to prevent duplicates!
+
+    Args:
+        description: The task description to check
+        threshold: Similarity threshold 0.0-1.0 (default 0.6 = 60% similar)
+
+    Returns:
+        List of similar tasks or "No similar tasks found"
+    """
+    planner = get_planner_data()
+    similar = planner.find_similar_tasks(description, threshold=threshold)
+
+    if not similar:
+        return "No similar tasks found. Safe to add as new task."
+
+    result = f"⚠️ Found {len(similar)} similar existing task(s):\n"
+    for match in similar[:5]:
+        status_icon = "✓" if match["status"] == "complete" else "○"
+        result += f"  {status_icon} [{match['similarity']*100:.0f}% match] '{match['title']}' (id: {match['id']}, status: {match['status']})\n"
+
+    result += "\nOptions:\n"
+    result += "  1. Update existing task with update_task(task_id, ...)\n"
+    result += "  2. Add as new task anyway with add_task(..., force=True)\n"
+    return result
+
+
 @registry.register("add_task", "Add a new task to the planning system")
 def add_task(
     title: str,
@@ -613,10 +643,30 @@ def add_task(
     energy: str = "medium",
     duration_min: int = 30,
     due_date: str = "",
-    project_id: str = ""
+    project_id: str = "",
+    force: bool = False
 ) -> str:
-    """Add a new task with GTD attributes."""
+    """
+    Add a new task with GTD attributes.
+
+    IMPORTANT: Always call find_similar_tasks(title) FIRST to check for duplicates!
+    If similar tasks exist, either update them or set force=True to add anyway.
+
+    Args:
+        force: If True, skip duplicate check and add anyway
+    """
     planner = get_planner_data()
+
+    # Check for duplicates unless force=True
+    if not force:
+        similar = planner.find_similar_tasks(title, threshold=0.6)
+        if similar:
+            result = f"⚠️ DUPLICATE WARNING: Found {len(similar)} similar task(s):\n"
+            for match in similar[:3]:
+                result += f"  - '{match['title']}' ({match['similarity']*100:.0f}% similar, id: {match['id']})\n"
+            result += "\nTo add anyway, use: add_task(..., force=True)\n"
+            result += "To update existing, use: update_task(task_id, ...)"
+            return result
 
     # Parse contexts from comma-separated string
     context_list = [c.strip() for c in contexts.split(",") if c.strip()] if contexts else []
