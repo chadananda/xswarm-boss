@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Editor - Omarchy Defender</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <header>
+    <h1>DEMO EDITOR</h1>
+    <div class="header-actions">
+      <button id="newBtn" class="btn">New</button>
+      <button id="loadBtn" class="btn">Load</button>
+      <button id="saveBtn" class="btn btn-primary">Save</button>
+      <button id="exportBtn" class="btn">Export JSON</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="properties-panel">
+      <h2>Demo Properties</h2>
+
+      <div class="form-group">
+        <label>Demo Name</label>
+        <input type="text" id="demoName" value="untitled-demo">
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <textarea id="demoDescription" rows="3" placeholder="Describe this demo..."></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Stage</label>
+        <select id="demoStage">
+          <option value="1">Stage 1: Terminal Warfare</option>
+          <option value="2">Stage 2: Sector Command</option>
+          <option value="3">Stage 3: Full Arsenal</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Starting Challenge</label>
+        <input type="number" id="startChallenge" value="1" min="1" max="30">
+      </div>
+
+      <div class="form-group">
+        <label>Random Seed</label>
+        <input type="number" id="randomSeed" value="12345">
+        <small>Same seed = identical enemy patterns</small>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <span class="stat-label">Duration</span>
+          <span class="stat-value" id="totalDuration">0:00</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Events</span>
+          <span class="stat-value" id="totalEvents">0</span>
+        </div>
+      </div>
+    </aside>
+
+    <section class="editor">
+      <div class="toolbar">
+        <div class="playback-controls">
+          <button id="playBtn" class="btn btn-icon" title="Play/Pause">▶</button>
+          <button id="stopBtn" class="btn btn-icon" title="Stop">⏹</button>
+          <span id="playbackTime" class="time-display">0:00.000</span>
+        </div>
+
+        <div class="zoom-controls">
+          <button id="zoomOutBtn" class="btn btn-icon" title="Zoom Out">−</button>
+          <span id="zoomLevel">100%</span>
+          <button id="zoomInBtn" class="btn btn-icon" title="Zoom In">+</button>
+        </div>
+
+        <div class="add-controls">
+          <button id="addKeyBtn" class="btn" title="Add Keypress Event">+ Key</button>
+          <button id="addMouseBtn" class="btn" title="Add Mouse Event">+ Mouse</button>
+          <button id="addDelayBtn" class="btn" title="Add Delay">+ Delay</button>
+        </div>
+      </div>
+
+      <div class="timeline-container">
+        <div class="timeline-ruler" id="timelineRuler"></div>
+        <div class="timeline-tracks" id="timelineTracks">
+          <div class="track" data-type="keypress">
+            <div class="track-header">
+              <span class="track-name">Keypresses</span>
+            </div>
+            <div class="track-content" id="keypressTrack"></div>
+          </div>
+          <div class="track" data-type="mouse">
+            <div class="track-header">
+              <span class="track-name">Mouse</span>
+            </div>
+            <div class="track-content" id="mouseTrack"></div>
+          </div>
+          <div class="track" data-type="delay">
+            <div class="track-header">
+              <span class="track-name">Delays</span>
+            </div>
+            <div class="track-content" id="delayTrack"></div>
+          </div>
+        </div>
+        <div class="playhead" id="playhead"></div>
+      </div>
+
+      <div class="event-list">
+        <h3>Events <span id="eventCount">(0)</span></h3>
+        <div id="eventList" class="events-container"></div>
+      </div>
+    </section>
+
+    <aside class="event-panel" id="eventPanel">
+      <h2>Event Properties</h2>
+      <div id="eventProperties">
+        <p class="placeholder">Select an event to edit</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Add Event Modal -->
+  <div id="addEventModal" class="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle">Add Event</h3>
+
+      <div id="keypressForm" class="event-form">
+        <div class="form-group">
+          <label>Timestamp (ms)</label>
+          <input type="number" id="keyTimestamp" value="0" min="0" step="100">
+        </div>
+        <div class="form-group">
+          <label>Key Combination</label>
+          <div class="key-combo">
+            <label><input type="checkbox" id="keySuper"> Super</label>
+            <label><input type="checkbox" id="keyShift"> Shift</label>
+            <label><input type="checkbox" id="keyCtrl"> Ctrl</label>
+            <label><input type="checkbox" id="keyAlt"> Alt</label>
+          </div>
+          <input type="text" id="keyValue" placeholder="e.g., Return, q, h, 1">
+        </div>
+        <div class="form-group">
+          <label>Quick Presets</label>
+          <div class="presets">
+            <button class="preset-btn" data-key="Super+Return">Super+Enter</button>
+            <button class="preset-btn" data-key="Super+q">Super+Q</button>
+            <button class="preset-btn" data-key="Super+h">Super+H</button>
+            <button class="preset-btn" data-key="Super+j">Super+J</button>
+            <button class="preset-btn" data-key="Super+k">Super+K</button>
+            <button class="preset-btn" data-key="Super+l">Super+L</button>
+            <button class="preset-btn" data-key="Super+f">Super+F</button>
+            <button class="preset-btn" data-key="Super+1">Super+1</button>
+            <button class="preset-btn" data-key="Super+Shift+b">Super+Shift+B</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="mouseForm" class="event-form" style="display:none;">
+        <div class="form-group">
+          <label>Timestamp (ms)</label>
+          <input type="number" id="mouseTimestamp" value="0" min="0" step="100">
+        </div>
+        <div class="form-group">
+          <label>Action</label>
+          <select id="mouseAction">
+            <option value="move">Move</option>
+            <option value="click">Click</option>
+            <option value="erratic">Erratic Movement</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Position (optional)</label>
+          <div class="position-inputs">
+            <input type="number" id="mouseX" placeholder="X">
+            <input type="number" id="mouseY" placeholder="Y">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Duration (ms, for erratic)</label>
+          <input type="number" id="mouseDuration" value="500" min="100" step="100">
+        </div>
+      </div>
+
+      <div id="delayForm" class="event-form" style="display:none;">
+        <div class="form-group">
+          <label>Timestamp (ms)</label>
+          <input type="number" id="delayTimestamp" value="0" min="0" step="100">
+        </div>
+        <div class="form-group">
+          <label>Delay Duration (ms)</label>
+          <input type="number" id="delayDuration" value="1000" min="100" step="100">
+        </div>
+        <div class="form-group">
+          <label>Reason (optional)</label>
+          <input type="text" id="delayReason" placeholder="e.g., Wait for enemy">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="cancelAddEvent" class="btn">Cancel</button>
+        <button id="confirmAddEvent" class="btn btn-primary">Add Event</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- File input for loading -->
+  <input type="file" id="fileInput" accept=".json" hidden>
+
+  <script src="editor.js"></script>
+</body>
+</html>

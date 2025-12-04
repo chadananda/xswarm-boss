@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Manager - Omarchy Defender</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Audio-specific styles */
+    .audio-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .audio-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1rem;
+      transition: all 0.2s;
+    }
+
+    .audio-card:hover {
+      border-color: var(--phosphor-dim);
+      box-shadow: 0 0 15px var(--phosphor-glow);
+    }
+
+    .audio-card.playing {
+      border-color: var(--phosphor);
+      box-shadow: 0 0 20px var(--phosphor-glow);
+    }
+
+    .audio-card .filename {
+      color: var(--phosphor);
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      word-break: break-all;
+    }
+
+    .audio-card .meta {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+
+    .audio-controls {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .play-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+      padding: 0;
+    }
+
+    .progress-bar {
+      flex: 1;
+      height: 4px;
+      background: var(--bg-dark);
+      border-radius: 2px;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .progress-bar .fill {
+      height: 100%;
+      background: var(--phosphor);
+      width: 0%;
+      transition: width 0.1s;
+    }
+
+    .time {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* Voice Generator */
+    .voice-generator {
+      background: var(--bg-card);
+      border: 1px solid var(--phosphor-dim);
+      border-radius: 4px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .voice-generator h3 {
+      color: var(--phosphor);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .generator-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      color: var(--text-dim);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--bg-dark);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem;
+      font-family: inherit;
+      font-size: 0.85rem;
+    }
+
+    .form-group textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--phosphor-dim);
+    }
+
+    .slider-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .slider-group input[type="range"] {
+      flex: 1;
+      -webkit-appearance: none;
+      background: var(--bg-dark);
+      height: 4px;
+      border-radius: 2px;
+      border: none;
+    }
+
+    .slider-group input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--phosphor);
+      cursor: pointer;
+    }
+
+    .slider-group .value {
+      min-width: 35px;
+      text-align: right;
+      font-size: 0.8rem;
+      color: var(--phosphor);
+    }
+
+    .generate-btn {
+      grid-column: 1 / -1;
+    }
+
+    /* Subscription info */
+    .subscription-info {
+      display: flex;
+      gap: 2rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border-radius: 4px;
+      margin-bottom: 1rem;
+      font-size: 0.8rem;
+    }
+
+    .subscription-info .stat {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .subscription-info .stat-label {
+      color: var(--text-dim);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+    }
+
+    .subscription-info .stat-value {
+      color: var(--phosphor);
+      font-size: 1.1rem;
+    }
+
+    .usage-bar {
+      width: 200px;
+      height: 8px;
+      background: var(--bg-dark);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 0.25rem;
+    }
+
+    .usage-bar .fill {
+      height: 100%;
+      background: var(--phosphor);
+      transition: width 0.3s;
+    }
+
+    .usage-bar .fill.warning {
+      background: #ffaa00;
+    }
+
+    .usage-bar .fill.danger {
+      background: var(--danger);
+    }
+
+    /* Preview section */
+    .preview-section {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--bg-dark);
+      border-radius: 4px;
+      display: none;
+    }
+
+    .preview-section.active {
+      display: block;
+    }
+
+    .preview-section h4 {
+      color: var(--phosphor);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .audio-manifest {
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: var(--bg-card);
+      border-radius: 4px;
+    }
+
+    .audio-manifest h4 {
+      color: var(--phosphor);
+      font-size: 0.8rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .audio-manifest pre {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      white-space: pre-wrap;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="scanlines"></div>
+
+  <header>
+    <h1>OMARCHY DEFENDER</h1>
+    <nav>
+      <a href="/">Images</a>
+      <a href="/audio.html" class="active">Audio</a>
+    </nav>
+  </header>
+
+  <main style="grid-template-columns: 1fr; display: block; padding: 1rem;">
+    <!-- Subscription Info -->
+    <div id="subscriptionInfo" class="subscription-info" style="display: none;">
+      <div class="stat">
+        <span class="stat-label">Plan</span>
+        <span class="stat-value" id="planName">Loading...</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Characters Used</span>
+        <span class="stat-value" id="charsUsed">0</span>
+        <div class="usage-bar">
+          <div class="fill" id="usageBar" style="width: 0%"></div>
+        </div>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Remaining</span>
+        <span class="stat-value" id="charsRemaining">0</span>
+      </div>
+    </div>
+
+    <!-- Voice Generator -->
+    <div class="voice-generator">
+      <h3>VOICE GENERATOR</h3>
+      <div class="generator-grid">
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label>Text to Generate</label>
+          <textarea id="textInput" placeholder="Enter the voice line text...">Commander, enemy approaching from sector seven!</textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Voice</label>
+          <select id="voiceSelect">
+            <option value="">Loading voices...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Output Filename</label>
+          <input type="text" id="filenameInput" placeholder="e.g., commander-alert-01.mp3" value="generated-voice.mp3">
+        </div>
+
+        <div class="form-group">
+          <label>Stability</label>
+          <div class="slider-group">
+            <input type="range" id="stabilitySlider" min="0" max="1" step="0.05" value="0.5">
+            <span class="value" id="stabilityValue">0.50</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Similarity Boost</label>
+          <div class="slider-group">
+            <input type="range" id="similaritySlider" min="0" max="1" step="0.05" value="0.75">
+            <span class="value" id="similarityValue">0.75</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Style</label>
+          <div class="slider-group">
+            <input type="range" id="styleSlider" min="0" max="1" step="0.05" value="0.3">
+            <span class="value" id="styleValue">0.30</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Speaker Boost</label>
+          <select id="speakerBoostSelect">
+            <option value="true">Enabled</option>
+            <option value="false">Disabled</option>
+          </select>
+        </div>
+
+        <button id="generateBtn" class="btn btn-primary generate-btn">Generate Voice</button>
+      </div>
+
+      <div class="preview-section" id="previewSection">
+        <h4>Preview Generated Audio</h4>
+        <div class="audio-controls">
+          <button class="btn play-btn" id="previewPlayBtn">▶</button>
+          <div class="progress-bar" id="previewProgress">
+            <div class="fill"></div>
+          </div>
+          <span class="time" id="previewTime">0:00</span>
+        </div>
+        <audio id="previewAudio"></audio>
+      </div>
+    </div>
+
+    <!-- Audio Manifest -->
+    <div class="audio-manifest" id="manifestSection" style="display: none;">
+      <h4>Audio Manifest</h4>
+      <pre id="manifestContent"></pre>
+    </div>
+
+    <!-- Audio Files -->
+    <div class="gallery-header">
+      <h2>Audio Assets</h2>
+      <span id="audioCount">0 files</span>
+    </div>
+
+    <div id="audioGrid" class="audio-grid">
+      <div class="loading-spinner">Loading audio files...</div>
+    </div>
+  </main>
+
+  <script>
+    // State
+    let audioFiles = [];
+    let voices = [];
+    let currentAudio = null;
+    let currentCard = null;
+
+    // DOM Elements
+    const audioGrid = document.getElementById('audioGrid');
+    const voiceSelect = document.getElementById('voiceSelect');
+    const previewAudio = document.getElementById('previewAudio');
+
+    // Initialize
+    async function init() {
+      await Promise.all([
+        loadAudioFiles(),
+        loadVoices(),
+        loadSubscription()
+      ]);
+      setupEventListeners();
+    }
+
+    // Load audio files
+    async function loadAudioFiles() {
+      try {
+        const response = await fetch('/api/audio');
+        const data = await response.json();
+        audioFiles = data.files;
+
+        if (data.manifest) {
+          document.getElementById('manifestSection').style.display = 'block';
+          document.getElementById('manifestContent').textContent =
+            JSON.stringify(data.manifest, null, 2);
+        }
+
+        renderAudioFiles();
+      } catch (err) {
+        console.error('Failed to load audio:', err);
+        audioGrid.innerHTML = '<p class="error">Failed to load audio files</p>';
+      }
+    }
+
+    // Load ElevenLabs voices
+    async function loadVoices() {
+      try {
+        const response = await fetch('/api/elevenlabs/voices');
+        const data = await response.json();
+
+        if (data.error) {
+          voiceSelect.innerHTML = `<option value="">Error: ${data.error}</option>`;
+          return;
+        }
+
+        voices = data.voices || [];
+        voiceSelect.innerHTML = voices.map(v =>
+          `<option value="${v.voice_id}">${v.name} (${v.labels?.accent || 'Unknown'})</option>`
+        ).join('');
+      } catch (err) {
+        console.error('Failed to load voices:', err);
+        voiceSelect.innerHTML = '<option value="">Failed to load voices</option>';
+      }
+    }
+
+    // Load subscription info
+    async function loadSubscription() {
+      try {
+        const response = await fetch('/api/elevenlabs/subscription');
+        const data = await response.json();
+
+        if (data.error) {
+          console.error('Subscription error:', data.error);
+          return;
+        }
+
+        const info = document.getElementById('subscriptionInfo');
+        info.style.display = 'flex';
+
+        document.getElementById('planName').textContent = data.tier || 'Unknown';
+        document.getElementById('charsUsed').textContent =
+          formatNumber(data.character_count || 0);
+        document.getElementById('charsRemaining').textContent =
+          formatNumber((data.character_limit || 0) - (data.character_count || 0));
+
+        const usagePercent = data.character_limit
+          ? (data.character_count / data.character_limit) * 100
+          : 0;
+
+        const usageBar = document.getElementById('usageBar');
+        usageBar.style.width = usagePercent + '%';
+        usageBar.classList.remove('warning', 'danger');
+        if (usagePercent > 90) usageBar.classList.add('danger');
+        else if (usagePercent > 70) usageBar.classList.add('warning');
+      } catch (err) {
+        console.error('Failed to load subscription:', err);
+      }
+    }
+
+    // Render audio files
+    function renderAudioFiles() {
+      document.getElementById('audioCount').textContent = `${audioFiles.length} files`;
+
+      if (audioFiles.length === 0) {
+        audioGrid.innerHTML = '<p class="empty">No audio files found</p>';
+        return;
+      }
+
+      audioGrid.innerHTML = audioFiles.map((file, index) => `
+        <div class="audio-card" data-index="${index}" data-path="${file.path}">
+          <div class="filename">${file.filename}</div>
+          <div class="meta">
+            <span>${formatSize(file.size)}</span>
+            <span>${new Date(file.modified).toLocaleDateString()}</span>
+          </div>
+          <div class="audio-controls">
+            <button class="btn play-btn play-file-btn">▶</button>
+            <div class="progress-bar file-progress">
+              <div class="fill"></div>
+            </div>
+            <span class="time file-time">0:00</span>
+          </div>
+          <audio class="file-audio" src="${file.path}" preload="metadata"></audio>
+        </div>
+      `).join('');
+
+      // Add duration info after metadata loads
+      audioGrid.querySelectorAll('.file-audio').forEach((audio, index) => {
+        audio.addEventListener('loadedmetadata', () => {
+          const card = audioGrid.querySelector(`[data-index="${index}"]`);
+          const timeEl = card.querySelector('.file-time');
+          timeEl.textContent = formatTime(audio.duration);
+        });
+      });
+    }
+
+    // Generate voice
+    async function generateVoice() {
+      const text = document.getElementById('textInput').value.trim();
+      const voiceId = voiceSelect.value;
+      const filename = document.getElementById('filenameInput').value.trim();
+
+      if (!text) {
+        alert('Please enter text to generate');
+        return;
+      }
+
+      if (!voiceId) {
+        alert('Please select a voice');
+        return;
+      }
+
+      const btn = document.getElementById('generateBtn');
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+
+      try {
+        const response = await fetch('/api/elevenlabs/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text,
+            voiceId,
+            filename: filename || `generated-${Date.now()}.mp3`,
+            settings: {
+              stability: parseFloat(document.getElementById('stabilitySlider').value),
+              similarityBoost: parseFloat(document.getElementById('similaritySlider').value),
+              style: parseFloat(document.getElementById('styleSlider').value),
+              useSpeakerBoost: document.getElementById('speakerBoostSelect').value === 'true'
+            }
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          alert(`Generation failed: ${data.error}`);
+        } else {
+          // Show preview
+          const previewSection = document.getElementById('previewSection');
+          previewSection.classList.add('active');
+          previewAudio.src = data.path;
+
+          // Refresh audio list and subscription
+          await Promise.all([loadAudioFiles(), loadSubscription()]);
+        }
+      } catch (err) {
+        alert(`Generation failed: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Voice';
+      }
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+      // Slider value displays
+      ['stability', 'similarity', 'style'].forEach(name => {
+        const slider = document.getElementById(`${name}Slider`);
+        const value = document.getElementById(`${name}Value`);
+        slider.addEventListener('input', () => {
+          value.textContent = parseFloat(slider.value).toFixed(2);
+        });
+      });
+
+      // Generate button
+      document.getElementById('generateBtn').addEventListener('click', generateVoice);
+
+      // Preview controls
+      const previewPlayBtn = document.getElementById('previewPlayBtn');
+      const previewProgress = document.getElementById('previewProgress');
+      const previewTime = document.getElementById('previewTime');
+
+      previewPlayBtn.addEventListener('click', () => {
+        if (previewAudio.paused) {
+          previewAudio.play();
+          previewPlayBtn.textContent = '⏸';
+        } else {
+          previewAudio.pause();
+          previewPlayBtn.textContent = '▶';
+        }
+      });
+
+      previewAudio.addEventListener('timeupdate', () => {
+        const progress = (previewAudio.currentTime / previewAudio.duration) * 100;
+        previewProgress.querySelector('.fill').style.width = progress + '%';
+        previewTime.textContent = formatTime(previewAudio.currentTime);
+      });
+
+      previewAudio.addEventListener('ended', () => {
+        previewPlayBtn.textContent = '▶';
+      });
+
+      previewProgress.addEventListener('click', (e) => {
+        const rect = previewProgress.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+        previewAudio.currentTime = percent * previewAudio.duration;
+      });
+
+      // File audio controls (delegated)
+      audioGrid.addEventListener('click', (e) => {
+        const playBtn = e.target.closest('.play-file-btn');
+        if (!playBtn) return;
+
+        const card = playBtn.closest('.audio-card');
+        const audio = card.querySelector('.file-audio');
+        const progressBar = card.querySelector('.file-progress');
+        const timeEl = card.querySelector('.file-time');
+
+        // Stop previous audio
+        if (currentAudio && currentAudio !== audio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          currentCard?.classList.remove('playing');
+          currentCard?.querySelector('.play-file-btn').textContent = '▶';
+        }
+
+        if (audio.paused) {
+          audio.play();
+          playBtn.textContent = '⏸';
+          card.classList.add('playing');
+          currentAudio = audio;
+          currentCard = card;
+
+          // Update progress
+          audio.ontimeupdate = () => {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            progressBar.querySelector('.fill').style.width = progress + '%';
+            timeEl.textContent = formatTime(audio.currentTime);
+          };
+
+          audio.onended = () => {
+            playBtn.textContent = '▶';
+            card.classList.remove('playing');
+            currentAudio = null;
+            currentCard = null;
+          };
+        } else {
+          audio.pause();
+          playBtn.textContent = '▶';
+          card.classList.remove('playing');
+          currentAudio = null;
+          currentCard = null;
+        }
+      });
+
+      // Progress bar seeking for file audio
+      audioGrid.addEventListener('click', (e) => {
+        const progressBar = e.target.closest('.file-progress');
+        if (!progressBar) return;
+
+        const card = progressBar.closest('.audio-card');
+        const audio = card.querySelector('.file-audio');
+        const rect = progressBar.getBoundingClientRect();
+        const percent = (e.clientX - rect.left) / rect.width;
+
+        if (audio.duration) {
+          audio.currentTime = percent * audio.duration;
+        }
+      });
+    }
+
+    // Utilities
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function formatTime(seconds) {
+      if (!seconds || isNaN(seconds)) return '0:00';
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    function formatNumber(num) {
+      return num.toLocaleString();
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>

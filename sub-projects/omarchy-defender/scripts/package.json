@@ -1,0 +1,21 @@
+{
+  "name": "omarchy-defender-scripts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Development utilities for Omarchy Defender",
+  "scripts": {
+    "asset-manager": "node asset-manager/server.js",
+    "demo-editor": "node -e \"import('http').then(http => http.createServer((req,res) => require('fs').createReadStream(require('path').join('demo-editor', req.url === '/' ? 'index.html' : req.url)).pipe(res)).listen(3001, () => console.log('Demo Editor: http://localhost:3001')))\"",
+    "validate-keys": "node validate-keys.js",
+    "generate-audio": "node generate-audio.js",
+    "scrape-screenshots": "node scrape-screenshots.js",
+    "moderate-notes": "node moderate-notes.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "multer": "^1.4.5-lts.1",
+    "@google/generative-ai": "^0.21.0",
+    "node-fetch": "^3.3.2"
+  }
+}

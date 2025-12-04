@@ -1,0 +1,480 @@
+/* ============================================================
+   OMARCHY DEFENDER - SPLASH SCREEN STYLES
+   CRT Terminal Aesthetic with Phosphor Glow
+   ============================================================ */
+
+:root {
+  --phosphor: #00ff41;
+  --phosphor-dim: #00aa2b;
+  --phosphor-bright: #66ff88;
+  --phosphor-glow: rgba(0, 255, 65, 0.4);
+  --bg-dark: #0a0a0a;
+  --bg-crt: #050505;
+  --text: #00dd38;
+  --text-dim: #007722;
+  --danger: #ff4444;
+  --warning: #ffaa00;
+}
+
+/* Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Base */
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: 'Courier New', Courier, monospace;
+  background: var(--bg-crt);
+  color: var(--phosphor);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+   CRT EFFECTS
+   ============================================================ */
+
+/* Scanlines */
+.scanlines {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.15) 0px,
+    rgba(0, 0, 0, 0.15) 1px,
+    transparent 1px,
+    transparent 2px
+  );
+  z-index: 9998;
+}
+
+/* CRT screen edge glow */
+.crt-edge {
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.8),
+              inset 0 0 50px rgba(0, 255, 65, 0.05);
+  z-index: 9997;
+}
+
+/* Screen flicker animation */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.9; }
+  94% { opacity: 1; }
+  95% { opacity: 0.85; }
+  96% { opacity: 1; }
+}
+
+body.loading::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  animation: flicker 4s infinite;
+  pointer-events: none;
+  z-index: 9996;
+}
+
+/* ============================================================
+   SPLASH SCREEN
+   ============================================================ */
+
+.splash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 2rem;
+}
+
+/* Logo */
+.logo-container {
+  position: relative;
+  text-align: center;
+  margin-bottom: 2rem;
+  animation: fadeIn 1s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logo-text {
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: bold;
+  letter-spacing: 0.3em;
+  text-shadow:
+    0 0 10px var(--phosphor-glow),
+    0 0 20px var(--phosphor-glow),
+    0 0 40px var(--phosphor-glow);
+  animation: textGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow {
+  from {
+    text-shadow:
+      0 0 10px var(--phosphor-glow),
+      0 0 20px var(--phosphor-glow),
+      0 0 40px var(--phosphor-glow);
+  }
+  to {
+    text-shadow:
+      0 0 15px var(--phosphor-glow),
+      0 0 30px var(--phosphor-glow),
+      0 0 60px var(--phosphor-glow);
+  }
+}
+
+.logo-sub {
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  letter-spacing: 0.5em;
+  color: var(--phosphor-dim);
+  margin-top: 0.5rem;
+}
+
+/* Approval stamp */
+.logo-stamp {
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  transform: translateY(-50%) rotate(15deg);
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--danger);
+  border: 3px solid var(--danger);
+  padding: 0.3rem 0.8rem;
+  opacity: 0;
+  animation: stampIn 0.3s ease-out 2s forwards;
+}
+
+@keyframes stampIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) rotate(15deg) scale(3);
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) rotate(15deg) scale(1);
+  }
+}
+
+/* ============================================================
+   BACKSTORY CRAWL
+   ============================================================ */
+
+.backstory-container {
+  width: 100%;
+  max-width: 600px;
+  height: 200px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 2rem;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 20%,
+    black 80%,
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    black 20%,
+    black 80%,
+    transparent 100%
+  );
+  opacity: 0;
+  animation: fadeIn 1s ease-out 3s forwards;
+}
+
+.backstory {
+  text-align: center;
+  animation: crawl 30s linear 3s forwards;
+  transform: translateY(100%);
+}
+
+@keyframes crawl {
+  from { transform: translateY(100%); }
+  to { transform: translateY(-100%); }
+}
+
+.backstory p {
+  margin-bottom: 1.5rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.backstory-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--phosphor);
+  text-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+.backstory-cta {
+  font-size: 1.1rem;
+  color: var(--phosphor-bright);
+}
+
+.backstory kbd {
+  background: var(--bg-dark);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  font-family: inherit;
+  color: var(--phosphor);
+  box-shadow: 0 0 5px var(--phosphor-glow);
+}
+
+/* ============================================================
+   LOADING BAR
+   ============================================================ */
+
+.loading-container {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 2rem;
+}
+
+.loading-bar {
+  height: 4px;
+  background: var(--bg-dark);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.loading-fill {
+  height: 100%;
+  width: 0%;
+  background: var(--phosphor);
+  box-shadow: 0 0 10px var(--phosphor-glow);
+  transition: width 0.3s ease-out;
+}
+
+.loading-text {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 0.5rem;
+}
+
+/* ============================================================
+   PLAY BUTTON (Mouse Trap)
+   ============================================================ */
+
+.play-button {
+  background: transparent;
+  border: 2px solid var(--phosphor-dim);
+  color: var(--phosphor);
+  font-family: inherit;
+  font-size: 1.2rem;
+  padding: 1rem 3rem;
+  cursor: pointer;
+  letter-spacing: 0.2em;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.play-button:hover {
+  border-color: var(--phosphor);
+  box-shadow: 0 0 20px var(--phosphor-glow);
+}
+
+.play-button:focus {
+  outline: none;
+  border-color: var(--phosphor);
+}
+
+/* Mouse trap warning state */
+.play-button.warning {
+  border-color: var(--danger);
+  color: var(--danger);
+  animation: shake 0.5s ease-in-out;
+}
+
+.play-button.warning::after {
+  content: 'USE KEYBOARD: Super+Enter';
+  position: absolute;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--danger);
+  white-space: nowrap;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* ============================================================
+   MOBILE WARNING
+   ============================================================ */
+
+.mobile-warning {
+  display: none;
+  text-align: center;
+  padding: 2rem;
+  max-width: 400px;
+}
+
+.mobile-warning p {
+  margin-bottom: 1rem;
+  color: var(--warning);
+}
+
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .logo-container,
+  .backstory-container,
+  .loading-container,
+  .play-button {
+    display: none;
+  }
+
+  .mobile-warning {
+    display: block;
+  }
+}
+
+/* ============================================================
+   GAME CONTAINER (Hidden during splash)
+   ============================================================ */
+
+.game-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+}
+
+.game-container[hidden] {
+  display: none;
+}
+
+/* ============================================================
+   ABOUT SECTION (SEO - visually hidden but crawlable)
+   ============================================================ */
+
+.about-section[hidden] {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* ============================================================
+   DONATION NOTES
+   ============================================================ */
+
+.donation-notes {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 60;
+}
+
+.donation-notes[hidden] {
+  display: none;
+}
+
+.sticky-note {
+  position: absolute;
+  background: #ffffa0;
+  color: #333;
+  padding: 1rem;
+  width: 180px;
+  font-family: 'Comic Sans MS', cursive, sans-serif;
+  font-size: 0.85rem;
+  box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  animation: noteIn 0.5s ease-out;
+}
+
+@keyframes noteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) rotate(0deg);
+  }
+}
+
+.sticky-note .note-text {
+  margin-bottom: 0.5rem;
+  word-wrap: break-word;
+}
+
+.sticky-note .note-author {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: right;
+}
+
+/* ============================================================
+   UTILITY CLASSES
+   ============================================================ */
+
+[hidden] {
+  display: none !important;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

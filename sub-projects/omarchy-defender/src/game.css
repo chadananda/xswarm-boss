@@ -1,0 +1,697 @@
+/* ============================================================
+   OMARCHY DEFENDER - GAME STYLES
+   UI Components, Grid, Command Center, Animations
+   ============================================================ */
+
+/* ============================================================
+   GAME HUD
+   ============================================================ */
+
+.game-hud {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8), transparent);
+  z-index: 200;
+  pointer-events: none;
+}
+
+.game-hud > * {
+  pointer-events: auto;
+}
+
+/* Stage indicator */
+.stage-indicator {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stage-name {
+  font-size: 0.9rem;
+  color: var(--phosphor);
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.challenge-number {
+  font-size: 0.8rem;
+  color: var(--phosphor-dim);
+}
+
+/* Score display */
+.score-display {
+  text-align: center;
+}
+
+.score-value {
+  font-size: 2rem;
+  color: var(--phosphor);
+  text-shadow: 0 0 20px var(--phosphor-glow);
+}
+
+.score-label {
+  font-size: 0.7rem;
+  color: var(--phosphor-dim);
+  text-transform: uppercase;
+}
+
+/* Combo meter */
+.combo-display {
+  text-align: right;
+}
+
+.combo-value {
+  font-size: 1.5rem;
+  color: var(--phosphor);
+  transition: transform 0.2s, color 0.2s;
+}
+
+.combo-value.active {
+  color: var(--phosphor-bright);
+  transform: scale(1.2);
+  animation: comboPulse 0.3s ease-out;
+}
+
+@keyframes comboPulse {
+  0% { transform: scale(1.5); }
+  100% { transform: scale(1.2); }
+}
+
+.combo-label {
+  font-size: 0.7rem;
+  color: var(--phosphor-dim);
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   PURITY METER (Mouse Contamination)
+   ============================================================ */
+
+.purity-container {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 200px;
+  z-index: 200;
+}
+
+.purity-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--phosphor-dim);
+  margin-bottom: 0.3rem;
+}
+
+.purity-bar {
+  height: 8px;
+  background: var(--bg-dark);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.purity-fill {
+  height: 100%;
+  width: 100%;
+  background: var(--phosphor);
+  transition: width 0.3s, background 0.3s;
+  box-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+.purity-fill.warning {
+  background: var(--warning);
+  box-shadow: 0 0 10px rgba(255, 170, 0, 0.5);
+}
+
+.purity-fill.danger {
+  background: var(--danger);
+  box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+  animation: dangerPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes dangerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ============================================================
+   GRID SYSTEM
+   ============================================================ */
+
+.game-grid {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.grid-cell {
+  width: 150px;
+  height: 150px;
+  background: rgba(0, 20, 0, 0.6);
+  border: 2px solid var(--phosphor-dim);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.2s;
+}
+
+/* Cell states */
+.grid-cell.empty {
+  border-color: var(--phosphor-dim);
+}
+
+.grid-cell.focused {
+  border-color: var(--phosphor);
+  box-shadow:
+    0 0 20px var(--phosphor-glow),
+    inset 0 0 20px rgba(0, 255, 65, 0.1);
+  animation: focusPulse 1s ease-in-out infinite;
+}
+
+@keyframes focusPulse {
+  0%, 100% { box-shadow: 0 0 20px var(--phosphor-glow), inset 0 0 20px rgba(0, 255, 65, 0.1); }
+  50% { box-shadow: 0 0 30px var(--phosphor-glow), inset 0 0 30px rgba(0, 255, 65, 0.15); }
+}
+
+.grid-cell.occupied {
+  background: rgba(0, 40, 0, 0.8);
+  border-color: var(--phosphor);
+}
+
+.grid-cell.target {
+  border-color: var(--warning);
+  animation: targetPulse 0.5s ease-in-out infinite;
+}
+
+@keyframes targetPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(255, 170, 0, 0.3); }
+  50% { box-shadow: 0 0 40px rgba(255, 170, 0, 0.5); }
+}
+
+.grid-cell.breach {
+  border-color: var(--danger);
+  background: rgba(50, 0, 0, 0.8);
+  animation: breachFlash 0.2s ease-in-out;
+}
+
+@keyframes breachFlash {
+  0%, 100% { background: rgba(50, 0, 0, 0.8); }
+  50% { background: rgba(100, 0, 0, 0.9); }
+}
+
+/* Terminal window in cell */
+.terminal-window {
+  width: 120px;
+  height: 100px;
+  background: #0a0a0a;
+  border: 1px solid var(--phosphor);
+  border-radius: 4px;
+  overflow: hidden;
+  font-size: 0.6rem;
+  animation: terminalSpawn 0.3s ease-out;
+}
+
+@keyframes terminalSpawn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.terminal-header {
+  background: var(--phosphor-dim);
+  color: #000;
+  padding: 2px 6px;
+  font-size: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.terminal-content {
+  padding: 4px;
+  color: var(--phosphor);
+  line-height: 1.2;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 10px;
+  background: var(--phosphor);
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+/* ============================================================
+   GNOME ENEMY
+   ============================================================ */
+
+.gnome-container {
+  position: absolute;
+  width: 60px;
+  height: 80px;
+  transform-origin: center bottom;
+}
+
+.gnome-sprite {
+  width: 100%;
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  animation: gnomeWobble 0.5s ease-in-out infinite;
+}
+
+@keyframes gnomeWobble {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+.gnome-progress {
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 2px;
+}
+
+.gnome-progress-fill {
+  height: 100%;
+  background: var(--danger);
+  border-radius: 2px;
+  transition: width 0.1s linear;
+}
+
+/* ============================================================
+   COMMAND CENTER PANEL
+   ============================================================ */
+
+.command-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 1rem 2rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+  z-index: 200;
+}
+
+.command-text {
+  text-align: center;
+  color: var(--phosphor);
+  font-size: 1rem;
+  text-shadow: 0 0 10px var(--phosphor-glow);
+  min-height: 1.5rem;
+}
+
+.command-hint {
+  text-align: center;
+  color: var(--phosphor-dim);
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+}
+
+.command-hint kbd {
+  background: rgba(0, 255, 65, 0.1);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  margin: 0 0.2rem;
+}
+
+/* ============================================================
+   WORKSPACE MINIMAP (Stage 2)
+   ============================================================ */
+
+.workspace-minimap {
+  position: fixed;
+  top: 50%;
+  right: 2rem;
+  transform: translateY(-50%);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 4px;
+  z-index: 200;
+}
+
+.workspace-cell {
+  width: 30px;
+  height: 20px;
+  background: rgba(0, 20, 0, 0.5);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: var(--phosphor-dim);
+  transition: all 0.2s;
+}
+
+.workspace-cell.active {
+  background: var(--phosphor-dim);
+  color: #000;
+  border-color: var(--phosphor);
+  box-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+.workspace-cell.has-window {
+  position: relative;
+}
+
+.workspace-cell.has-window::after {
+  content: '';
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: var(--phosphor);
+  border-radius: 1px;
+}
+
+/* Large workspace number during transition */
+.workspace-number {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 15rem;
+  color: var(--phosphor);
+  text-shadow: 0 0 50px var(--phosphor-glow);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 300;
+}
+
+.workspace-number.visible {
+  animation: workspaceFlash 0.5s ease-out forwards;
+}
+
+@keyframes workspaceFlash {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(1.5);
+  }
+}
+
+/* ============================================================
+   APPLICATION ICONS (Stage 3)
+   ============================================================ */
+
+.app-icon {
+  width: 48px;
+  height: 48px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  filter: drop-shadow(0 0 5px var(--phosphor-glow));
+}
+
+.app-icon.wrong {
+  animation: wrongApp 0.3s ease-in-out;
+}
+
+@keyframes wrongApp {
+  0%, 100% { transform: translateX(0); filter: none; }
+  25% { transform: translateX(-10px); filter: hue-rotate(180deg); }
+  75% { transform: translateX(10px); filter: hue-rotate(180deg); }
+}
+
+/* ============================================================
+   VICTORY / DEFEAT OVERLAYS
+   ============================================================ */
+
+.result-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 500;
+  animation: overlayFadeIn 0.5s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.result-title {
+  font-size: 4rem;
+  margin-bottom: 2rem;
+  animation: resultPulse 1s ease-in-out infinite;
+}
+
+.result-title.victory {
+  color: var(--phosphor);
+  text-shadow: 0 0 30px var(--phosphor-glow);
+}
+
+.result-title.defeat {
+  color: var(--danger);
+  text-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+}
+
+@keyframes resultPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.result-stats {
+  display: flex;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.result-stat {
+  text-align: center;
+}
+
+.result-stat-value {
+  font-size: 2rem;
+  color: var(--phosphor);
+}
+
+.result-stat-label {
+  font-size: 0.8rem;
+  color: var(--phosphor-dim);
+  text-transform: uppercase;
+}
+
+.result-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+/* ============================================================
+   MOUSE CONTAMINATION EFFECTS
+   ============================================================ */
+
+/* Erratic cursor visual */
+.fake-cursor {
+  position: fixed;
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.fake-cursor.active {
+  opacity: 1;
+  animation: cursorJitter 0.1s infinite;
+}
+
+@keyframes cursorJitter {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-3px, 2px); }
+  50% { transform: translate(2px, -2px); }
+  75% { transform: translate(-2px, -1px); }
+}
+
+/* Screen contamination overlay */
+.contamination-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 400;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.contamination-overlay.level-1 {
+  opacity: 0.1;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 0, 0, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(255, 0, 0, 0.2) 0%, transparent 50%);
+}
+
+.contamination-overlay.level-2 {
+  opacity: 0.2;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 0, 0, 0.3) 0%, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(255, 0, 0, 0.3) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 0.2) 0%, transparent 60%);
+}
+
+.contamination-overlay.level-3 {
+  opacity: 0.3;
+  background:
+    radial-gradient(circle at 20% 30%, rgba(255, 0, 0, 0.4) 0%, transparent 30%),
+    radial-gradient(circle at 80% 70%, rgba(255, 0, 0, 0.4) 0%, transparent 30%),
+    radial-gradient(circle at 50% 50%, rgba(255, 0, 0, 0.3) 0%, transparent 50%);
+  animation: contaminationPulse 1s infinite;
+}
+
+@keyframes contaminationPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.4; }
+}
+
+/* Red flash for mouse contact */
+.mouse-flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 450;
+  animation: redFlash 0.2s ease-out forwards;
+}
+
+@keyframes redFlash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* ============================================================
+   DEMO MODE INDICATOR
+   ============================================================ */
+
+.demo-indicator {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--danger);
+  color: #fff;
+  padding: 0.5rem 1.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  z-index: 600;
+  animation: demoBlink 1s infinite;
+}
+
+@keyframes demoBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+
+.game-btn {
+  background: transparent;
+  border: 2px solid var(--phosphor-dim);
+  color: var(--phosphor);
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.8rem 2rem;
+  cursor: pointer;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.game-btn:hover {
+  border-color: var(--phosphor);
+  background: rgba(0, 255, 65, 0.1);
+  box-shadow: 0 0 20px var(--phosphor-glow);
+}
+
+.game-btn:focus {
+  outline: none;
+  border-color: var(--phosphor);
+}
+
+.game-btn.primary {
+  background: var(--phosphor-dim);
+  color: #000;
+}
+
+.game-btn.primary:hover {
+  background: var(--phosphor);
+}
+
+/* ============================================================
+   PAUSE MENU
+   ============================================================ */
+
+.pause-menu {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.95);
+  border: 2px solid var(--phosphor);
+  padding: 2rem 3rem;
+  text-align: center;
+  z-index: 500;
+  box-shadow: 0 0 50px var(--phosphor-glow);
+}
+
+.pause-menu h2 {
+  color: var(--phosphor);
+  font-size: 2rem;
+  margin-bottom: 2rem;
+  text-shadow: 0 0 20px var(--phosphor-glow);
+}
+
+.pause-menu .menu-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}

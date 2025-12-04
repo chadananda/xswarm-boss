@@ -1,0 +1,281 @@
+{
+  "version": "1.0.0",
+  "projectName": "Omarchy Defender",
+
+  "cloudflare": {
+    "pagesProject": "omarchy-defender",
+    "r2Bucket": "omarchy-defender-assets",
+    "r2PublicUrl": "https://r2.xswarm.ai/omarchy-defender-assets"
+  },
+
+  "elevenLabs": {
+    "model": "eleven_multilingual_v2",
+    "voices": {
+      "primary": {
+        "id": "pNInz6obpgDQGcFmaJgB",
+        "name": "Adam",
+        "description": "Deep, authoritative American male voice. Clear diction, professional military commander tone. Best for calm commands and angry barking alike."
+      },
+      "alternative1": {
+        "id": "ErXwobaYiN019PkySvjV",
+        "name": "Antoni",
+        "description": "Mature, authoritative male voice with gravitas. Slightly gruff drill sergeant quality. Good for frustrated/urgent commands."
+      },
+      "alternative2": {
+        "id": "onwK4e9ZLuTAKqWW03F9",
+        "name": "Daniel",
+        "description": "British male voice with commanding presence. Professional radio operator tone. Adds international flair to the military aesthetic."
+      }
+    },
+    "selectedVoice": "primary",
+    "settings": {
+      "commands": {
+        "stability": 0.5,
+        "similarityBoost": 0.75,
+        "style": 0.3,
+        "speed": 1.0,
+        "useSpeakerBoost": true
+      },
+      "hints": {
+        "stability": 0.5,
+        "similarityBoost": 0.75,
+        "style": 0.25,
+        "speed": 0.95,
+        "useSpeakerBoost": true
+      },
+      "urgent": {
+        "stability": 0.45,
+        "similarityBoost": 0.75,
+        "style": 0.4,
+        "speed": 1.1,
+        "volumeAdjust": 10,
+        "useSpeakerBoost": true
+      },
+      "angry": {
+        "stability": 0.4,
+        "similarityBoost": 0.75,
+        "style": 0.5,
+        "speed": 1.2,
+        "volumeAdjust": 20,
+        "useSpeakerBoost": true
+      },
+      "mouse": {
+        "stability": 0.45,
+        "similarityBoost": 0.75,
+        "style": 0.45,
+        "speed": 1.15,
+        "volumeAdjust": 15,
+        "useSpeakerBoost": true
+      },
+      "success": {
+        "stability": 0.5,
+        "similarityBoost": 0.75,
+        "style": 0.35,
+        "speed": 1.0,
+        "useSpeakerBoost": true
+      }
+    }
+  },
+
+  "assets": {
+    "development": "./assets/",
+    "production": "https://r2.xswarm.ai/omarchy-defender-assets/"
+  },
+
+  "game": {
+    "stage1": {
+      "challengeCount": 20,
+      "gnomeApproachTime": 3000,
+      "challenges": {
+        "basic": { "start": 1, "end": 5 },
+        "navigation": { "start": 6, "end": 10 },
+        "movement": { "start": 11, "end": 15 },
+        "combined": { "start": 16, "end": 20 }
+      }
+    },
+    "stage2": {
+      "challengeCount": 25,
+      "challenges": {
+        "workspaceNav": { "start": 1, "end": 8 },
+        "windowMove": { "start": 9, "end": 16 },
+        "multiWorkspace": { "start": 17, "end": 21 },
+        "speedTrials": { "start": 22, "end": 25 }
+      }
+    },
+    "stage3": {
+      "challengeCount": 30,
+      "challenges": {
+        "appLaunch": { "start": 1, "end": 10 },
+        "workspaceDeploy": { "start": 11, "end": 20 },
+        "workflow": { "start": 21, "end": 25 },
+        "speedTrials": { "start": 26, "end": 30 }
+      }
+    },
+    "hintDelays": {
+      "patient": 2000,
+      "frustrated": 4000,
+      "angry": 6000
+    },
+    "mousePenalty": {
+      "cursorJumpRange": { "min": 50, "max": 200 },
+      "cursorJumpInterval": { "min": 100, "max": 200 },
+      "purityPenalties": {
+        "first": 10,
+        "second": 15,
+        "third": 20,
+        "subsequent": 15
+      },
+      "recoveryRates": {
+        "perKeyboardAction": 2,
+        "perfectChallenge": 5,
+        "tenChallengeStreak": 10
+      }
+    },
+    "combos": {
+      "thresholds": [5, 10, 20, 30],
+      "multipliers": [1.2, 1.5, 2.0, 3.0],
+      "labels": ["ON FIRE", "ELECTRIC", "UNSTOPPABLE", "LEGENDARY"]
+    },
+    "scoring": {
+      "basePoints": 100,
+      "timeBonus": {
+        "fast": { "threshold": 1000, "bonus": 50 },
+        "medium": { "threshold": 2000, "bonus": 25 }
+      }
+    }
+  },
+
+  "splash": {
+    "logoFadeInDelay": 0,
+    "stampAnimationDelay": 2000,
+    "backstoryCrawlDelay": 3000,
+    "backstoryCrawlDuration": 30000,
+    "mouseWarningDuration": 4000,
+    "loadingMessages": [
+      "Initializing keyboard warrior protocol...",
+      "Calibrating vim muscle memory...",
+      "Establishing mouse-free zone...",
+      "Loading arrow key deprecation module...",
+      "Scanning for desktop environment bloat...",
+      "Initializing tiling window supremacy...",
+      "Compiling sarcastic commander responses...",
+      "Downloading keyboard purity standards...",
+      "Installing gnome resistance protocols..."
+    ],
+    "easterEggMessages": [
+      "Detecting suspiciously high mouse DPI...",
+      "RGB keyboard detected. Acceptable.",
+      "Trackball user? Interesting choice...",
+      "Split keyboard detected. Elite status confirmed.",
+      "Vim config found. Approval granted.",
+      "Emacs config found. We'll allow it.",
+      ".vimrc lines: 847. Respectable."
+    ],
+    "easterEggChance": 0.01
+  },
+
+  "audio": {
+    "categories": [
+      "commands",
+      "hints",
+      "urgent",
+      "angry",
+      "mouse",
+      "success",
+      "failure",
+      "jokes",
+      "sfx",
+      "music"
+    ],
+    "variantCounts": {
+      "veryCommon": { "min": 5, "max": 8 },
+      "common": { "min": 3, "max": 5 },
+      "occasional": { "min": 2, "max": 3 },
+      "rare": { "min": 1, "max": 2 }
+    },
+    "format": "mp3",
+    "bitrate": "128kbps",
+    "channels": "mono"
+  },
+
+  "donations": {
+    "amounts": [3, 5, 10],
+    "minCustomAmount": 1,
+    "maxCustomAmount": 500,
+    "noteMaxLength": 200,
+    "stickyNotes": {
+      "displayCount": { "min": 15, "max": 25 },
+      "refreshInterval": 300000,
+      "rotationRange": { "min": -5, "max": 5 },
+      "sizeRange": { "min": 150, "max": 200 },
+      "colors": [
+        "#fff9c4",
+        "#ffccbc",
+        "#c8e6c9",
+        "#bbdefb",
+        "#e1bee7"
+      ]
+    },
+    "moderation": {
+      "minScoreForApproval": 0.7,
+      "idealLengthRange": { "min": 50, "max": 150 }
+    }
+  },
+
+  "analytics": {
+    "cloudflareWebAnalytics": true,
+    "trackingToken": ""
+  },
+
+  "features": {
+    "stage1Enabled": true,
+    "stage2Enabled": true,
+    "stage3Enabled": true,
+    "donationsEnabled": true,
+    "leaderboardEnabled": false,
+    "demoModeEnabled": true
+  },
+
+  "seo": {
+    "title": "Omarchy Defender - Learn Hyprland Keyboard Shortcuts Through Gaming | xSwarm",
+    "description": "Master Hyprland and Omarchy window manager hotkeys through an engaging keyboard-only defense game. Learn vim-style navigation, workspace management, and application shortcuts.",
+    "keywords": [
+      "Hyprland tutorial",
+      "Omarchy training",
+      "tiling window manager",
+      "keyboard shortcuts game",
+      "vim navigation",
+      "learn Hyprland",
+      "keyboard-only workflow",
+      "Linux window manager",
+      "xSwarm"
+    ],
+    "ogImage": "xswarm-omarchy-defender-og-image-1200x630.png",
+    "twitterCard": "xswarm-omarchy-defender-twitter-card-800x418.png"
+  },
+
+  "theme": {
+    "colors": {
+      "background": "#000000",
+      "primary": "#00ff00",
+      "primaryDim": "#00aa00",
+      "danger": "#ff0000",
+      "warning": "#ffaa00",
+      "info": "#00ffff"
+    },
+    "alternateThemes": {
+      "amber": {
+        "primary": "#ffaa00",
+        "primaryDim": "#cc8800"
+      },
+      "ibmBlue": {
+        "background": "#0000aa",
+        "primary": "#ffffff"
+      },
+      "commodore64": {
+        "background": "#3a3fb7",
+        "primary": "#a3a6fc"
+      }
+    }
+  }
+}

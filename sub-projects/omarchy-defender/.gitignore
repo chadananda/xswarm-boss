@@ -1,0 +1,39 @@
+# Build output
+build/
+
+# Environment secrets
+.env
+
+# Assets (too large for git, stored on R2)
+assets/audio/
+assets/images/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+
+# Node modules (if used for build scripts)
+node_modules/
+
+# Package lock (if used)
+package-lock.json
+yarn.lock
+
+# Generated manifests (can be regenerated)
+audio-manifest.json
+image-manifest.json

@@ -1,0 +1,58 @@
+{
+  "name": "Omarchy Defender",
+  "short_name": "Omarchy",
+  "description": "Master Hyprland keyboard shortcuts through an engaging defense game",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#0a0a0a",
+  "theme_color": "#00ff41",
+  "orientation": "landscape",
+  "categories": ["games", "education"],
+  "icons": [
+    {
+      "src": "/assets/images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/assets/images/screenshot-1.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "label": "Stage 1: Terminal Warfare"
+    },
+    {
+      "src": "/assets/images/screenshot-2.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "label": "Stage 2: Sector Command"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Stage 1: Terminal Warfare",
+      "url": "/?stage=1",
+      "description": "Practice window management basics"
+    },
+    {
+      "name": "Stage 2: Sector Command",
+      "url": "/?stage=2",
+      "description": "Master workspace navigation"
+    },
+    {
+      "name": "Stage 3: Full Arsenal",
+      "url": "/?stage=3",
+      "description": "Learn all application shortcuts"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

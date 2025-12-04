@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Learn Hyprland keyboard shortcuts through an engaging defense game. Master window management, workspace navigation, and application launching while defending against the Gnome cavalry.">
+  <meta name="keywords" content="Hyprland, keyboard shortcuts, tiling window manager, Linux gaming, vim keybindings, workspace management, Omarchy, window manager tutorial">
+  <meta name="author" content="xSwarm">
+  <meta name="robots" content="index, follow">
+
+  <!-- Open Graph / Social -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Omarchy Defender - Master Hyprland Shortcuts">
+  <meta property="og:description" content="The keyboard-only defense game that teaches you Hyprland window manager shortcuts. No mouse allowed!">
+  <meta property="og:image" content="/assets/images/og-image.png">
+  <meta property="og:url" content="https://xswarm.ai/omarchy-defender/">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Omarchy Defender">
+  <meta name="twitter:description" content="Master Hyprland shortcuts through gameplay. Defend against the Gnome cavalry!">
+  <meta name="twitter:image" content="/assets/images/twitter-card.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/favicon-16.png">
+  <link rel="apple-touch-icon" href="/assets/images/apple-touch-icon.png">
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <title>Omarchy Defender - Master Hyprland Keyboard Shortcuts</title>
+
+  <!-- Critical CSS (splash) - inlined in production -->
+  <link rel="stylesheet" href="splash.css">
+
+  <!-- Game CSS - preloaded for fast swap -->
+  <link rel="preload" href="game.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+  <noscript><link rel="stylesheet" href="game.css"></noscript>
+
+  <!-- Schema.org structured data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "VideoGame",
+    "name": "Omarchy Defender",
+    "description": "A keyboard-only defense game that teaches Hyprland window manager shortcuts through engaging gameplay",
+    "genre": ["Educational", "Tower Defense", "Typing Game"],
+    "gamePlatform": ["Web Browser", "Linux", "macOS"],
+    "operatingSystem": "Any",
+    "applicationCategory": "Game",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Organization",
+      "name": "xSwarm",
+      "url": "https://xswarm.ai"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "150"
+    }
+  }
+  </script>
+</head>
+<body class="loading">
+  <!-- Scanline overlay -->
+  <div class="scanlines" aria-hidden="true"></div>
+
+  <!-- CRT screen edge glow -->
+  <div class="crt-edge" aria-hidden="true"></div>
+
+  <!-- ============================================================
+       SPLASH SCREEN
+       ============================================================ -->
+  <div id="splash" class="splash">
+    <!-- Logo -->
+    <div class="logo-container">
+      <h1 class="logo">
+        <span class="logo-text">OMARCHY</span>
+        <span class="logo-sub">DEFENDER</span>
+      </h1>
+      <div class="logo-stamp" aria-hidden="true">APPROVED</div>
+    </div>
+
+    <!-- Backstory crawl -->
+    <div class="backstory-container">
+      <div class="backstory">
+        <p class="backstory-title">THE YEAR IS 2024...</p>
+        <p>The desktop wars rage on. The Gnome cavalry, riding their mouse-dependent steeds, threaten to overrun the last bastion of keyboard efficiency.</p>
+        <p>You are a newly recruited OMARCHY DEFENDER, trained in the ancient art of Hyprland window management. Your weapons: vim-style navigation, workspace mastery, and lightning-fast application launching.</p>
+        <p>The mice grow restless. The Gnomes approach. Only your keyboard skills can save us now.</p>
+        <p class="backstory-cta">Press <kbd>Super</kbd>+<kbd>Enter</kbd> to begin your training...</p>
+      </div>
+    </div>
+
+    <!-- Loading progress -->
+    <div class="loading-container">
+      <div class="loading-bar">
+        <div class="loading-fill" id="loadingFill"></div>
+      </div>
+      <div class="loading-text" id="loadingText">Loading assets...</div>
+    </div>
+
+    <!-- Mouse trap button -->
+    <button id="playButton" class="play-button" aria-label="Start Game">
+      PLAY NOW
+    </button>
+
+    <!-- Desktop-only warning (shown on mobile) -->
+    <div class="mobile-warning">
+      <p>OMARCHY DEFENDER requires a physical keyboard.</p>
+      <p>Please visit on a desktop computer to play.</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       GAME CONTAINER
+       ============================================================ -->
+  <div id="game" class="game-container" hidden>
+    <!-- Phaser canvas inserted here -->
+  </div>
+
+  <!-- ============================================================
+       ABOUT SECTION (SEO Content)
+       ============================================================ -->
+  <section id="about" class="about-section" hidden>
+    <h2>About Omarchy Defender</h2>
+
+    <article>
+      <h3>Learn Hyprland Shortcuts Through Gameplay</h3>
+      <p>Omarchy Defender is a free, browser-based game designed to teach you the keyboard shortcuts used in <strong>Hyprland</strong>, the dynamic tiling Wayland compositor. Whether you're new to tiling window managers or looking to improve your speed, this game makes learning fun.</p>
+    </article>
+
+    <article>
+      <h3>What You'll Master</h3>
+      <ul>
+        <li><strong>Stage 1: Terminal Warfare</strong> - Window spawning, closing, navigation, and movement using vim-style keys (H/J/K/L)</li>
+        <li><strong>Stage 2: Sector Command</strong> - Workspace management across 9 virtual desktops</li>
+        <li><strong>Stage 3: Full Arsenal</strong> - 20+ application launch shortcuts for maximum productivity</li>
+      </ul>
+    </article>
+
+    <article>
+      <h3>Key Bindings Reference</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Shortcut</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Super+Enter</td><td>Spawn terminal</td></tr>
+          <tr><td>Super+Q</td><td>Close active window</td></tr>
+          <tr><td>Super+H/J/K/L</td><td>Navigate focus (vim-style)</td></tr>
+          <tr><td>Super+Shift+H/J/K/L</td><td>Move window</td></tr>
+          <tr><td>Super+F</td><td>Toggle fullscreen</td></tr>
+          <tr><td>Super+T</td><td>Toggle floating/tiled</td></tr>
+          <tr><td>Super+1-9</td><td>Switch workspace</td></tr>
+          <tr><td>Super+Shift+1-9</td><td>Move window to workspace</td></tr>
+          <tr><td>Super+Shift+B</td><td>Launch browser</td></tr>
+          <tr><td>Super+Shift+E</td><td>Launch email</td></tr>
+          <tr><td>Super+Shift+F</td><td>Launch file manager</td></tr>
+        </tbody>
+      </table>
+    </article>
+
+    <article>
+      <h3>Why Keyboard-Only?</h3>
+      <p>Tiling window managers like Hyprland are designed for keyboard efficiency. By removing mouse dependency, you'll develop muscle memory that translates directly to real-world productivity. The game's "mouse contamination" system gently discourages reaching for the mouse, reinforcing keyboard-first habits.</p>
+    </article>
+
+    <article>
+      <h3>Compatible With</h3>
+      <p>While designed for <strong>Hyprland</strong> and <strong>Omarchy</strong> (the preconfigured Hyprland setup), the shortcuts taught in this game are similar to other tiling window managers including i3, Sway, and bspwm. The vim-style navigation (H/J/K/L) is universal across the keyboard-centric Linux ecosystem.</p>
+    </article>
+  </section>
+
+  <!-- ============================================================
+       DONATION NOTES
+       ============================================================ -->
+  <aside id="donationNotes" class="donation-notes" hidden>
+    <!-- Sticky notes loaded dynamically -->
+  </aside>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <!-- Register service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {});
+    }
+  </script>
+
+  <!-- Splash screen logic -->
+  <script src="splash.js"></script>
+
+  <!-- Game loaded after splash -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script>
+  <script src="game.js" defer></script>
+</body>
+</html>
