@@ -1,0 +1,37 @@
+{
+  "name": "omarchy-defender",
+  "version": "0.1.0",
+  "description": "Keyboard-only defense game teaching Hyprland/Omarchy window manager shortcuts",
+  "author": "xSwarm <hello@xswarm.ai>",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "keywords": [
+    "hyprland",
+    "keyboard",
+    "game",
+    "tiling-window-manager",
+    "vim-keybindings",
+    "phaser",
+    "educational"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xswarm/omarchy-defender"
+  },
+  "homepage": "https://xswarm.ai/omarchy-defender",
+  "scripts": {
+    "dev": "cd src && npx serve -l 8080",
+    "asset-manager": "cd scripts && node asset-manager/server.js",
+    "validate-keys": "cd scripts && node validate-keys.js",
+    "generate-audio": "cd scripts && node generate-audio.js",
+    "generate-audio:dry": "cd scripts && node generate-audio.js --dry-run",
+    "scrape-screenshots": "cd scripts && node scrape-screenshots.js",
+    "install:scripts": "cd scripts && npm install",
+    "build": "scripts/build.sh",
+    "deploy": "scripts/deploy.sh"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
