@@ -208,6 +208,14 @@ class ChatEngine:
         # For API keys, we can use a full system prompt
         parts = []
 
+        # Add current date/time at the very top (fixes AI confusion about dates)
+        now = datetime.now()
+        parts.append(f"""<current_datetime>
+Today is {now.strftime("%A, %B %d, %Y")}
+Current time is {now.strftime("%I:%M %p")}
+</current_datetime>
+""")
+
         # Add persona system prompt
         if self.persona:
             persona_prompt = self.persona.build_system_prompt(include_personality=True)
@@ -330,6 +338,14 @@ class ChatEngine:
         Includes memory context from recent sessions if available.
         """
         parts = []
+
+        # Add current date/time at the very top (fixes AI confusion about dates)
+        now = datetime.now()
+        parts.append(f"""<current_datetime>
+Today is {now.strftime("%A, %B %d, %Y")}
+Current time is {now.strftime("%I:%M %p")}
+</current_datetime>
+""")
 
         # Strong override instruction to adopt persona
         parts.append("IMPORTANT: For this conversation, you are role-playing as a specific character.")

@@ -287,6 +287,45 @@ class OutboundCaller:
             questions=questions,
         )
 
+    def send_sms(self, to_number: str, message: str) -> Dict:
+        """
+        Send an SMS message via Twilio.
+
+        Args:
+            to_number: Phone number to send to (E.164 format)
+            message: Message text (max 1600 characters)
+
+        Returns:
+            Dict with success status and message SID or error
+        """
+        if not self.client:
+            return {"success": False, "error": "Twilio client not initialized"}
+
+        try:
+            # Truncate message if too long
+            if len(message) > 1600:
+                message = message[:1597] + "..."
+
+            sms = self.client.messages.create(
+                to=to_number,
+                from_=self.from_number,
+                body=message,
+            )
+
+            logger.info(f"SMS sent to {to_number}: {message[:50]}...")
+            return {
+                "success": True,
+                "message_sid": sms.sid,
+                "status": sms.status,
+            }
+
+        except Exception as e:
+            logger.error(f"SMS send failed: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+            }
+
 
 # Convenience function for quick calls
 async def call_user_for_feedback(

@@ -327,7 +327,7 @@ class CalendarEvent:
     attendees: List[str] = field(default_factory=list)
     recurrence: str = "none"  # RecurrenceType value
     recurrence_end: Optional[str] = None  # YYYY-MM-DD for recurring events
-    reminder_minutes: int = 15  # Minutes before event to remind
+    reminder_minutes: int = 5  # Minutes before event to remind (default 5)
     project_id: Optional[str] = None
     created_at: str = ""
     # Fields for recurring instances (not persisted, set during expansion)
