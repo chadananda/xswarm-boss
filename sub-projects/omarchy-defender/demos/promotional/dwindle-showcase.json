@@ -1,0 +1,66 @@
+{
+  "name": "Dwindle Layout Showcase",
+  "description": "Demonstrates proper Hyprland dwindle layout with correct Omarchy keybindings",
+  "stage": 1,
+  "duration": 45000,
+  "seed": 42,
+  "events": [
+    { "time": 0, "type": "start" },
+
+    { "time": 500, "type": "comment", "text": "Challenge 1: Deploy terminal (Super+Return)" },
+    { "time": 2000, "type": "keydown", "key": "Enter", "modifiers": ["Meta"] },
+    { "time": 2100, "type": "keyup", "key": "Enter", "modifiers": [] },
+
+    { "time": 4000, "type": "comment", "text": "First window fills the screen!" },
+
+    { "time": 5500, "type": "comment", "text": "Challenge 2: Deploy another (Super+Return)" },
+    { "time": 6500, "type": "keydown", "key": "Enter", "modifiers": ["Meta"] },
+    { "time": 6600, "type": "keyup", "key": "Enter", "modifiers": [] },
+
+    { "time": 8000, "type": "comment", "text": "Dwindle splits LEFT/RIGHT!" },
+
+    { "time": 10000, "type": "comment", "text": "Challenge 3: Navigate RIGHT (Super+Arrow)" },
+    { "time": 11000, "type": "keydown", "key": "ArrowRight", "modifiers": ["Meta"] },
+    { "time": 11100, "type": "keyup", "key": "ArrowRight", "modifiers": [] },
+
+    { "time": 13000, "type": "comment", "text": "Challenge 4: Navigate LEFT" },
+    { "time": 14000, "type": "keydown", "key": "ArrowLeft", "modifiers": ["Meta"] },
+    { "time": 14100, "type": "keyup", "key": "ArrowLeft", "modifiers": [] },
+
+    { "time": 16000, "type": "comment", "text": "Challenge 5: Close window (Super+W)" },
+    { "time": 17000, "type": "keydown", "key": "w", "modifiers": ["Meta"] },
+    { "time": 17100, "type": "keyup", "key": "w", "modifiers": [] },
+
+    { "time": 19000, "type": "comment", "text": "Back to fullscreen!" },
+
+    { "time": 21000, "type": "comment", "text": "Challenge 6: Deploy terminal" },
+    { "time": 22000, "type": "keydown", "key": "Enter", "modifiers": ["Meta"] },
+    { "time": 22100, "type": "keyup", "key": "Enter", "modifiers": [] },
+
+    { "time": 24000, "type": "comment", "text": "Challenge 7: Third window" },
+    { "time": 25000, "type": "keydown", "key": "Enter", "modifiers": ["Meta"] },
+    { "time": 25100, "type": "keyup", "key": "Enter", "modifiers": [] },
+
+    { "time": 27000, "type": "comment", "text": "Right side splits TOP/BOTTOM!" },
+
+    { "time": 29000, "type": "comment", "text": "Challenge 8: Navigate DOWN" },
+    { "time": 30000, "type": "keydown", "key": "ArrowDown", "modifiers": ["Meta"] },
+    { "time": 30100, "type": "keyup", "key": "ArrowDown", "modifiers": [] },
+
+    { "time": 32000, "type": "comment", "text": "Challenge 9: Navigate UP" },
+    { "time": 33000, "type": "keydown", "key": "ArrowUp", "modifiers": ["Meta"] },
+    { "time": 33100, "type": "keyup", "key": "ArrowUp", "modifiers": [] },
+
+    { "time": 35000, "type": "comment", "text": "Challenge 10: Swap positions (Super+Shift+Arrow)" },
+    { "time": 36000, "type": "keydown", "key": "ArrowRight", "modifiers": ["Meta", "Shift"] },
+    { "time": 36100, "type": "keyup", "key": "ArrowRight", "modifiers": [] },
+
+    { "time": 38000, "type": "comment", "text": "Challenge 11: Close window" },
+    { "time": 39000, "type": "keydown", "key": "w", "modifiers": ["Meta"] },
+    { "time": 39100, "type": "keyup", "key": "w", "modifiers": [] },
+
+    { "time": 41000, "type": "comment", "text": "Real Hyprland muscle memory!" },
+
+    { "time": 44000, "type": "end" }
+  ]
+}

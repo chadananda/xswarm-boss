@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Image Assets</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #333; padding: 1rem; }
+    a { color: #2563eb; }
+
+    header { display: flex; gap: 2rem; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid #ddd; }
+    header h1 { font-size: 1rem; color: #666; font-weight: normal; }
+    nav { display: flex; gap: 1rem; font-size: 0.85rem; }
+    nav a.active { color: #333; font-weight: 600; text-decoration: none; }
+
+    .toolbar { display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; font-size: 0.8rem; }
+    .toolbar .stats { color: #666; }
+    .toolbar .stats b { color: #16a34a; }
+    .toolbar .stats .pending { color: #d97706; }
+
+    select, button { background: #fff; border: 1px solid #ccc; color: #333; padding: 0.3rem 0.6rem; font-size: 0.75rem; cursor: pointer; border-radius: 3px; }
+    button:hover { background: #f0f0f0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .category { margin-bottom: 1.5rem; }
+    .category-header { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border-bottom: 1px solid #ddd; margin-bottom: 0.5rem; cursor: pointer; }
+    .category-header:hover { color: #000; }
+    .category-header h2 { font-size: 0.85rem; font-weight: 600; color: #555; }
+    .category-header .count { font-size: 0.75rem; color: #888; }
+    .category-header .count b { color: #16a34a; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 0.5rem; }
+
+    .card { background: #fff; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; cursor: pointer; }
+    .card:hover { border-color: #999; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .card.pending { opacity: 0.5; }
+
+    .card-thumb { height: 80px; background: #fafafa; display: flex; align-items: center; justify-content: center; position: relative; }
+    .card-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    .card-thumb .placeholder { color: #bbb; font-size: 0.65rem; }
+
+    .card-badge { position: absolute; top: 4px; right: 4px; padding: 1px 4px; border-radius: 2px; font-size: 0.55rem; font-weight: bold; }
+    .card-badge.ok { background: #16a34a; color: #fff; }
+    .card-badge.wait { background: #d97706; color: #fff; }
+
+    .card-info { padding: 0.4rem; }
+    .card-name { font-size: 0.7rem; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-desc { font-size: 0.6rem; color: #999; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .hidden { display: none !important; }
+
+    /* Full-screen overlay for image detail */
+    .overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); z-index: 100; }
+    .overlay.open { display: flex; }
+
+    .detail { display: flex; width: 100%; height: 100%; }
+
+    .detail-preview { flex: 1; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .detail-preview img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+
+    .detail-sidebar { width: 320px; background: #fff; padding: 1.5rem; overflow-y: auto; }
+    .detail-sidebar h3 { font-size: 1rem; color: #333; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; }
+    .detail-sidebar .close { background: none; border: none; font-size: 1.5rem; color: #999; cursor: pointer; }
+    .detail-sidebar .close:hover { color: #333; }
+
+    .detail-info { font-size: 0.8rem; margin-bottom: 1.5rem; }
+    .detail-info p { margin: 0.5rem 0; color: #666; }
+    .detail-info b { color: #333; }
+
+    .detail-actions { display: flex; flex-direction: column; gap: 0.5rem; }
+    .btn-analyze { background: #2563eb; border-color: #2563eb; color: #fff; }
+    .btn-analyze:hover { background: #1d4ed8; }
+    .btn-delete { background: #dc2626; border-color: #dc2626; color: #fff; }
+    .btn-delete:hover { background: #b91c1c; }
+
+    .analysis { margin-top: 1rem; padding: 0.75rem; background: #f5f5f5; border-radius: 4px; font-size: 0.75rem; line-height: 1.5; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+
+    .prompt-section { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #ddd; }
+    .prompt-section label { font-size: 0.7rem; color: #666; font-weight: 600; display: block; margin-bottom: 0.3rem; }
+    .prompt-box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px; padding: 0.5rem; font-size: 0.7rem; color: #555; line-height: 1.4; max-height: 100px; overflow-y: auto; }
+    .style-box { background: #f0f7ff; border: 1px solid #c0d8f0; }
+
+    .edit-section { margin-top: 1rem; }
+    .edit-section textarea { width: 100%; border: 1px solid #ccc; border-radius: 4px; padding: 0.5rem; font-size: 0.75rem; resize: vertical; min-height: 60px; font-family: inherit; }
+    .edit-section textarea:focus { outline: none; border-color: #2563eb; }
+    .edit-actions { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+    .btn-generate { background: #059669; border-color: #059669; color: #fff; }
+    .btn-generate:hover { background: #047857; }
+    .btn-edit { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+    .btn-edit:hover { background: #6d28d9; }
+
+    /* Upload area */
+    .upload-area { border: 2px dashed #ccc; border-radius: 4px; padding: 1rem; text-align: center; font-size: 0.75rem; color: #888; cursor: pointer; margin-bottom: 1rem; }
+    .upload-area:hover { border-color: #999; color: #666; }
+    .upload-area.dragover { border-color: #2563eb; background: rgba(37,99,235,0.05); }
+    .upload-area input { display: none; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Asset Manager</h1>
+    <nav>
+      <a href="/" class="active">Images</a>
+      <a href="/audio.html">Audio</a>
+    </nav>
+  </header>
+
+  <div class="toolbar">
+    <div class="stats">
+      <b id="generated">0</b>/<span id="total">0</span> generated
+      <span class="pending">(<span id="pending">0</span> pending)</span>
+    </div>
+    <select id="filter">
+      <option value="all">All</option>
+      <option value="pending">Pending</option>
+      <option value="generated">Generated</option>
+    </select>
+  </div>
+
+  <div class="upload-area" id="uploadArea">
+    Drop image here or click to upload
+    <input type="file" id="fileInput" accept="image/*">
+  </div>
+
+  <div id="categories"></div>
+
+  <!-- Full-screen detail overlay -->
+  <div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
+    <div class="detail">
+      <div class="detail-preview">
+        <img id="previewImg" src="" alt="">
+      </div>
+      <div class="detail-sidebar">
+        <h3>
+          Details
+          <button class="close" onclick="closeDetail()">&times;</button>
+        </h3>
+        <div class="detail-info">
+          <p><b>ID:</b> <span id="infoId"></span></p>
+          <p><b>File:</b> <span id="infoFile"></span></p>
+          <p><b>Target Size:</b> <span id="infoTargetSize"></span></p>
+          <p><b>File Size:</b> <span id="infoFileSize"></span></p>
+        </div>
+
+        <div class="prompt-section">
+          <label id="infoStyleLabel">Style (category)</label>
+          <div class="prompt-box style-box" id="infoStyle"></div>
+        </div>
+
+        <div class="prompt-section">
+          <label>Prompt</label>
+          <div class="prompt-box" id="infoPrompt"></div>
+        </div>
+
+        <div class="edit-section">
+          <label>Edit Instructions (optional)</label>
+          <textarea id="editInput" placeholder="Describe changes to make..."></textarea>
+          <div class="edit-actions">
+            <button class="btn-generate" id="generateBtn" onclick="generate()">Generate (GPT)</button>
+            <button class="btn-edit" id="editBtn" onclick="edit()">Edit (Gemini)</button>
+          </div>
+        </div>
+
+        <div class="detail-actions" style="margin-top:1rem">
+          <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">Analyze with Gemini</button>
+          <button class="btn-delete" id="deleteBtn" onclick="deleteImg()">Delete</button>
+        </div>
+        <div class="analysis hidden" id="analysis"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let data = { categories: {}, stats: {}, styles: {} };
+    let filter = 'all';
+    let selected = null;
+
+    async function init() {
+      await loadData();
+      document.getElementById('filter').onchange = e => { filter = e.target.value; render(); };
+
+      const area = document.getElementById('uploadArea');
+      const input = document.getElementById('fileInput');
+      area.onclick = () => input.click();
+      input.onchange = () => { if (input.files[0]) upload(input.files[0]); };
+      area.ondragover = e => { e.preventDefault(); area.classList.add('dragover'); };
+      area.ondragleave = () => area.classList.remove('dragover');
+      area.ondrop = e => { e.preventDefault(); area.classList.remove('dragover'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); };
+
+      document.onkeydown = e => { if (e.key === 'Escape') closeDetail(); };
+    }
+
+    async function loadData() {
+      const res = await fetch('/api/images');
+      data = await res.json();
+      document.getElementById('total').textContent = data.stats.total;
+      document.getElementById('generated').textContent = data.stats.generated;
+      document.getElementById('pending').textContent = data.stats.pending;
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('categories');
+      let html = '';
+
+      for (const [cat, images] of Object.entries(data.categories)) {
+        let filtered = images;
+        if (filter === 'pending') filtered = images.filter(i => !i.generated);
+        else if (filter === 'generated') filtered = images.filter(i => i.generated);
+        if (!filtered.length && filter !== 'all') continue;
+
+        const done = images.filter(i => i.generated).length;
+        html += `<div class="category">
+          <div class="category-header" onclick="toggle('${cat}')">
+            <h2>${cat}</h2>
+            <span class="count"><b>${done}</b>/${images.length}</span>
+          </div>
+          <div class="grid" id="grid-${cat}">
+            ${filtered.map(img => card(img, cat)).join('')}
+          </div>
+        </div>`;
+      }
+      container.innerHTML = html || '<p style="color:#888">No items</p>';
+    }
+
+    function card(img, cat) {
+      const done = img.generated;
+      return `<div class="card ${done ? '' : 'pending'}" onclick="showDetail('${img.id}','${cat}')">
+        <div class="card-thumb">
+          ${done ? `<img src="${img.path}" alt="" loading="lazy">` : '<span class="placeholder">Missing</span>'}
+          <span class="card-badge ${done ? 'ok' : 'wait'}">${done ? 'OK' : '?'}</span>
+        </div>
+        <div class="card-info">
+          <div class="card-name" title="${img.filename}">${img.filename}</div>
+          <div class="card-desc" title="${img.description}">${img.description}</div>
+        </div>
+      </div>`;
+    }
+
+    function toggle(cat) {
+      document.getElementById('grid-' + cat)?.classList.toggle('hidden');
+    }
+
+    function showDetail(id, cat) {
+      const images = data.categories[cat];
+      const img = images?.find(i => i.id === id);
+      if (!img) return;
+
+      selected = { ...img, cat };
+
+      const previewImg = document.getElementById('previewImg');
+      if (img.generated) {
+        previewImg.src = img.path;
+        previewImg.style.display = 'block';
+      } else {
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+      }
+
+      document.getElementById('infoId').textContent = img.id;
+      document.getElementById('infoFile').textContent = img.filename;
+      document.getElementById('infoTargetSize').textContent = img.size || '-';
+      document.getElementById('infoFileSize').textContent = img.fileInfo ? formatSize(img.fileInfo.size) : '-';
+      document.getElementById('infoStyle').textContent = img.style || 'No style defined';
+      document.getElementById('infoStyleLabel').textContent = `Style (${cat})`;
+      document.getElementById('infoPrompt').textContent = img.prompt || 'No prompt defined';
+      document.getElementById('editInput').value = '';
+
+      document.getElementById('analyzeBtn').disabled = !img.generated;
+      document.getElementById('deleteBtn').disabled = !img.generated;
+      document.getElementById('editBtn').disabled = !img.generated;
+      document.getElementById('analysis').classList.add('hidden');
+
+      document.getElementById('overlay').classList.add('open');
+    }
+
+    function closeDetail() {
+      document.getElementById('overlay').classList.remove('open');
+      selected = null;
+    }
+
+    async function analyze() {
+      if (!selected?.generated) return;
+      const btn = document.getElementById('analyzeBtn');
+      const result = document.getElementById('analysis');
+
+      btn.disabled = true;
+      btn.textContent = 'Analyzing...';
+      result.classList.remove('hidden');
+      result.textContent = 'Loading...';
+
+      try {
+        const res = await fetch('/api/gemini/analyze', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imagePath: selected.path,
+            prompt: 'Analyze this game asset. Rate quality 1-10, note any issues, suggest improvements. Be brief.'
+          })
+        });
+        const d = await res.json();
+        result.textContent = d.error || d.response;
+      } catch (e) {
+        result.textContent = 'Error: ' + e.message;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Analyze with Gemini';
+    }
+
+    async function generate() {
+      if (!selected) return;
+      const btn = document.getElementById('generateBtn');
+      const result = document.getElementById('analysis');
+
+      btn.disabled = true;
+      btn.textContent = 'Generating...';
+      result.classList.remove('hidden');
+      result.textContent = 'Generating image with GPT...';
+
+      try {
+        const res = await fetch('/api/openai/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: selected.prompt,
+            style: selected.style,
+            size: selected.size,
+            filename: selected.filename,
+            category: selected.cat
+          })
+        });
+        const d = await res.json();
+        if (d.error) {
+          result.textContent = 'Error: ' + d.error;
+        } else {
+          result.textContent = 'Generated!\n\nRevised prompt:\n' + (d.revisedPrompt || 'N/A');
+          await loadData();
+          // Refresh preview
+          const previewImg = document.getElementById('previewImg');
+          previewImg.src = d.path + '?t=' + Date.now();
+          previewImg.style.display = 'block';
+        }
+      } catch (e) {
+        result.textContent = 'Error: ' + e.message;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Generate';
+    }
+
+    async function edit() {
+      if (!selected?.generated) return;
+      const editPrompt = document.getElementById('editInput').value.trim();
+      if (!editPrompt) {
+        alert('Enter edit instructions first');
+        return;
+      }
+
+      const btn = document.getElementById('editBtn');
+      const result = document.getElementById('analysis');
+
+      btn.disabled = true;
+      btn.textContent = 'Editing...';
+      result.classList.remove('hidden');
+      result.textContent = 'Applying edits with Gemini...';
+
+      try {
+        const res = await fetch('/api/gemini/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imagePath: selected.path,
+            editPrompt: editPrompt,
+            style: selected.style
+          })
+        });
+        const d = await res.json();
+        if (d.error) {
+          result.textContent = 'Error: ' + d.error;
+        } else {
+          result.textContent = 'Edited!\n\n' + (d.response || 'Image updated successfully');
+          await loadData();
+          // Refresh preview
+          const previewImg = document.getElementById('previewImg');
+          previewImg.src = selected.path + '?t=' + Date.now();
+        }
+      } catch (e) {
+        result.textContent = 'Error: ' + e.message;
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Apply Edit';
+    }
+
+    async function deleteImg() {
+      if (!selected?.generated) return;
+      if (!confirm('Delete ' + selected.filename + '?')) return;
+
+      try {
+        await fetch('/api/asset', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: selected.path })
+        });
+        closeDetail();
+        await loadData();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    async function upload(file) {
+      const category = prompt('Category (ui, enemies, effects, apps, icons):', 'ui');
+      if (!category) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'images/' + category);
+
+      try {
+        const res = await fetch('/api/upload', { method: 'POST', body: formData });
+        if (res.ok) {
+          document.getElementById('fileInput').value = '';
+          await loadData();
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Upload failed');
+        }
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    function formatSize(bytes) {
+      if (!bytes) return '0 B';
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    const sse = new EventSource('/api/events');
+    sse.onmessage = e => { const d = JSON.parse(e.data); if (d.type === 'fileChange' && d.dir === 'images') loadData(); };
+
+    init();
+  </script>
+</body>
+</html>

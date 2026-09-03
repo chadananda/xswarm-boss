@@ -27,11 +27,16 @@
     "generate-audio": "cd scripts && node generate-audio.js",
     "generate-audio:dry": "cd scripts && node generate-audio.js --dry-run",
     "scrape-screenshots": "cd scripts && node scrape-screenshots.js",
+    "setup-r2": "cd scripts && node setup-r2.js",
+    "upload-assets": "cd scripts && node upload-assets.js",
     "install:scripts": "cd scripts && npm install",
     "build": "scripts/build.sh",
     "deploy": "scripts/deploy.sh"
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "puppeteer": "^24.32.0"
   }
 }

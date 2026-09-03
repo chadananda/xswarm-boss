@@ -16,6 +16,87 @@
   --warning: #ffaa00;
 }
 
+/* ============================================================
+   AUDIO UNLOCK OVERLAY - Transparent, button below logo
+   ============================================================ */
+.audio-unlock-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background: transparent;
+  display: flex;
+  align-items: flex-end;
+  pointer-events: none; /* Allow scroll through overlay */
+  justify-content: center;
+  padding-bottom: 15vh;
+  z-index: 50;
+  transition: opacity 0.3s ease;
+}
+
+.audio-unlock-overlay.hidden {
+  display: none;
+}
+
+.audio-unlock-content {
+  text-align: center;
+  color: var(--phosphor);
+  font-family: 'Courier New', monospace;
+  pointer-events: auto; /* Only content is clickable */
+  cursor: pointer;
+  padding: 2rem;
+}
+
+.audio-unlock-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.audio-unlock-text {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ============================================================
+   WAITING STATE - Hide everything except logo + play button
+   ============================================================ */
+body.waiting-for-user .story-crawl {
+  /* Hide story crawl completely until user clicks */
+  opacity: 0 !important;
+  visibility: hidden;
+  /* CRITICAL: Pause animation so it starts from beginning when user clicks */
+  animation-play-state: paused !important;
+}
+
+body.waiting-for-user .logo-stamp {
+  /* Hide stamp until user clicks - animation now triggered by JS */
+  opacity: 0 !important;
+}
+
+/* Override hidden stamp when fade-in class is added (fallback after 5s) */
+body.waiting-for-user .logo-stamp.fade-in {
+  opacity: 1 !important;
+}
+
+/* Play button is now always visible in sticky footer */
+
+/* NOTE: .about-section is NOT hidden during waiting-for-user
+   so users can scroll and read the article without clicking */
+
+body.waiting-for-user::after {
+  /* Pause flicker effect */
+  animation-play-state: paused;
+}
+
 /* Reset */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -24,20 +105,18 @@
 }
 
 /* Base */
-html, body {
+html {
   width: 100%;
   height: 100%;
-  overflow: hidden;
 }
 
 body {
+  width: 100%;
+  min-height: 100%;
   font-family: 'Courier New', Courier, monospace;
   background: var(--bg-crt);
   color: var(--phosphor);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  overflow-y: auto;
 }
 
 /* ============================================================
@@ -103,25 +182,90 @@ body.loading::after {
    ============================================================ */
 
 .splash {
-  position: fixed;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   z-index: 100;
-  padding: 2rem;
+  padding: 0;
 }
 
-/* Logo */
+/* Logo - Fixed at top, shrinks when scrolled */
 .logo-container {
-  position: relative;
-  text-align: center;
-  margin-bottom: 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem 2rem 2rem;
+  background: linear-gradient(
+    to bottom,
+    var(--bg-crt) 0%,
+    var(--bg-crt) 70%,
+    transparent 100%
+  );
+  z-index: 100;
   animation: fadeIn 1s ease-out;
+  transition: transform 0.4s ease-out, padding 0.4s ease-out;
+  transform-origin: top center;
+}
+
+/* Shrunk state when user scrolls down */
+.logo-container.scrolled {
+  transform: scale(0.33);
+  padding: 0.5rem 1rem;
+  background: transparent;  /* Let header-overlay handle the background */
+}
+
+/* ============================================================
+   HEADER OVERLAY - Full-width black bar + gradient fade
+   Hidden by default, shown when scrolled (via JS adding .scrolled to body)
+   ============================================================ */
+
+.header-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6rem;  /* Solid black portion */
+  background: var(--bg-crt);
+  z-index: 99;  /* Below logo-container (100) but above content */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease-out;
+}
+
+/* Gradient fade below the solid bar */
+.header-overlay::after {
+  content: '';
+  position: absolute;
+  top: 100%;  /* Start at bottom of solid bar */
+  left: 0;
+  right: 0;
+  height: 3rem;  /* Gradient fade height */
+  background: linear-gradient(
+    to bottom,
+    var(--bg-crt) 0%,
+    rgba(5, 5, 5, 0.8) 30%,
+    rgba(5, 5, 5, 0.4) 60%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Show header overlay when body has scrolled class */
+body.scrolled .header-overlay {
+  opacity: 1;
+}
+
+/* Wrapper for logo + stamp overlay */
+.logo-wrapper {
+  position: relative;
+  display: inline-block;
 }
 
 @keyframes fadeIn {
@@ -129,141 +273,322 @@ body.loading::after {
   to { opacity: 1; transform: translateY(0); }
 }
 
-.logo {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* Logo image styling - larger */
+.logo-image {
+  display: block;
+  width: 100%;
+  max-width: clamp(350px, 80vw, 700px);
+  height: auto;
+  filter: drop-shadow(0 0 10px var(--phosphor-glow))
+          drop-shadow(0 0 20px var(--phosphor-glow))
+          drop-shadow(0 0 40px var(--phosphor-glow));
+  animation: logoGlow 2s ease-in-out infinite alternate;
 }
 
-.logo-text {
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  font-weight: bold;
-  letter-spacing: 0.3em;
-  text-shadow:
-    0 0 10px var(--phosphor-glow),
-    0 0 20px var(--phosphor-glow),
-    0 0 40px var(--phosphor-glow);
-  animation: textGlow 2s ease-in-out infinite alternate;
-}
-
-@keyframes textGlow {
+@keyframes logoGlow {
   from {
-    text-shadow:
-      0 0 10px var(--phosphor-glow),
-      0 0 20px var(--phosphor-glow),
-      0 0 40px var(--phosphor-glow);
+    filter: drop-shadow(0 0 10px var(--phosphor-glow))
+            drop-shadow(0 0 20px var(--phosphor-glow))
+            drop-shadow(0 0 40px var(--phosphor-glow));
   }
   to {
-    text-shadow:
-      0 0 15px var(--phosphor-glow),
-      0 0 30px var(--phosphor-glow),
-      0 0 60px var(--phosphor-glow);
+    filter: drop-shadow(0 0 15px var(--phosphor-glow))
+            drop-shadow(0 0 30px var(--phosphor-glow))
+            drop-shadow(0 0 60px var(--phosphor-glow));
   }
 }
 
-.logo-sub {
-  font-size: clamp(1rem, 3vw, 1.5rem);
-  letter-spacing: 0.5em;
-  color: var(--phosphor-dim);
-  margin-top: 0.5rem;
-}
-
-/* Approval stamp */
+/* DEFENDER - Rubber stamp effect overlaying Omarchy logo */
 .logo-stamp {
   position: absolute;
-  top: 50%;
-  right: -20px;
-  transform: translateY(-50%) rotate(15deg);
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: var(--danger);
-  border: 3px solid var(--danger);
-  padding: 0.3rem 0.8rem;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%) scale(3) rotate(-8deg);
+  transform-origin: center center;
+
+  /* 75% width of parent (logo) */
+  width: 75%;
+  text-align: center;
+
+  font-size: clamp(1.5rem, 6vw, 3.5rem);
+  font-weight: 900;
+  font-family: 'Courier New', Courier, monospace;
+  color: #ff3333;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
   opacity: 0;
-  animation: stampIn 0.3s ease-out 2s forwards;
+  white-space: nowrap;
+
+  /* Pixel-perfect rendering hint */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+  image-rendering: pixelated;
+
+  /* Stamp border effect */
+  text-shadow:
+    2px 2px 0 #880000,
+    -2px -2px 0 #880000,
+    2px -2px 0 #880000,
+    -2px 2px 0 #880000,
+    0 0 10px rgba(255, 50, 50, 0.8),
+    0 0 20px rgba(255, 50, 50, 0.6);
+
+  /* Animation only triggers when slam-now class is added by JS (synced with audio) */
+  animation: none;
 }
 
-@keyframes stampIn {
+/* Trigger stamp animation - added by JS when audio starts playing */
+.logo-stamp.slam-now {
+  animation: stampSlam 0.15s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Quiet fade-in for fallback (no slam animation, no sound) */
+/* Use !important to override body.waiting-for-user .logo-stamp { opacity: 0 !important } */
+.logo-stamp.fade-in {
+  animation: stampFadeIn 0.8s ease-out forwards !important;
+}
+
+@keyframes stampFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) scale(1) rotate(-3deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) scale(1) rotate(-3deg);
+  }
+}
+
+/* Stamp slam animation - comes from above, slams down with impact */
+@keyframes stampSlam {
   0% {
     opacity: 0;
-    transform: translateY(-50%) rotate(15deg) scale(3);
+    transform: translateX(-50%) scale(3) rotate(-8deg) translateY(-30px);
   }
-  50% {
+  70% {
     opacity: 1;
+    transform: translateX(-50%) scale(1) rotate(-3deg) translateY(3px);
+  }
+  85% {
+    transform: translateX(-50%) scale(1.02) rotate(-3deg) translateY(-1px);
   }
   100% {
     opacity: 1;
-    transform: translateY(-50%) rotate(15deg) scale(1);
+    transform: translateX(-50%) scale(1) rotate(-3deg) translateY(0);
+  }
+}
+
+/* Screen shake when stamp hits */
+@keyframes screenShake {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5px, -3px); }
+  20% { transform: translate(5px, 3px); }
+  30% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  50% { transform: translate(-2px, 1px); }
+  60% { transform: translate(2px, -1px); }
+  70% { transform: translate(-1px, 1px); }
+  80% { transform: translate(1px, 0); }
+  90% { transform: translate(0, 0); }
+}
+
+/* Apply shake to logo container when stamp hits */
+.logo-container.stamp-hit {
+  animation: screenShake 0.3s ease-out;
+}
+
+/* Ink splatter particles around stamp */
+.logo-stamp::before,
+.logo-stamp::after {
+  content: '';
+  position: absolute;
+  background: #ff3333;
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.logo-stamp::before {
+  width: 8px;
+  height: 8px;
+  top: -15px;
+  left: 20%;
+}
+
+.logo-stamp::after {
+  width: 6px;
+  height: 6px;
+  bottom: -10px;
+  right: 15%;
+}
+
+.logo-stamp.visible::before,
+.logo-stamp.visible::after {
+  animation: inkSplatter 0.3s ease-out forwards;
+}
+
+@keyframes inkSplatter {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.5);
+  }
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+}
+
+/* Pulsing glow animation - keeps stamp visible */
+.logo-stamp.visible {
+  opacity: 1 !important;
+  animation: defenderGlow 2s ease-in-out infinite alternate;
+  transform: translateX(-50%) scale(1) rotate(-3deg) !important;
+}
+
+@keyframes defenderGlow {
+  from {
+    text-shadow:
+      2px 2px 0 #880000,
+      -2px -2px 0 #880000,
+      2px -2px 0 #880000,
+      -2px 2px 0 #880000,
+      0 0 10px rgba(255, 50, 50, 0.8),
+      0 0 20px rgba(255, 50, 50, 0.6),
+      0 0 40px rgba(255, 50, 50, 0.4);
+  }
+  to {
+    text-shadow:
+      2px 2px 0 #880000,
+      -2px -2px 0 #880000,
+      2px -2px 0 #880000,
+      -2px 2px 0 #880000,
+      0 0 15px rgba(255, 50, 50, 1),
+      0 0 30px rgba(255, 50, 50, 0.8),
+      0 0 60px rgba(255, 50, 50, 0.6);
   }
 }
 
 /* ============================================================
-   BACKSTORY CRAWL
+   STAR WARS STYLE STORY CRAWL
+   Text moves ALONG tilted plane using translateY (not top)
    ============================================================ */
 
-.backstory-container {
-  width: 100%;
-  max-width: 600px;
-  height: 200px;
-  overflow: hidden;
+.story-container {
+  /* Wrapper provides perspective viewing angle */
   position: relative;
-  margin-bottom: 2rem;
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 20%,
-    black 80%,
-    transparent 100%
-  );
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 0%,
-    black 20%,
-    black 80%,
-    transparent 100%
-  );
-  opacity: 0;
-  animation: fadeIn 1s ease-out 3s forwards;
+  width: 100%;
+  height: 100vh;
+  perspective: 300px;
+  overflow: hidden;
+  z-index: 50;  /* Below logo (100) so text goes under it */
+  margin-top: 0;  /* Space for logo at top */
+  pointer-events: none;  /* Allow clicks to pass through to audio-unlock below */
 }
 
-.backstory {
-  text-align: center;
-  animation: crawl 30s linear 3s forwards;
-  transform: translateY(100%);
-}
+.story-crawl {
+  /* Positioned at bottom, tilted into distance */
+  position: absolute;
+  bottom: 0;
+  left: -25%;
+  width: 150%;  /* 1.5x screen width - extends beyond edges */
 
-@keyframes crawl {
-  from { transform: translateY(100%); }
-  to { transform: translateY(-100%); }
-}
+  /* rotateX tilts plane, translateY moves ALONG the plane */
+  transform-origin: 50% 100%;  /* Pivot at bottom */
+  transform: rotateX(45deg) translateY(100%);
 
-.backstory p {
-  margin-bottom: 1.5rem;
-  font-size: 1rem;
-  line-height: 1.6;
-  color: var(--text);
-}
+  /* Animation moves text along the tilted plane - 45s to sync with audio */
+  animation: starWarsCrawl 45s linear 2s forwards;
 
-.backstory-title {
-  font-size: 1.2rem;
+  /* Typography - larger and more readable */
+  font-family: Arial, Helvetica, sans-serif;
   font-weight: bold;
-  color: var(--phosphor);
-  text-shadow: 0 0 10px var(--phosphor-glow);
+  font-size: clamp(2rem, 6vw, 3.5rem);  /* Larger text */
+  text-align: justify;
+  color: #ffffff;
+  line-height: 1.4;  /* Slightly more leading for readability */
+  letter-spacing: 0;  /* Normal character spacing */
+
+  /* Fade in when waiting-for-user is removed */
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 1s ease 0.5s, visibility 0s linear 0s;
 }
 
-.backstory-cta {
-  font-size: 1.1rem;
-  color: var(--phosphor-bright);
+@keyframes starWarsCrawl {
+  0% {
+    /* Start below - translateY moves along the tilted plane */
+    transform: rotateX(45deg) translateY(100%);
+    opacity: 1;
+  }
+  5% {
+    opacity: 1;
+  }
+  60% {
+    /* Start fading before text gets too small */
+    opacity: 1;
+  }
+  75% {
+    /* Fade out while text is still readable */
+    transform: rotateX(45deg) translateY(-250%);
+    opacity: 0;
+  }
+  97% {
+    transform: rotateX(45deg) translateY(-250%);
+    opacity: 0;
+  }
+  99% {
+    transform: rotateX(45deg) translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: rotateX(45deg) translateY(100%);
+    opacity: 1;
+  }
 }
 
-.backstory kbd {
-  background: var(--bg-dark);
-  border: 1px solid var(--phosphor-dim);
-  border-radius: 3px;
-  padding: 0.1rem 0.4rem;
-  font-family: inherit;
-  color: var(--phosphor);
-  box-shadow: 0 0 5px var(--phosphor-glow);
+.story-intro {
+  font-size: clamp(1.2rem, 3vw, 2rem);
+  color: #ffffff;
+  margin-bottom: 4rem;
+  letter-spacing: 0.2em;
+  text-align: center;
+  font-weight: normal;
+  font-style: italic;
+}
+
+.story-episode {
+  font-size: clamp(3rem, 10vw, 8rem);
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.story-title {
+  font-size: clamp(2rem, 6vw, 5rem);
+  font-weight: bold;
+  color: #ffffff;
+  margin-bottom: 4rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.story-text {
+  max-width: 100%;
+  text-align: center;
+}
+
+.story-text p {
+  margin-bottom: 2.5rem;
+  font-size: clamp(1.5rem, 4vw, 2.5rem);
+  line-height: 1.6;
+  color: #ffffff;
 }
 
 /* ============================================================
@@ -300,55 +625,20 @@ body.loading::after {
 }
 
 /* ============================================================
-   PLAY BUTTON (Mouse Trap)
+   PLAY BUTTON (Mouse Trap - now in footer)
    ============================================================ */
 
-.play-button {
-  background: transparent;
-  border: 2px solid var(--phosphor-dim);
-  color: var(--phosphor);
-  font-family: inherit;
-  font-size: 1.2rem;
-  padding: 1rem 3rem;
-  cursor: pointer;
-  letter-spacing: 0.2em;
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
+/* Shake animation for mouse trap warning */
+.play-button.shake {
+  animation: buttonShake 0.5s ease;
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 20px var(--danger);
 }
 
-.play-button:hover {
-  border-color: var(--phosphor);
-  box-shadow: 0 0 20px var(--phosphor-glow);
-}
-
-.play-button:focus {
-  outline: none;
-  border-color: var(--phosphor);
-}
-
-/* Mouse trap warning state */
-.play-button.warning {
-  border-color: var(--danger);
-  color: var(--danger);
-  animation: shake 0.5s ease-in-out;
-}
-
-.play-button.warning::after {
-  content: 'USE KEYBOARD: Super+Enter';
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 0.7rem;
-  color: var(--danger);
-  white-space: nowrap;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
+@keyframes buttonShake {
+  0%, 100% { transform: rotate(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-8px) rotate(-2deg); }
+  20%, 40%, 60%, 80% { transform: translateX(8px) rotate(2deg); }
 }
 
 /* ============================================================
@@ -369,14 +659,22 @@ body.loading::after {
 
 @media (max-width: 768px), (hover: none) and (pointer: coarse) {
   .logo-container,
-  .backstory-container,
-  .loading-container,
-  .play-button {
+  .story-container,
+  .loading-container {
     display: none;
   }
 
   .mobile-warning {
     display: block;
+  }
+
+  .about-section {
+    margin-top: 2rem;
+  }
+
+  /* Hide play button in footer on mobile (game requires keyboard) */
+  .site-footer .play-button {
+    display: none;
   }
 }
 
@@ -389,24 +687,193 @@ body.loading::after {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: 100dvh;  /* Dynamic viewport height - handles mobile browser chrome */
+  height: 100vh;   /* Fallback */
   z-index: 50;
+  overflow: hidden;  /* Prevent any scroll within game */
 }
 
 .game-container[hidden] {
   display: none;
 }
 
+/* Ensure canvas fits viewport */
+.game-container canvas {
+  max-width: 100%;
+  max-height: 100dvh;
+  max-height: 100vh;  /* Fallback */
+}
+
 /* ============================================================
-   ABOUT SECTION (SEO - visually hidden but crawlable)
+   ABOUT SECTION (SEO - Visible below splash)
    ============================================================ */
 
-.about-section[hidden] {
-  position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
+.about-section {
+  position: relative;
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  padding-top: 6rem;  /* Space for shrunk logo at top */
+  background: rgba(0, 0, 0, 0.8);
+  border-top: 1px solid var(--phosphor-dim);
+  overflow: visible;  /* Allow sticky notes to extend into margins */
+
+  /* Fade in when waiting-for-user is removed */
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 1s ease 1s, visibility 0s linear 0s;
+}
+
+.about-section h2 {
+  font-size: clamp(1.2rem, 3vw, 1.8rem);
+  color: var(--phosphor);
+  text-align: center;
+  margin-bottom: 1.5rem;
+  text-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+/* Article heading - typewriter effect with rotating phrases */
+.about-section h2.typewriter {
+  margin: 0 0 1.5rem;
+  text-align: left;
+  min-height: 1.8em;
+  position: relative;
+  display: inline-block;
+}
+
+.typewriter-text {
+  display: inline;
+  border-right: 3px solid var(--phosphor);
+  padding-right: 4px;
+  animation: blink-cursor 0.75s step-end infinite;
+}
+
+.typewriter-text.typing {
+  animation: none;
+  border-color: var(--phosphor);
+}
+
+.typewriter-text.deleting {
+  animation: none;
+  border-color: #ff4444;
+}
+
+@keyframes blink-cursor {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--phosphor); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Lead paragraph - larger, more prominent */
+.seo-article .lead {
+  font-size: 1.2rem;
+  color: var(--phosphor);
+  line-height: 1.6;
+}
+
+@keyframes blink-caret {
+  from, to { border-color: transparent; }
+  50% { border-color: var(--phosphor); }
+}
+
+.about-intro {
+  text-align: center;
+  font-size: 1rem;
+  color: var(--text);
+  max-width: 700px;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.about-card {
+  background: var(--bg-dark);
+  border: 1px solid var(--phosphor-dim);
+  padding: 1.5rem;
+  border-radius: 4px;
+}
+
+.about-card h3 {
+  font-size: 1rem;
+  color: var(--phosphor);
+  margin-bottom: 1rem;
+  text-shadow: 0 0 5px var(--phosphor-glow);
+}
+
+.about-card p {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 0.75rem;
+}
+
+.about-card p:last-child {
+  margin-bottom: 0;
+}
+
+.shortcut-list, .stage-list {
+  list-style: none;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.shortcut-list li, .stage-list li {
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.about-section kbd {
+  background: var(--bg-crt);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 3px;
+  padding: 0.1rem 0.4rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: var(--phosphor);
+  box-shadow: 0 0 3px var(--phosphor-glow);
+}
+
+.about-card em {
+  font-style: normal;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+/* CTA section */
+.about-cta {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  text-align: center;
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 4px;
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.about-cta p {
+  font-size: 1.1rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.about-cta kbd {
+  background: var(--bg-crt);
+  border: 1px solid var(--phosphor);
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: var(--phosphor);
+  box-shadow: 0 0 5px var(--phosphor-glow);
 }
 
 /* ============================================================
@@ -458,6 +925,24 @@ body.loading::after {
   text-align: right;
 }
 
+/* Sticky note positioning - left and right margins */
+.sticky-note.left {
+  /* Position in left margin, centered between viewport edge and article */
+  left: max(10px, calc((100vw - 1000px) / 4 - 75px));
+}
+
+.sticky-note.right {
+  /* Position in right margin, centered between article and viewport edge */
+  right: max(10px, calc((100vw - 1000px) / 4 - 75px));
+}
+
+/* Hide left notes on smaller screens */
+@media (max-width: 1399px) {
+  .sticky-note.left {
+    display: none;
+  }
+}
+
 /* ============================================================
    UTILITY CLASSES
    ============================================================ */
@@ -477,4 +962,643 @@ body.loading::after {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* ============================================================
+   TESTIMONIAL STICKY NOTES (skeuomorphic, on margins)
+   Scroll with article content, positioned at viewport edges
+   ============================================================ */
+
+.testimonial-notes {
+  display: block;  /* Override critical CSS display:none */
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;  /* Span full viewport width */
+  pointer-events: none;
+  z-index: 10;  /* Below article content */
+}
+
+.testimonial-note {
+  position: absolute;
+  width: 150px;
+  padding: 0.8rem;
+  background: linear-gradient(135deg, #ffffa0 0%, #fff59d 100%);
+  box-shadow:
+    2px 2px 8px rgba(0, 0, 0, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+  font-family: 'Comic Sans MS', 'Marker Felt', cursive;
+  color: #333;
+  transform-origin: top center;
+  pointer-events: auto;
+}
+
+/* Random rotations for hand-placed look (±2.5-6 degrees) */
+.testimonial-note:nth-child(1) { transform: rotate(-4deg); }
+.testimonial-note:nth-child(2) { transform: rotate(3deg); }
+.testimonial-note:nth-child(3) { transform: rotate(-2.5deg); }
+.testimonial-note:nth-child(4) { transform: rotate(5deg); }
+.testimonial-note:nth-child(5) { transform: rotate(-3.5deg); }
+.testimonial-note:nth-child(6) { transform: rotate(2.5deg); }
+.testimonial-note:nth-child(7) { transform: rotate(-5.5deg); }
+.testimonial-note:nth-child(8) { transform: rotate(4deg); }
+.testimonial-note:nth-child(9) { transform: rotate(-3deg); }
+.testimonial-note:nth-child(10) { transform: rotate(3.5deg); }
+.testimonial-note:nth-child(11) { transform: rotate(-4.5deg); }
+.testimonial-note:nth-child(12) { transform: rotate(2.5deg); }
+.testimonial-note:nth-child(13) { transform: rotate(6deg); }
+.testimonial-note:nth-child(14) { transform: rotate(-3deg); }
+.testimonial-note:nth-child(15) { transform: rotate(4.5deg); }
+.testimonial-note:nth-child(16) { transform: rotate(-5deg); }
+.testimonial-note:nth-child(17) { transform: rotate(3.5deg); }
+.testimonial-note:nth-child(18) { transform: rotate(-2.5deg); }
+.testimonial-note:nth-child(19) { transform: rotate(4deg); }
+.testimonial-note:nth-child(20) { transform: rotate(-4deg); }
+.testimonial-note:nth-child(21) { transform: rotate(3deg); }
+.testimonial-note:nth-child(22) { transform: rotate(-3.5deg); }
+.testimonial-note:nth-child(23) { transform: rotate(5.5deg); }
+.testimonial-note:nth-child(24) { transform: rotate(-2.5deg); }
+
+.testimonial-note.left {
+  /* Position halfway between article container edge and viewport edge */
+  /* Article container edge from left = (100vw - 1000px) / 2 */
+  /* Midpoint of that margin = (100vw - 1000px) / 4 */
+  /* Center the note (150px wide) at that point */
+  left: max(10px, calc((100vw - 1000px) / 4 - 75px));
+}
+
+.testimonial-note.right {
+  /* Same calculation for right side */
+  right: max(10px, calc((100vw - 1000px) / 4 - 75px));
+}
+
+/* Color variants */
+.testimonial-note.pink {
+  background: linear-gradient(135deg, #ffb0c0 0%, #ff9db0 100%);
+}
+
+.testimonial-note.blue {
+  background: linear-gradient(135deg, #a0d0ff 0%, #8dc0ff 100%);
+}
+
+.testimonial-note.green {
+  background: linear-gradient(135deg, #b0ffb0 0%, #90ee90 100%);
+}
+
+.testimonial-note.orange {
+  background: linear-gradient(135deg, #ffd0a0 0%, #ffc080 100%);
+}
+
+.testimonial-note.purple {
+  background: linear-gradient(135deg, #d0b0ff 0%, #c0a0f0 100%);
+}
+
+/* Tape strip at top */
+.testimonial-note::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 16px;
+  background: rgba(200, 200, 200, 0.6);
+  border-radius: 2px;
+}
+
+.testimonial-note .note-text {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.testimonial-note .note-author {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: right;
+}
+
+/* Very subtle wiggle animation */
+@keyframes noteWiggle {
+  0%, 100% { transform: rotate(-0.5deg); }
+  50% { transform: rotate(0.5deg); }
+}
+
+/* Randomized timing so notes don't move together */
+.testimonial-note:nth-child(1) { animation-delay: 0s; animation-duration: 6s; }
+.testimonial-note:nth-child(2) { animation-delay: -1.3s; animation-duration: 7s; }
+.testimonial-note:nth-child(3) { animation-delay: -2.7s; animation-duration: 5s; }
+.testimonial-note:nth-child(4) { animation-delay: -0.8s; animation-duration: 8s; }
+.testimonial-note:nth-child(5) { animation-delay: -3.2s; animation-duration: 6.5s; }
+.testimonial-note:nth-child(6) { animation-delay: -1.9s; animation-duration: 7.5s; }
+.testimonial-note:nth-child(7) { animation-delay: -4.1s; animation-duration: 5.5s; }
+.testimonial-note:nth-child(8) { animation-delay: -0.4s; animation-duration: 8.5s; }
+.testimonial-note:nth-child(9) { animation-delay: -2.3s; animation-duration: 6s; }
+.testimonial-note:nth-child(10) { animation-delay: -3.7s; animation-duration: 7s; }
+.testimonial-note:nth-child(11) { animation-delay: -1.1s; animation-duration: 5s; }
+.testimonial-note:nth-child(12) { animation-delay: -4.5s; animation-duration: 9s; }
+
+/* Show notes on both sides for wide screens */
+@media (min-width: 1400px) {
+  .testimonial-note.left {
+    display: block;
+  }
+}
+
+/* For screens < 1400px, hide left notes and adjust article */
+@media (max-width: 1399px) {
+  .testimonial-note.left {
+    display: none;
+  }
+
+  /* Article needs space only for right-side notes */
+  .seo-article {
+    margin-left: 1rem;
+    margin-right: calc(180px + 1rem); /* note width + small spacing */
+  }
+}
+
+/* Hide all notes on mobile/tablet */
+@media (max-width: 768px) {
+  .testimonial-note {
+    display: none;
+  }
+
+  .seo-article {
+    margin-left: 1rem;
+    margin-right: 1rem;
+    padding: 1rem;
+  }
+}
+
+/* ============================================================
+   SEO ARTICLE STYLES
+   ============================================================ */
+
+.seo-article {
+  padding: 2rem;
+  font-family: 'Courier New', monospace;
+  color: var(--text);
+  line-height: 1.8;
+  /* Margins set in responsive section above */
+}
+
+.article-section {
+  margin-bottom: 3rem;
+}
+
+.article-section h3 {
+  color: var(--phosphor);
+  font-size: 1.4rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 5px var(--phosphor-glow);
+  /* Slide-in animation from left */
+  opacity: 0;
+  transform: translateX(-80px);
+  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+}
+
+/* When h3 becomes visible (triggered by IntersectionObserver) */
+.article-section h3.visible {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Stagger animation for each h3 */
+.article-section:nth-of-type(2) h3 { transition-delay: 0.1s; }
+.article-section:nth-of-type(3) h3 { transition-delay: 0.15s; }
+.article-section:nth-of-type(4) h3 { transition-delay: 0.2s; }
+.article-section:nth-of-type(5) h3 { transition-delay: 0.25s; }
+.article-section:nth-of-type(6) h3 { transition-delay: 0.3s; }
+
+/* Slide-in glitch effect */
+.article-section h3.visible::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  width: 4px;
+  height: 100%;
+  background: var(--phosphor);
+  opacity: 0;
+  animation: glitchBar 0.4s ease-out forwards;
+  animation-delay: 0.3s;
+}
+
+@keyframes glitchBar {
+  0% { opacity: 1; transform: scaleY(0); }
+  50% { opacity: 1; transform: scaleY(1); }
+  100% { opacity: 0; transform: scaleY(1); }
+}
+
+/* Inline images in article */
+.article-inline-img {
+  display: inline-block;
+  vertical-align: middle;
+  width: 24px;
+  height: 24px;
+  margin: 0 4px;
+  filter: drop-shadow(0 0 4px var(--phosphor-glow));
+  transition: transform 0.2s, filter 0.2s;
+}
+
+.article-inline-img:hover {
+  transform: scale(1.3);
+  filter: drop-shadow(0 0 8px var(--phosphor-glow))
+          drop-shadow(0 0 16px var(--phosphor-glow));
+}
+
+/* Larger featured images */
+.article-inline-img.featured {
+  width: 48px;
+  height: 48px;
+  margin: 0 8px;
+}
+
+/* Image float for larger graphics */
+.article-figure {
+  float: right;
+  margin: 0 0 1rem 1.5rem;
+  text-align: center;
+}
+
+.article-figure img {
+  width: 120px;
+  height: auto;
+  filter: drop-shadow(0 0 8px var(--phosphor-glow));
+  animation: floatBob 3s ease-in-out infinite;
+}
+
+@keyframes floatBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.article-figure figcaption {
+  font-size: 0.75rem;
+  color: var(--phosphor-dim);
+  margin-top: 0.5rem;
+}
+
+.article-section p {
+  margin-bottom: 1.2rem;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.article-section blockquote {
+  border-left: 3px solid var(--phosphor-dim);
+  padding-left: 1rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+.article-section blockquote cite {
+  display: block;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  font-style: normal;
+  color: var(--phosphor-dim);
+}
+
+/* Shortcut reference in article */
+.shortcut-reference {
+  background: var(--bg-dark);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin: 2rem 0;
+}
+
+.shortcut-reference h4 {
+  color: var(--phosphor);
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.shortcut-reference ul {
+  list-style: none;
+  columns: 2;
+  gap: 1.5rem;
+}
+
+.shortcut-reference li {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  break-inside: avoid;
+}
+
+@media (max-width: 600px) {
+  .shortcut-reference ul {
+    columns: 1;
+  }
+}
+
+/* ============================================================
+   MINIMAL FOOTER
+   ============================================================ */
+
+.site-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.75rem 2rem;
+  text-align: center;
+  border-top: 1px solid var(--phosphor-dim);
+  background: var(--bg-crt);
+  font-family: 'Courier New', monospace;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Add padding to body so content isn't hidden behind sticky footer */
+body {
+  padding-bottom: 60px;
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+/* Play button styled for inline footer */
+.site-footer .play-button {
+  position: static;
+  transform: none;
+  padding: 0.4rem 1rem;
+  font-size: 0.9rem;
+  display: inline-flex;
+  flex-direction: row;
+  gap: 0.5rem;
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--phosphor);
+  color: var(--phosphor);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.site-footer .play-button .play-label {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.site-footer .play-button .play-key {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+.site-footer .play-button:hover {
+  background: var(--phosphor);
+  color: var(--bg-dark);
+}
+
+/* Play button is now always visible in sticky footer */
+
+.donate-btn,
+.testimonial-btn {
+  color: var(--phosphor);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s;
+}
+
+/* Throb animation for donate button to get attention */
+.donate-btn {
+  animation: throb 1.2s ease-in-out infinite;
+  font-weight: bold;
+}
+
+@keyframes throb {
+  0%, 100% {
+    text-shadow: 0 0 5px var(--phosphor-glow);
+    transform: scale(1);
+    color: var(--phosphor);
+  }
+  50% {
+    text-shadow:
+      0 0 10px var(--phosphor-glow),
+      0 0 20px var(--phosphor-glow),
+      0 0 40px var(--phosphor-glow),
+      0 0 60px rgba(0, 255, 65, 0.5);
+    transform: scale(1.15);
+    color: #00ff88;
+  }
+}
+
+/* Cool hover animation for all footer buttons */
+.donate-btn:hover,
+.testimonial-btn:hover {
+  text-shadow:
+    0 0 10px var(--phosphor-glow),
+    0 0 20px var(--phosphor-glow),
+    0 0 30px var(--phosphor-glow);
+  color: #00ffaa;
+  transform: scale(1.1) translateY(-2px);
+  animation: none; /* Stop throb on hover */
+}
+
+/* Glitch effect on hover for play button */
+.site-footer .play-button:hover {
+  animation: glitchHover 0.3s ease-in-out;
+  text-shadow:
+    0 0 10px var(--phosphor-glow),
+    0 0 20px var(--phosphor-glow),
+    0 0 40px var(--phosphor-glow);
+  transform: scale(1.05);
+}
+
+@keyframes glitchHover {
+  0% { transform: scale(1.05) translate(0, 0); }
+  20% { transform: scale(1.05) translate(-2px, 1px); }
+  40% { transform: scale(1.05) translate(2px, -1px); }
+  60% { transform: scale(1.05) translate(-1px, -1px); }
+  80% { transform: scale(1.05) translate(1px, 1px); }
+  100% { transform: scale(1.05) translate(0, 0); }
+}
+
+.footer-divider {
+  margin: 0 1rem;
+  color: var(--phosphor-dim);
+}
+
+/* ============================================================
+   DONATION/FEEDBACK MODAL
+   ============================================================ */
+.donation-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 420px;
+  width: 90%;
+  padding: 2rem;
+  background: var(--bg-crt);
+  border: 2px solid var(--phosphor);
+  border-radius: 8px;
+  box-shadow:
+    0 0 20px var(--phosphor-glow),
+    0 0 40px rgba(0, 255, 65, 0.2),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+  color: var(--phosphor);
+  font-family: 'Courier New', monospace;
+}
+
+.donation-modal::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(4px);
+}
+
+.donation-modal h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+  text-align: center;
+  text-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+.donation-modal .modal-subtitle {
+  margin: 0 0 1.5rem;
+  font-size: 0.9rem;
+  text-align: center;
+  color: var(--phosphor-dim);
+}
+
+.donation-modal .amount-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.donation-modal .amount-btn {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  background: transparent;
+  border: 1px solid var(--phosphor-dim);
+  color: var(--phosphor);
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.donation-modal .amount-btn:hover {
+  background: rgba(0, 255, 65, 0.1);
+  border-color: var(--phosphor);
+}
+
+.donation-modal .amount-btn.selected {
+  background: var(--phosphor);
+  color: var(--bg-crt);
+  border-color: var(--phosphor);
+}
+
+.donation-modal .form-field {
+  margin-bottom: 1rem;
+}
+
+.donation-modal label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--phosphor-dim);
+}
+
+.donation-modal input,
+.donation-modal textarea {
+  width: 100%;
+  padding: 0.6rem;
+  background: rgba(0, 255, 65, 0.05);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 4px;
+  color: var(--phosphor);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.donation-modal input:focus,
+.donation-modal textarea:focus {
+  outline: none;
+  border-color: var(--phosphor);
+  box-shadow: 0 0 8px var(--phosphor-glow);
+}
+
+.donation-modal textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.donation-modal .char-count {
+  display: block;
+  text-align: right;
+  font-size: 0.7rem;
+  color: var(--phosphor-dim);
+  margin-top: 0.2rem;
+}
+
+.donation-modal .form-checkboxes {
+  margin-bottom: 1.5rem;
+}
+
+.donation-modal .form-checkboxes label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.donation-modal .form-checkboxes input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--phosphor);
+}
+
+.donation-modal .modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.donation-modal .btn-cancel,
+.donation-modal .btn-donate {
+  padding: 0.6rem 1.2rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.donation-modal .btn-cancel {
+  background: transparent;
+  border: 1px solid var(--phosphor-dim);
+  color: var(--phosphor-dim);
+}
+
+.donation-modal .btn-cancel:hover {
+  border-color: var(--phosphor);
+  color: var(--phosphor);
+}
+
+.donation-modal .btn-donate {
+  background: var(--phosphor);
+  border: 1px solid var(--phosphor);
+  color: var(--bg-crt);
+  font-weight: bold;
+}
+
+.donation-modal .btn-donate:hover {
+  background: #00dd38;
+  box-shadow: 0 0 15px var(--phosphor-glow);
 }

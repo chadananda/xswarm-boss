@@ -34,12 +34,101 @@
 
   <title>Omarchy Defender - Master Hyprland Keyboard Shortcuts</title>
 
-  <!-- Critical CSS (splash) - inlined in production -->
-  <link rel="stylesheet" href="splash.css">
+  <!-- Critical CSS - inlined for instant first paint -->
+  <style>
+    :root {
+      --phosphor: #00ff41;
+      --phosphor-dim: #00aa2b;
+      --phosphor-glow: rgba(0, 255, 65, 0.4);
+      --bg-crt: #050505;
+      --text: #00dd38;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { width: 100%; min-height: 100%; }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      background: var(--bg-crt);
+      color: var(--phosphor);
+      overflow-y: auto;
+    }
+    /* Audio unlock overlay - click to start (scrolls with page) */
+    .audio-unlock-overlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100vh;
+      background: transparent;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 15vh;
+      z-index: 50;
+      pointer-events: none; /* Allow scroll through overlay */
+    }
+    .audio-unlock-overlay.hidden { display: none; }
+    .audio-unlock-content {
+      text-align: center; color: var(--phosphor); font-family: 'Courier New', monospace;
+      pointer-events: auto; /* Only content is clickable */
+      cursor: pointer;
+      padding: 2rem;
+    }
+    .audio-unlock-icon { font-size: 3rem; margin-bottom: 0.5rem; animation: pulse 1.5s ease-in-out infinite; }
+    .audio-unlock-text { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.15em; text-shadow: 0 0 10px var(--phosphor-glow); }
+    @keyframes pulse { 0%, 100% { opacity: 0.6; transform: scale(1); } 50% { opacity: 1; transform: scale(1.1); } }
+    /* Logo - visible immediately */
+    .logo-container {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 2rem 2rem;
+      background: linear-gradient(to bottom, var(--bg-crt) 0%, var(--bg-crt) 70%, transparent 100%);
+      z-index: 100;
+    }
+    .logo-wrapper { position: relative; display: inline-block; }
+    .logo-image {
+      display: block;
+      width: 100%;
+      max-width: clamp(350px, 80vw, 700px);
+      height: auto;
+      filter: drop-shadow(0 0 10px var(--phosphor-glow)) drop-shadow(0 0 20px var(--phosphor-glow));
+    }
+    /* Hide animation elements waiting for JS (NOT article - that's always visible) */
+    body.waiting-for-user .story-crawl,
+    body.waiting-for-user .logo-stamp { opacity: 0 !important; visibility: hidden; }
+    /* Play button is now in sticky footer - hide via .hidden class */
+    .play-button.hidden, [hidden] { display: none !important; }
+    /* Sticky footer - always visible at bottom */
+    .site-footer { position: fixed; bottom: 0; left: 0; right: 0; z-index: 100; background: #050505; border-top: 1px solid #00aa2b; padding: 0.75rem 2rem; }
+    .site-footer button { cursor: pointer; }
+    body { padding-bottom: 60px; }
+    /* Critical CSS for about section - prevents FOUC */
+    .about-section {
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      position: relative;
+      padding-top: 100vh;
+    }
+    .about-section.loaded { opacity: 1; }
+    .seo-article {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem;
+      font-family: 'Courier New', monospace;
+      color: var(--phosphor);
+    }
+    .testimonial-notes { display: none; } /* Hidden until CSS loads */
+    /* Below-fold styles are in deferred splash.css */
+  </style>
 
-  <!-- Game CSS - preloaded for fast swap -->
-  <link rel="preload" href="game.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
-  <noscript><link rel="stylesheet" href="game.css"></noscript>
+  <!-- Full CSS - deferred (non-blocking) -->
+  <link rel="stylesheet" href="splash.css" media="print" onload="this.media='all'; document.querySelector('.about-section')?.classList.add('loaded');">
+  <noscript><link rel="stylesheet" href="splash.css"></noscript>
+
+  <!-- Prefetch game assets (low priority, loaded in background when browser is idle) -->
+  <link rel="prefetch" href="game.html" as="document">
+  <link rel="prefetch" href="game.css" as="style">
+  <link rel="prefetch" href="game.js" as="script">
+  <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" as="script">
 
   <!-- Schema.org structured data -->
   <script type="application/ld+json">
@@ -81,38 +170,39 @@
        SPLASH SCREEN
        ============================================================ -->
   <div id="splash" class="splash">
+    <!-- Header overlay (black bar + gradient fade when scrolled) -->
+    <div class="header-overlay" aria-hidden="true"></div>
+
+    <!-- Audio unlock prompt - positioned in splash so it scrolls with page -->
+    <div id="audioUnlock" class="audio-unlock-overlay">
+      <div class="audio-unlock-content">
+        <div class="audio-unlock-icon">&#9658;</div>
+        <p class="audio-unlock-text">Click or press Enter to begin</p>
+      </div>
+    </div>
+
     <!-- Logo -->
     <div class="logo-container">
-      <h1 class="logo">
-        <span class="logo-text">OMARCHY</span>
-        <span class="logo-sub">DEFENDER</span>
-      </h1>
-      <div class="logo-stamp" aria-hidden="true">APPROVED</div>
-    </div>
-
-    <!-- Backstory crawl -->
-    <div class="backstory-container">
-      <div class="backstory">
-        <p class="backstory-title">THE YEAR IS 2024...</p>
-        <p>The desktop wars rage on. The Gnome cavalry, riding their mouse-dependent steeds, threaten to overrun the last bastion of keyboard efficiency.</p>
-        <p>You are a newly recruited OMARCHY DEFENDER, trained in the ancient art of Hyprland window management. Your weapons: vim-style navigation, workspace mastery, and lightning-fast application launching.</p>
-        <p>The mice grow restless. The Gnomes approach. Only your keyboard skills can save us now.</p>
-        <p class="backstory-cta">Press <kbd>Super</kbd>+<kbd>Enter</kbd> to begin your training...</p>
+      <div class="logo-wrapper">
+        <img src="/assets/images/omarchy-logo.png" alt="Omarchy" class="logo-image">
+        <div class="logo-stamp" aria-hidden="true">DEFENDER</div>
       </div>
     </div>
 
-    <!-- Loading progress -->
-    <div class="loading-container">
-      <div class="loading-bar">
-        <div class="loading-fill" id="loadingFill"></div>
+    <!-- Story Crawl - short narration suitable for voiceover -->
+    <div class="story-container">
+      <div class="story-crawl">
+        <div class="story-text">
+          <p>They came from beyond the outer rim.</p>
+          <p>We call them Gnomes.</p>
+          <p>We barely beat them back the first time.</p>
+          <p>Now they're coming for us again.</p>
+          <p>Man your station. Defend the skies.</p>
+        </div>
       </div>
-      <div class="loading-text" id="loadingText">Loading assets...</div>
     </div>
 
-    <!-- Mouse trap button -->
-    <button id="playButton" class="play-button" aria-label="Start Game">
-      PLAY NOW
-    </button>
+    <!-- Play button moved to sticky footer -->
 
     <!-- Desktop-only warning (shown on mobile) -->
     <div class="mobile-warning">
@@ -121,75 +211,334 @@
     </div>
   </div>
 
-  <!-- ============================================================
-       GAME CONTAINER
-       ============================================================ -->
-  <div id="game" class="game-container" hidden>
-    <!-- Phaser canvas inserted here -->
-  </div>
 
   <!-- ============================================================
-       ABOUT SECTION (SEO Content)
+       ABOUT SECTION (SEO Content - VISIBLE)
        ============================================================ -->
-  <section id="about" class="about-section" hidden>
-    <h2>About Omarchy Defender</h2>
+  <section id="about" class="about-section">
+    <!-- Sticky notes on margins - overlapping, colorful -->
+    <div class="testimonial-notes">
+      <!-- Left side notes -->
+      <div class="testimonial-note left" style="top: 6rem;">
+        <p class="note-text">"Finally stopped checking the cheat sheet!"</p>
+        <p class="note-author">- @linuxuser42</p>
+      </div>
+      <div class="testimonial-note left pink" style="top: 14rem;">
+        <p class="note-text">"Day 3: I can navigate without thinking"</p>
+        <p class="note-author">- TilingNewbie</p>
+      </div>
+      <div class="testimonial-note left blue" style="top: 23rem;">
+        <p class="note-text">"Better than reading docs for hours"</p>
+        <p class="note-author">- @archbtw</p>
+      </div>
+      <div class="testimonial-note left" style="top: 32rem;">
+        <p class="note-text">"My coworkers think I'm a wizard now"</p>
+        <p class="note-author">- DevOpsDoug</p>
+      </div>
+      <div class="testimonial-note left green" style="top: 41rem;">
+        <p class="note-text">"Super+HJKL is second nature now"</p>
+        <p class="note-author">- @vimconvert</p>
+      </div>
+      <div class="testimonial-note left orange" style="top: 50rem;">
+        <p class="note-text">"Why didn't someone make this sooner?"</p>
+        <p class="note-author">- LinuxLearner</p>
+      </div>
+      <div class="testimonial-note left purple" style="top: 59rem;">
+        <p class="note-text">"My brain finally gets the shortcuts"</p>
+        <p class="note-author">- @neovimfan</p>
+      </div>
+      <div class="testimonial-note left" style="top: 68rem;">
+        <p class="note-text">"Went from noob to power user fast"</p>
+        <p class="note-author">- HyprlandHero</p>
+      </div>
+      <div class="testimonial-note left pink" style="top: 77rem;">
+        <p class="note-text">"This is how you learn muscle memory"</p>
+        <p class="note-author">- @devgirl</p>
+      </div>
+      <div class="testimonial-note left blue" style="top: 86rem;">
+        <p class="note-text">"No more alt-tabbing to cheat sheets"</p>
+        <p class="note-author">- ProCoder99</p>
+      </div>
+      <div class="testimonial-note left green" style="top: 95rem;">
+        <p class="note-text">"The gnome attacks are hilarious"</p>
+        <p class="note-author">- @laughinglinux</p>
+      </div>
+      <div class="testimonial-note left" style="top: 104rem;">
+        <p class="note-text">"10x better than YouTube tutorials"</p>
+        <p class="note-author">- StreamerSteve</p>
+      </div>
+      <!-- Right side notes -->
+      <div class="testimonial-note right blue" style="top: 10rem;">
+        <p class="note-text">"Made the switch from GNOME in a week"</p>
+        <p class="note-author">- @tilingconvert</p>
+      </div>
+      <div class="testimonial-note right" style="top: 19rem;">
+        <p class="note-text">"Actually fun way to learn shortcuts"</p>
+        <p class="note-author">- VimVeteran</p>
+      </div>
+      <div class="testimonial-note right green" style="top: 28rem;">
+        <p class="note-text">"10/10 would defend against gnomes"</p>
+        <p class="note-author">- @penguin_power</p>
+      </div>
+      <div class="testimonial-note right pink" style="top: 37rem;">
+        <p class="note-text">"Wish I had this when I started i3"</p>
+        <p class="note-author">- OldSchoolTiler</p>
+      </div>
+      <div class="testimonial-note right" style="top: 46rem;">
+        <p class="note-text">"My mouse is literally gathering dust"</p>
+        <p class="note-author">- @keyboard_warrior</p>
+      </div>
+      <div class="testimonial-note right orange" style="top: 55rem;">
+        <p class="note-text">"Productivity went up, RSI went down"</p>
+        <p class="note-author">- ErgoEnthusiast</p>
+      </div>
+      <div class="testimonial-note right purple" style="top: 64rem;">
+        <p class="note-text">"The retro CRT aesthetic is chef's kiss"</p>
+        <p class="note-author">- @aestheticdev</p>
+      </div>
+      <div class="testimonial-note right" style="top: 73rem;">
+        <p class="note-text">"Converted my whole team to Hyprland"</p>
+        <p class="note-author">- TeamLead_Tom</p>
+      </div>
+      <div class="testimonial-note right blue" style="top: 82rem;">
+        <p class="note-text">"Finally feel at home in Linux"</p>
+        <p class="note-author">- @windowsrefugee</p>
+      </div>
+      <div class="testimonial-note right green" style="top: 91rem;">
+        <p class="note-text">"My workflow is so much faster now"</p>
+        <p class="note-author">- SpeedyDev</p>
+      </div>
+      <div class="testimonial-note right pink" style="top: 100rem;">
+        <p class="note-text">"The sound effects crack me up"</p>
+        <p class="note-author">- @audiofile</p>
+      </div>
+      <div class="testimonial-note right orange" style="top: 109rem;">
+        <p class="note-text">"Best learning game since Vim Adventures"</p>
+        <p class="note-author">- RetroGamer</p>
+      </div>
+    </div>
 
-    <article>
-      <h3>Learn Hyprland Shortcuts Through Gameplay</h3>
-      <p>Omarchy Defender is a free, browser-based game designed to teach you the keyboard shortcuts used in <strong>Hyprland</strong>, the dynamic tiling Wayland compositor. Whether you're new to tiling window managers or looking to improve your speed, this game makes learning fun.</p>
-    </article>
+    <!-- SEO Article -->
+    <article class="seo-article">
+      <h2 class="typewriter"><span class="typewriter-text">Join the Cool Kids.</span></h2>
 
-    <article>
-      <h3>What You'll Master</h3>
-      <ul>
-        <li><strong>Stage 1: Terminal Warfare</strong> - Window spawning, closing, navigation, and movement using vim-style keys (H/J/K/L)</li>
-        <li><strong>Stage 2: Sector Command</strong> - Workspace management across 9 virtual desktops</li>
-        <li><strong>Stage 3: Full Arsenal</strong> - 20+ application launch shortcuts for maximum productivity</li>
-      </ul>
-    </article>
+      <section class="article-section intro-section">
+        <p class="lead">
+          All the cool kids are using <strong>Omarchy</strong>. You've seen them.
+          Flying through their workflow like wizards. No mouse. Pure keyboard magic.
+        </p>
+        <p>
+          But there's a problem, isn't there?
+        </p>
+      </section>
 
-    <article>
-      <h3>Key Bindings Reference</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Shortcut</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td>Super+Enter</td><td>Spawn terminal</td></tr>
-          <tr><td>Super+Q</td><td>Close active window</td></tr>
-          <tr><td>Super+H/J/K/L</td><td>Navigate focus (vim-style)</td></tr>
-          <tr><td>Super+Shift+H/J/K/L</td><td>Move window</td></tr>
-          <tr><td>Super+F</td><td>Toggle fullscreen</td></tr>
-          <tr><td>Super+T</td><td>Toggle floating/tiled</td></tr>
-          <tr><td>Super+1-9</td><td>Switch workspace</td></tr>
-          <tr><td>Super+Shift+1-9</td><td>Move window to workspace</td></tr>
-          <tr><td>Super+Shift+B</td><td>Launch browser</td></tr>
-          <tr><td>Super+Shift+E</td><td>Launch email</td></tr>
-          <tr><td>Super+Shift+F</td><td>Launch file manager</td></tr>
-        </tbody>
-      </table>
-    </article>
+      <section class="article-section">
+        <h3>You're a Mouse Addict</h3>
+        <figure class="article-figure">
+          <img src="/assets/images/mouse-cursor.png" alt="Evil computer mouse - the enemy within">
+          <figcaption>The enemy within</figcaption>
+        </figure>
+        <p>
+          Don't feel bad. We all were. Years of dragging, clicking, scrolling
+          <img src="/assets/images/terminal.png" alt="terminal" class="article-inline-img">.
+          Your hand reaches for the mouse before you even think about it. It's muscle memory.
+          <em>Bad</em> muscle memory.
+        </p>
+        <p>
+          You installed <strong>Omarchy</strong>. You saw the beautiful tiling. You read through
+          the keyboard shortcuts. <kbd>Super</kbd>+<kbd>H</kbd>? Sure. <kbd>Super</kbd>+<kbd>Shift</kbd>+<kbd>J</kbd>?
+          Okay...
+        </p>
+        <p>
+          And then you reached for the mouse anyway. Because that's what addicts do.
+        </p>
+        <p>
+          <em>Reading shortcuts doesn't break addictions. Doing does.</em>
+        </p>
+      </section>
 
-    <article>
-      <h3>Why Keyboard-Only?</h3>
-      <p>Tiling window managers like Hyprland are designed for keyboard efficiency. By removing mouse dependency, you'll develop muscle memory that translates directly to real-world productivity. The game's "mouse contamination" system gently discourages reaching for the mouse, reinforcing keyboard-first habits.</p>
-    </article>
+      <section class="article-section">
+        <h3>How Games Rewire Your Brain</h3>
+        <p>
+          Here's the thing. Your fingers don't learn from reading. They learn from
+          <em>doing</em>. Under pressure. With stakes.
+        </p>
+        <p>
+          <strong>Guitar Hero</strong> taught millions of kids finger patterns
+          <img src="/assets/images/music.png" alt="music" class="article-inline-img">.
+          <strong>VIM Adventures</strong>
+          <img src="/assets/images/neovim.png" alt="neovim" class="article-inline-img">
+          finally cracked vim for developers who gave up on <code>:help</code>.
+          <strong>Duolingo</strong> built an empire on making repetition fun.
+        </p>
+        <p>
+          The pattern is clear: <em>make it a game, and your brain will do the work for free.</em>
+        </p>
+      </section>
 
-    <article>
-      <h3>Compatible With</h3>
-      <p>While designed for <strong>Hyprland</strong> and <strong>Omarchy</strong> (the preconfigured Hyprland setup), the shortcuts taught in this game are similar to other tiling window managers including i3, Sway, and bspwm. The vim-style navigation (H/J/K/L) is universal across the keyboard-centric Linux ecosystem.</p>
+      <section class="article-section">
+        <h3>Your Omarchy Training Ground</h3>
+        <figure class="article-figure">
+          <img src="/assets/images/gnome-cavalry-idle.png" alt="Alien Gnome invader">
+          <figcaption>Gnome invader</figcaption>
+        </figure>
+        <p>
+          <strong>Omarchy Defender</strong> is your rehab program for mouse addiction.
+        </p>
+        <p>
+          Gnome soldiers
+          <img src="/assets/images/gnome-cavalry-charge.png" alt="gnome" class="article-inline-img">
+          (yes, that's the joke) are invading your terminal grid
+          <img src="/assets/images/terminal.png" alt="terminal" class="article-inline-img">.
+          Your only weapons? The exact <strong>Omarchy keyboard shortcuts</strong> you've been
+          struggling to memorize.
+        </p>
+        <p>
+          Enemy from the left? <kbd>Super</kbd>+<kbd>H</kbd>. Spawn a terminal?
+          <kbd>Super</kbd>+<kbd>Enter</kbd>. Close a window? <kbd>Super</kbd>+<kbd>W</kbd>.
+        </p>
+        <p>
+          No time to check the cheat sheet. No time to reach for the mouse. Your fingers
+          figure it out or the Gnomes win. <em>That's</em> how you break an addiction.
+        </p>
+      </section>
+
+      <section class="article-section">
+        <h3>Ten Minutes to Join the Cool Kids</h3>
+        <p>
+          Here's the beautiful part. You don't need to "study." You don't need to "practice."
+          You just play.
+        </p>
+        <p>
+          Ten minutes while your coffee brews
+          <img src="/assets/images/docker.png" alt="docker" class="article-inline-img">.
+          By Friday, <kbd>Super</kbd>+<kbd>H/J/K/L</kbd> will be automatic. You won't think about it.
+          Your fingers will just <em>know</em>. The mouse will stay on the desk.
+        </p>
+        <p>
+          You'll finally be one of the cool kids.
+        </p>
+      </section>
+
+      <section class="article-section">
+        <h3>The Shortcuts You'll Master</h3>
+        <p>
+          By the time you clear Stage 3, these <strong>Omarchy shortcuts</strong> will be
+          burned into your muscle memory:
+        </p>
+        <div class="shortcut-reference">
+          <ul>
+            <li><kbd>Super</kbd>+<kbd>H/J/K/L</kbd> - Navigate windows (vim-style)</li>
+            <li><kbd>Super</kbd>+<kbd>Enter</kbd> - Spawn terminal <img src="/assets/images/terminal.png" alt="terminal" class="article-inline-img"></li>
+            <li><kbd>Super</kbd>+<kbd>W</kbd> - Close window</li>
+            <li><kbd>Super</kbd>+<kbd>Shift</kbd>+<kbd>H/J/K/L</kbd> - Move windows</li>
+            <li><kbd>Super</kbd>+<kbd>1-9</kbd> - Switch workspaces</li>
+            <li><kbd>Super</kbd>+<kbd>Shift</kbd>+<kbd>1-9</kbd> - Send to workspace</li>
+            <li><kbd>Super</kbd>+<kbd>F</kbd> - Fullscreen</li>
+            <li><kbd>Super</kbd>+<kbd>T</kbd> - Toggle floating</li>
+            <li><kbd>Super</kbd>+<kbd>A</kbd> - App launcher <img src="/assets/images/launcher.png" alt="launcher" class="article-inline-img"></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="article-section">
+        <h3>Your Choice</h3>
+        <figure class="article-figure">
+          <img src="/assets/images/gnome-cavalry-charge.png" alt="Gnome cavalry charging">
+          <figcaption>They're coming...</figcaption>
+        </figure>
+        <p>
+          Option A: Keep reaching for the mouse
+          <img src="/assets/images/mouse-cursor.png" alt="mouse" class="article-inline-img">
+          like a crutch. Keep watching the cool kids from the sidelines. Maybe someday you'll
+          get the hang of it. Maybe.
+        </p>
+        <p>
+          Option B: Press <kbd>Super</kbd>+<kbd>Enter</kbd> above and play for ten minutes.
+          Let your fingers learn while your brain has fun.
+        </p>
+        <p>
+          The Gnome armada isn't going to defeat itself.
+        </p>
+        <p>
+          <strong>Become one of the cool kids. Start playing.</strong>
+        </p>
+      </section>
     </article>
   </section>
 
   <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <!-- Play button - always visible in footer -->
+      <button id="playButton" class="play-button" aria-label="Start Game">
+        <span class="play-label">PLAY</span>
+        <span class="play-key">Super+Enter</span>
+      </button>
+      <span class="footer-divider">|</span>
+      <button class="donate-btn" onclick="openDonationModal('donate')">
+        Buy me a Coffee!
+      </button>
+      <span class="footer-divider">|</span>
+      <button class="testimonial-btn" onclick="openDonationModal('testimonial')">
+        Did it help?
+      </button>
+    </div>
+  </footer>
+
+  <!-- ============================================================
        DONATION NOTES
        ============================================================ -->
-  <aside id="donationNotes" class="donation-notes" hidden>
+  <aside id="donationNotes" class="donation-notes">
     <!-- Sticky notes loaded dynamically -->
   </aside>
+
+  <!-- ============================================================
+       DONATION MODAL
+       ============================================================ -->
+  <dialog id="donationModal" class="donation-modal">
+    <form id="donationForm" method="dialog">
+      <h2>Support Omarchy Defender</h2>
+      <p class="modal-subtitle">Help keep the Gnomes at bay!</p>
+
+      <div class="amount-buttons">
+        <button type="button" class="amount-btn" data-amount="3">$3</button>
+        <button type="button" class="amount-btn" data-amount="5">$5</button>
+        <button type="button" class="amount-btn selected" data-amount="10">$10</button>
+        <button type="button" class="amount-btn" data-amount="custom">Custom</button>
+      </div>
+
+      <div class="custom-amount" hidden>
+        <label for="customAmount">Amount ($)</label>
+        <input type="number" id="customAmount" min="1" step="1" placeholder="25">
+      </div>
+
+      <div class="form-field">
+        <label for="donorEmail">Email</label>
+        <input type="email" id="donorEmail" placeholder="commander@example.com" required>
+      </div>
+
+      <div class="form-field">
+        <label for="donorNote">Thank-you note (optional, 200 chars max)</label>
+        <textarea id="donorNote" maxlength="200" rows="2" placeholder="Thanks for this awesome game!"></textarea>
+        <span class="char-count"><span id="noteCharCount">0</span>/200</span>
+      </div>
+
+      <div class="form-checkboxes">
+        <label>
+          <input type="checkbox" id="displayNote" checked>
+          Display my note on the wall of fame
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" onclick="document.getElementById('donationModal').close()">Cancel</button>
+        <button type="submit" class="btn-donate">Donate</button>
+      </div>
+    </form>
+  </dialog>
 
   <!-- ============================================================
        SCRIPTS
@@ -201,11 +550,14 @@
     }
   </script>
 
-  <!-- Splash screen logic -->
-  <script src="splash.js"></script>
+  <!-- Howler.js for audio management (deferred - not needed until user interaction) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.4/howler.min.js" defer></script>
 
-  <!-- Game loaded after splash -->
-  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js" defer></script>
-  <script src="game.js" defer></script>
+  <!-- Splash screen logic (deferred - maintains order after howler.js) -->
+  <script src="splash.js" defer></script>
+
+  <!-- Donation system -->
+  <script src="donation.js" defer></script>
+
 </body>
 </html>

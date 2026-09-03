@@ -221,7 +221,18 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * Generate voice audio using ElevenLabs
  */
 async function generateVoice(text, filename, settings) {
-  const voiceId = config.elevenlabs?.defaultVoiceId;
+  // Get voice ID from config - supports both old and new config formats
+  const elevenLabsConfig = config.elevenLabs || config.elevenlabs;
+  let voiceId;
+
+  if (elevenLabsConfig?.defaultVoiceId) {
+    // Old format: elevenlabs.defaultVoiceId
+    voiceId = elevenLabsConfig.defaultVoiceId;
+  } else if (elevenLabsConfig?.voices) {
+    // New format: elevenLabs.voices[selectedVoice].id
+    const selectedVoice = elevenLabsConfig.selectedVoice || 'primary';
+    voiceId = elevenLabsConfig.voices[selectedVoice]?.id;
+  }
 
   if (!voiceId) {
     throw new Error('No default voice ID configured');
@@ -337,9 +348,15 @@ async function main() {
   }
 
   // Generate manifest
+  const elevenLabsConfig = config.elevenLabs || config.elevenlabs;
+  const selectedVoice = elevenLabsConfig?.selectedVoice || 'primary';
+  const voiceId = elevenLabsConfig?.defaultVoiceId ||
+                  elevenLabsConfig?.voices?.[selectedVoice]?.id;
+
   const manifest = {
     generated: new Date().toISOString(),
-    voice: config.elevenlabs?.defaultVoiceId,
+    voice: voiceId,
+    voiceName: elevenLabsConfig?.voices?.[selectedVoice]?.name || 'Unknown',
     categories: {}
   };
 

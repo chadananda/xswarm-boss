@@ -11,8 +11,10 @@ assistant/hardware.py
 assistant/mailer.py
 assistant/main.py
 assistant/memory.py
+assistant/notifications.py
 assistant/phone.py
 assistant/planner.py
+assistant/reminders.py
 assistant/scheduler.py
 assistant/styles.tcss
 assistant/subconscious.py

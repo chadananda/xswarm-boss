@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demo Export Video - Omarchy Defender</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+      background: #f5f7fa;
+      color: #1a1a2e;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 24px;
+      color: #1a1a2e;
+      border-bottom: 2px solid #e1e5eb;
+      padding-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #334155;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .section {
+      background: #ffffff;
+      border: 1px solid #e1e5eb;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .demo-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e1e5eb;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    .demo-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e1e5eb;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .demo-item:last-child {
+      border-bottom: none;
+    }
+
+    .demo-item:hover {
+      background: #f1f5f9;
+    }
+
+    .demo-item.selected {
+      background: #eff6ff;
+      border-left: 3px solid #2563eb;
+    }
+
+    .demo-name {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #1a1a2e;
+    }
+
+    .demo-meta {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    .format-options {
+      display: flex;
+      gap: 16px;
+      margin: 16px 0;
+    }
+
+    .format-option {
+      flex: 1;
+      padding: 16px;
+      border: 2px solid #e1e5eb;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+      background: #ffffff;
+    }
+
+    .format-option:hover {
+      border-color: #94a3b8;
+    }
+
+    .format-option.selected {
+      border-color: #2563eb;
+      background: #eff6ff;
+    }
+
+    .format-option h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #1a1a2e;
+    }
+
+    .format-option .dimensions {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+
+    button:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .export-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 14px 24px;
+      font-size: 1rem;
+    }
+
+    .progress-section {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress-section.active {
+      display: block;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: #e1e5eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #3b82f6);
+      width: 0%;
+      transition: width 0.3s;
+    }
+
+    .progress-status {
+      text-align: center;
+      margin: 12px 0;
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .video-list {
+      margin-top: 16px;
+    }
+
+    .video-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      background: #f8fafc;
+      border: 1px solid #e1e5eb;
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+
+    .video-info {
+      flex: 1;
+    }
+
+    .video-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: #1a1a2e;
+      word-break: break-all;
+    }
+
+    .video-meta {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .video-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .video-actions button {
+      padding: 8px 16px;
+      font-size: 0.8rem;
+    }
+
+    .download-btn {
+      background: #10b981;
+    }
+
+    .download-btn:hover {
+      background: #059669;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #94a3b8;
+      background: #f8fafc;
+      border-radius: 6px;
+    }
+
+    .log {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 0.8rem;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-top: 12px;
+      font-family: 'SF Mono', Monaco, monospace;
+    }
+
+    .log-entry {
+      margin: 3px 0;
+      color: #94a3b8;
+    }
+
+    .log-entry.info {
+      color: #10b981;
+    }
+
+    .log-entry.error {
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Demo Export Video</h1>
+
+    <div class="grid">
+      <div class="section">
+        <h2>Select Demo</h2>
+        <div class="demo-list" id="demoList">
+          <div class="empty-state">Loading demos...</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Export Format</h2>
+        <div class="format-options">
+          <div class="format-option selected" data-format="full">
+            <h3>YouTube Full</h3>
+            <div class="dimensions">1920 x 1080</div>
+            <div class="dimensions">16:9 Landscape</div>
+          </div>
+          <div class="format-option" data-format="shorts">
+            <h3>YouTube Shorts</h3>
+            <div class="dimensions">1080 x 1920</div>
+            <div class="dimensions">9:16 Vertical</div>
+          </div>
+        </div>
+
+        <button class="export-btn" id="exportBtn" disabled>
+          Select a demo to export
+        </button>
+
+        <div class="progress-section" id="progressSection">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+          </div>
+          <div class="progress-status" id="progressStatus">Preparing...</div>
+          <div class="log" id="exportLog"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top: 20px;">
+      <h2>Exported Videos</h2>
+      <div class="video-list" id="videoList">
+        <div class="empty-state">No videos exported yet</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let selectedDemo = null;
+    let selectedFormat = 'full';
+    let isExporting = false;
+
+    // Load demos
+    async function loadDemos() {
+      try {
+        const res = await fetch('/api/demos');
+        const data = await res.json();
+
+        const list = document.getElementById('demoList');
+
+        if (data.demos.length === 0) {
+          list.innerHTML = '<div class="empty-state">No demos found</div>';
+          return;
+        }
+
+        list.innerHTML = data.demos.map(demo => `
+          <div class="demo-item" data-path="${demo.path}">
+            <div class="demo-name">${demo.name}</div>
+            <div class="demo-meta">
+              ${demo.description ? demo.description.substring(0, 60) + '...' : ''}
+              <br>Stage ${demo.stage} &bull; ${(demo.duration / 1000).toFixed(0)}s
+            </div>
+          </div>
+        `).join('');
+
+        // Add click handlers
+        list.querySelectorAll('.demo-item').forEach(item => {
+          item.addEventListener('click', () => {
+            list.querySelectorAll('.demo-item').forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            selectedDemo = item.dataset.path;
+            updateExportButton();
+          });
+        });
+      } catch (e) {
+        console.error('Failed to load demos:', e);
+        document.getElementById('demoList').innerHTML =
+          '<div class="empty-state">Failed to load demos</div>';
+      }
+    }
+
+    // Load exported videos
+    async function loadVideos() {
+      try {
+        const res = await fetch('/api/videos');
+        const data = await res.json();
+
+        const list = document.getElementById('videoList');
+
+        if (data.videos.length === 0) {
+          list.innerHTML = '<div class="empty-state">No videos exported yet</div>';
+          return;
+        }
+
+        list.innerHTML = data.videos.map(video => `
+          <div class="video-item">
+            <div class="video-info">
+              <div class="video-name">${video.file}</div>
+              <div class="video-meta">
+                ${formatBytes(video.size)} &bull; ${new Date(video.created).toLocaleString()}
+              </div>
+            </div>
+            <div class="video-actions">
+              <a href="${video.downloadUrl}" download>
+                <button class="download-btn">Download</button>
+              </a>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        console.error('Failed to load videos:', e);
+      }
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    // Format selection
+    document.querySelectorAll('.format-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('.format-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        selectedFormat = opt.dataset.format;
+      });
+    });
+
+    function updateExportButton() {
+      const btn = document.getElementById('exportBtn');
+      if (selectedDemo && !isExporting) {
+        btn.disabled = false;
+        btn.textContent = `Export "${selectedDemo.split('/').pop().replace('.json', '')}"`;
+      } else if (isExporting) {
+        btn.disabled = true;
+        btn.textContent = 'Exporting...';
+      } else {
+        btn.disabled = true;
+        btn.textContent = 'Select a demo to export';
+      }
+    }
+
+    function addLog(message, type = '') {
+      const log = document.getElementById('exportLog');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    // Export video
+    document.getElementById('exportBtn').addEventListener('click', async () => {
+      if (!selectedDemo || isExporting) return;
+
+      isExporting = true;
+      updateExportButton();
+
+      const progressSection = document.getElementById('progressSection');
+      const progressFill = document.getElementById('progressFill');
+      const progressStatus = document.getElementById('progressStatus');
+      const log = document.getElementById('exportLog');
+
+      progressSection.classList.add('active');
+      progressFill.style.width = '0%';
+      log.innerHTML = '';
+      addLog('Starting export...', 'info');
+
+      try {
+        const res = await fetch('/api/export-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            demoPath: selectedDemo,
+            format: selectedFormat
+          })
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+          progressFill.style.width = '100%';
+          progressStatus.textContent = 'Export complete!';
+          addLog(`Video exported: ${result.file}`, 'info');
+          addLog(`Frames: ${result.frames}, Duration: ${(result.duration / 1000).toFixed(1)}s`, 'info');
+
+          // Reload video list
+          loadVideos();
+        } else {
+          progressStatus.textContent = 'Export failed';
+          addLog(`Error: ${result.error}`, 'error');
+        }
+      } catch (e) {
+        progressStatus.textContent = 'Export failed';
+        addLog(`Error: ${e.message}`, 'error');
+      }
+
+      isExporting = false;
+      updateExportButton();
+    });
+
+    // SSE for progress updates
+    const eventSource = new EventSource('/api/events');
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'exportProgress') {
+          const progressFill = document.getElementById('progressFill');
+          const progressStatus = document.getElementById('progressStatus');
+
+          if (data.progress !== undefined) {
+            progressFill.style.width = `${data.progress}%`;
+          }
+          progressStatus.textContent = data.message || 'Processing...';
+          addLog(data.message);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    };
+
+    // Init
+    loadDemos();
+    loadVideos();
+  </script>
+</body>
+</html>

@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Omarchy Defender - Dev Preview</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; background: #f5f7fa; color: #1a1a2e; height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      background: #ffffff;
+      border-bottom: 1px solid #e1e5eb;
+      padding: 0 1.5rem;
+      display: flex;
+      align-items: center;
+      height: 56px;
+      flex-shrink: 0;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .logo {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-right: 2.5rem;
+      letter-spacing: -0.01em;
+    }
+
+    .logo::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 2px;
+      margin-right: 0.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      height: 100%;
+    }
+
+    .tab {
+      padding: 0 1.25rem;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+
+    .tab:hover {
+      color: #334155;
+      background: #f8fafc;
+    }
+
+    .tab.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+      background: transparent;
+    }
+
+    .tab .icon {
+      margin-right: 0.5rem;
+      font-size: 1rem;
+      opacity: 0.7;
+    }
+
+    .actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .actions button {
+      background: #ffffff;
+      border: 1px solid #e1e5eb;
+      color: #475569;
+      padding: 0.5rem 1rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .actions button:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+    }
+
+    .actions .reload-btn {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .actions .reload-btn:hover {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+
+    .status {
+      font-size: 0.75rem;
+      color: #94a3b8;
+      margin-right: 0.5rem;
+    }
+
+    .status.connected {
+      color: #10b981;
+    }
+
+    .status.connected::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #10b981;
+      border-radius: 50%;
+      margin-right: 0.4rem;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      background: #f5f7fa;
+    }
+
+    .panel {
+      display: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .panel.active {
+      display: flex;
+    }
+
+    .panel iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #0a0a0a;
+    }
+
+    /* Game panel keeps dark background for the game iframe */
+    #panel-game iframe {
+      background: #0a0a0a;
+    }
+
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">OMARCHY DEFENDER</div>
+    <div class="tabs">
+      <button class="tab active" data-panel="game">
+        <span class="icon">&#9654;</span> Game
+      </button>
+      <button class="tab" data-panel="images">
+        <span class="icon">&#128444;</span> Images
+      </button>
+      <button class="tab" data-panel="audio">
+        <span class="icon">&#128266;</span> Audio
+      </button>
+      <button class="tab" data-panel="demos">
+        <span class="icon">&#128250;</span> Demos
+      </button>
+      <button class="tab" data-panel="video">
+        <span class="icon">&#127916;</span> Demo Export
+      </button>
+    </div>
+    <div class="actions">
+      <span class="status" id="status">Connecting...</span>
+      <button class="reload-btn" onclick="reloadGame()" title="Reload game (Ctrl+R)">Reload Game</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="panel active" id="panel-game">
+      <iframe id="game-iframe" src="/app/"></iframe>
+    </div>
+
+    <div class="panel" id="panel-images">
+      <iframe src="/images.html"></iframe>
+    </div>
+
+    <div class="panel" id="panel-audio">
+      <iframe src="/audio.html"></iframe>
+    </div>
+
+    <div class="panel" id="panel-demos">
+      <iframe src="/demo-editor/"></iframe>
+    </div>
+
+    <div class="panel" id="panel-video">
+      <iframe src="/video-export.html"></iframe>
+    </div>
+  </main>
+
+  <script>
+    // Tab switching
+    const tabs = document.querySelectorAll('.tab');
+    const panels = document.querySelectorAll('.panel');
+
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const panelId = tab.dataset.panel;
+
+        tabs.forEach(t => t.classList.remove('active'));
+        panels.forEach(p => p.classList.remove('active'));
+
+        tab.classList.add('active');
+        document.getElementById('panel-' + panelId).classList.add('active');
+      });
+    });
+
+    // Game reload
+    function reloadGame() {
+      const iframe = document.getElementById('game-iframe');
+      iframe.src = iframe.src;
+    }
+
+    // Keyboard shortcut for reload
+    document.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        reloadGame();
+      }
+    });
+
+    // SSE for live updates
+    const changes = [];
+    const maxChanges = 10;
+
+    const sse = new EventSource('/api/events');
+
+    sse.onopen = () => {
+      document.getElementById('status').textContent = 'Live';
+      document.getElementById('status').classList.add('connected');
+    };
+
+    sse.onerror = () => {
+      document.getElementById('status').textContent = 'Disconnected';
+      document.getElementById('status').classList.remove('connected');
+    };
+
+    sse.onmessage = e => {
+      const data = JSON.parse(e.data);
+
+      if (data.type === 'fileChange') {
+        // Add to changes list
+        changes.unshift({
+          type: data.dir,
+          name: data.file,
+          time: new Date()
+        });
+
+        // Trim to max
+        while (changes.length > maxChanges) changes.pop();
+
+        // Update display
+        renderChanges();
+
+        // Auto-reload game on src changes
+        if (data.dir === 'src') {
+          reloadGame();
+        }
+      }
+    };
+
+    function renderChanges() {
+      const container = document.getElementById('changes');
+      if (changes.length === 0) {
+        container.innerHTML = '<div class="empty-state">No changes yet</div>';
+        return;
+      }
+
+      container.innerHTML = changes.map(c => {
+        const typeClass = c.type === 'images' ? 'image' : c.type === 'audio' ? 'audio' : 'code';
+        const ago = Math.floor((Date.now() - c.time) / 1000);
+        const timeStr = ago < 60 ? `${ago}s ago` : `${Math.floor(ago/60)}m ago`;
+        return `<div class="change">
+          <span class="type ${typeClass}">${c.type}</span>
+          <span class="name">${c.name}</span>
+          <span class="time">${timeStr}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Load stats
+    async function loadStats() {
+      try {
+        const [imgRes, audioRes] = await Promise.all([
+          fetch('/api/images'),
+          fetch('/api/audio')
+        ]);
+        const imgData = await imgRes.json();
+        const audioData = await audioRes.json();
+
+        document.getElementById('stats').innerHTML = `
+          <div>Images: ${imgData.stats.generated}/${imgData.stats.total}</div>
+          <div>Audio: ${audioData.stats.generated}/${audioData.stats.total}</div>
+        `;
+      } catch (e) {
+        document.getElementById('stats').textContent = 'Error loading stats';
+      }
+    }
+
+    loadStats();
+    setInterval(loadStats, 30000);
+
+    // Update change times every minute
+    setInterval(renderChanges, 60000);
+  </script>
+</body>
+</html>

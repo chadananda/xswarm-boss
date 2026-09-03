@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Omarchy Defender - Playing</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/favicon-32.png">
+
+  <!-- Game CSS -->
+  <link rel="stylesheet" href="game.css">
+
+  <style>
+    /* Minimal loading state */
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0a;
+      overflow: hidden;
+    }
+    .game-loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-family: 'Courier New', monospace;
+      color: #00ff41;
+      font-size: 18px;
+      text-align: center;
+    }
+    .game-loading::after {
+      content: '';
+      animation: dots 1.5s infinite;
+    }
+    @keyframes dots {
+      0%, 20% { content: ''; }
+      40% { content: '.'; }
+      60% { content: '..'; }
+      80%, 100% { content: '...'; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Loading indicator -->
+  <div class="game-loading" id="loading">LOADING</div>
+
+  <!-- Game Container -->
+  <div id="game" class="game-container">
+    <!-- Phaser canvas inserted here -->
+
+    <!-- CRT Terminal Command Panel -->
+    <div class="command-panel" id="command-panel">
+      <div class="crt-frame">
+        <div class="crt-screen">
+          <div class="crt-screen-reflection"></div>
+          <div class="command-text" id="command-text"></div>
+          <div class="command-hint" id="command-hint"></div>
+        </div>
+        <div class="crt-power-led"></div>
+        <span class="crt-label">COMMAND</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phaser 3 -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>
+
+  <!-- Game Logic -->
+  <script src="game.js"></script>
+
+  <script>
+    // Hide loading and start game once Phaser is ready
+    document.addEventListener('DOMContentLoaded', () => {
+      const loading = document.getElementById('loading');
+      const gameContainer = document.getElementById('game');
+
+      // Check for demo mode (URL parameter)
+      const params = new URLSearchParams(window.location.search);
+      const demoScript = params.get('demo');
+      if (demoScript) {
+        window.demoScript = `/demos/${demoScript}.json`;
+        window.isDemoMode = true;
+        console.log(`Demo mode: Loading ${demoScript}`);
+      }
+
+      // Wait for Phaser to be available
+      const checkPhaser = () => {
+        if (typeof Phaser !== 'undefined' && typeof window.initGame === 'function') {
+          loading.style.display = 'none';
+          gameContainer.hidden = false;
+          window.initGame();
+        } else {
+          setTimeout(checkPhaser, 50);
+        }
+      };
+      checkPhaser();
+    });
+  </script>
+</body>
+</html>

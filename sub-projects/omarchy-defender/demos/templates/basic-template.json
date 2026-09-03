@@ -1,0 +1,63 @@
+{
+  "name": "Demo Template",
+  "description": "Basic template for creating new demos",
+  "stage": 1,
+  "duration": 60000,
+  "seed": 0,
+  "events": [
+    {
+      "time": 0,
+      "type": "start",
+      "_comment": "Starts the demo playback"
+    },
+    {
+      "time": 2000,
+      "type": "keydown",
+      "key": "Enter",
+      "modifiers": ["Meta"],
+      "_comment": "Key codes: Enter, q, h, j, k, l, f, t, 1-9. Modifiers: Meta, Shift, Control, Alt"
+    },
+    {
+      "time": 2100,
+      "type": "keyup",
+      "key": "Enter",
+      "modifiers": []
+    },
+    {
+      "time": 5000,
+      "type": "comment",
+      "text": "Comments are shown as overlays during playback"
+    },
+    {
+      "time": 10000,
+      "type": "mousemove",
+      "x": 400,
+      "y": 300,
+      "_comment": "Triggers mouse contamination system"
+    },
+    {
+      "time": 11000,
+      "type": "click",
+      "x": 400,
+      "y": 300,
+      "_comment": "Mouse clicks trigger contamination"
+    },
+    {
+      "time": 15000,
+      "type": "end",
+      "_comment": "Ends the demo (optional - demos end at duration anyway)"
+    }
+  ],
+  "_schema": {
+    "event_types": ["start", "end", "keydown", "keyup", "mousemove", "click", "comment"],
+    "valid_keys": ["Enter", "q", "h", "j", "k", "l", "f", "t", "1", "2", "3", "4", "5", "6", "7", "8", "9"],
+    "valid_modifiers": ["Meta", "Shift", "Control", "Alt"],
+    "stage_options": [1, 2, 3],
+    "notes": [
+      "Time is in milliseconds from demo start",
+      "seed ensures consistent random events across playbacks",
+      "Comments appear as floating text during playback",
+      "keydown should always be followed by keyup ~100ms later"
+    ]
+  }
+}

@@ -3,9 +3,9 @@
  * Provides offline support and asset caching
  */
 
-const CACHE_NAME = 'omarchy-defender-v1';
-const STATIC_CACHE = 'omarchy-static-v1';
-const AUDIO_CACHE = 'omarchy-audio-v1';
+const CACHE_NAME = 'omarchy-defender-v2';
+const STATIC_CACHE = 'omarchy-static-v2';
+const AUDIO_CACHE = 'omarchy-audio-v2';
 
 // Static assets to cache immediately
 const STATIC_ASSETS = [
@@ -57,25 +57,34 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Handle audio files separately (larger, cache on demand)
+  // Handle audio files with stale-while-revalidate strategy
+  // Serve cached version immediately, but always fetch fresh in background
   if (url.pathname.includes('/assets/audio/')) {
+    // Strip query strings for cache key (e.g., ?v=2)
+    const cacheKey = new Request(url.origin + url.pathname);
+
     event.respondWith(
       caches.open(AUDIO_CACHE)
         .then((cache) => {
-          return cache.match(event.request)
+          return cache.match(cacheKey)
             .then((cached) => {
-              if (cached) {
-                return cached;
-              }
-
-              return fetch(event.request)
+              // Always fetch from network to check for updates
+              const fetchPromise = fetch(event.request)
                 .then((response) => {
-                  // Cache audio files for offline use
                   if (response.ok) {
-                    cache.put(event.request, response.clone());
+                    // Update cache with fresh version
+                    cache.put(cacheKey, response.clone());
                   }
                   return response;
+                })
+                .catch(() => {
+                  // Network failed, return cached version if available
+                  return cached;
                 });
+
+              // Return cached version immediately if available
+              // Otherwise wait for network
+              return cached || fetchPromise;
             });
         })
     );
