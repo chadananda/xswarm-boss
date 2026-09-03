@@ -181,3 +181,6 @@ COMMIT_SUMMARY.md
 
 # Persona Python module cache
 personas/.py_module/
+
+# --- standard hygiene ---
+*conflicted copy*
