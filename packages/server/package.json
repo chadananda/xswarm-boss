@@ -17,18 +17,18 @@
     "db:sample": "node scripts/setup-db.js --sample"
   },
   "dependencies": {
-    "@libsql/client": "^0.5.6",
-    "@noble/hashes": "^2.0.1",
-    "chrono-node": "^2.9.0",
-    "google-auth-library": "^10.5.0",
-    "googleapis": "^164.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "node-ical": "^0.22.1",
+    "@libsql/client": "^0.18.0",
+    "@noble/hashes": "^2.4.0",
+    "chrono-node": "^2.10.1",
+    "google-auth-library": "^11.0.2",
+    "googleapis": "^178.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "node-ical": "^0.27.1",
     "stripe": "^22.6.2",
-    "ws": "^8.18.3"
+    "ws": "^8.21.3"
   },
   "devDependencies": {
-    "wrangler": "^4.45.0"
+    "wrangler": "^4.130.0"
   },
   "keywords": [
     "cloudflare-workers",

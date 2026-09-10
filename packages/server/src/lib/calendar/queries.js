@@ -5,7 +5,7 @@
  * Supports queries like "What's on my calendar today?" and "Am I free tomorrow at 2pm?"
  */
 
-import chrono from 'chrono-node';
+import * as chrono from 'chrono-node';
 import { createClient } from '@libsql/client';
 
 export class CalendarQueries {
