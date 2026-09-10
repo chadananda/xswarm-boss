@@ -1,5 +1,0 @@
-[console_scripts]
-assistant = assistant.main:main
-voice-assistant = assistant.main:main
-xswarm = assistant.main:main
-xswarm-download-models = assistant.voice.download_models:main

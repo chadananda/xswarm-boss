@@ -166,15 +166,14 @@ snapshot_report.html
 # config.js is the only config file that should be committed
 # All generated config files go in ./tmp/ directory
 
-# Temporary development scripts (root level)
-test_*.py
-verify_*.py
-inspect_*.py
-check_*.py
-show_*.py
-kill_*.py
-!tests/**/test_*.py
-!tests/**/verify_*.py
+# Temporary development scripts (root level only — leading slash anchors to the repo root
+# so real suites like packages/voice/test_*.py and tests/**/test_*.py stay tracked)
+/test_*.py
+/verify_*.py
+/inspect_*.py
+/check_*.py
+/show_*.py
+/kill_*.py
 
 # Development summaries
 COMMIT_SUMMARY.md
