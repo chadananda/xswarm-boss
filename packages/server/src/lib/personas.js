@@ -6,7 +6,6 @@
  */
 
 import { createClient } from '@libsql/client';
-import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Create Turso client (singleton pattern)
@@ -135,7 +134,7 @@ export async function createPersona(userId, personaData, env) {
   }
 
   // Create persona record
-  const personaId = uuidv4();
+  const personaId = crypto.randomUUID();
   const now = new Date().toISOString();
 
   const personalityTraits = JSON.stringify(personaData.personality_traits || {
@@ -435,7 +434,7 @@ export async function createTrainingSession(personaId, userId, trainingType, tra
     throw new Error('Access denied');
   }
 
-  const sessionId = uuidv4();
+  const sessionId = crypto.randomUUID();
   const now = new Date().toISOString();
 
   await db.execute({

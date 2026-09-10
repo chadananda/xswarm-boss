@@ -5,7 +5,7 @@
  */
 
 import { generateBossIntroTwiML, generateBossResponseTwiML, generateMoshiTwiML, makeOutboundCall } from '../lib/outbound.js';
-import usersConfig from '../config/users.json' with { type: 'json' };
+import usersConfig from '../config/users.js';
 
 /**
  * Check if caller is authorized to access Boss

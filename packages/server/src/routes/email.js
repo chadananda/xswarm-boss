@@ -8,7 +8,7 @@
  * - Intelligent AI responses via Claude or Rust supervisor
  */
 
-import usersConfig from '../config/users.json' with { type: 'json' };
+import usersConfig from '../config/users.js';
 import {
   getClaudeResponse,
   processDevTask,
