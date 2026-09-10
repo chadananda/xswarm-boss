@@ -50,10 +50,15 @@ packages/personas/**/*.ogg filter=lfs diff=lfs merge=lfs -text
 # ============================================
 # LFS Exceptions
 # ============================================
-# Exclude test fixtures and small example files
-!tests/fixtures/**/*.wav
-!tests/fixtures/**/*.mp3
-!examples/**/*.bin
+# Exclude test fixtures and small example files.
+# .gitattributes has no negative PATTERNS — git ignores a line starting with `!` and warns
+# on every command. Unsetting the attributes for the path is the supported way to opt out,
+# so these read `!filter !diff !merge` (attribute unspecified) instead of `!path`.
+# Only *.bin is caught by a wider LFS rule; the two audio lines document intent, since
+# *.wav/*.mp3 are tracked solely under packages/personas/**.
+tests/fixtures/**/*.wav !filter !diff !merge text
+tests/fixtures/**/*.mp3 !filter !diff !merge text
+examples/**/*.bin !filter !diff !merge text
 # ============================================
 # Notes
 # ============================================
