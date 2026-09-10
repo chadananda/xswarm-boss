@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Blocks a push that regresses any quality standard.
+#
+# The gate is a ratchet: it does not demand perfection, only that nothing gets worse than
+# the recorded baseline. That is what makes it survivable on a codebase with existing
+# problems -- and a gate that gets switched off protects nothing.
+#
+# `npm run gate` rather than `node quality/gate.mjs`: this project keeps no local copy of
+# the tools, and the npm script carries the GATE_BASE_URL that points the network checks at
+# this project's own site instead of xswarm.ai.
+#
+# Genuinely need to push past it? `git push --no-verify`, and expect to explain why.
+set -e
+echo "quality gate (pre-push)…"
+if ! npm run --silent gate; then
+  echo ""
+  echo "  Push blocked: something regressed."
+  echo "  Fix it, or accept the new baseline deliberately:  npm run gate:accept"
+  echo ""
+  exit 1
+fi
