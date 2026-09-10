@@ -881,6 +881,7 @@ DATABASE_URL=postgresql://...
 # .env.example (commit this)
 OPENAI_API_KEY=your_key_here
 ANTHROPIC_API_KEY=your_key_here
+# security-audit-ignore: committed-secret — literal placeholder in a .env.example doc sample, not a real credential
 DATABASE_URL=postgresql://user:pass@host/db
 ```
 
