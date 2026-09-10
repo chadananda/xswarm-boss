@@ -24,7 +24,7 @@
     "googleapis": "^164.1.0",
     "jsonwebtoken": "^9.0.2",
     "node-ical": "^0.22.1",
-    "stripe": "^17.5.0",
+    "stripe": "^22.6.2",
     "ws": "^8.18.3"
   },
   "devDependencies": {

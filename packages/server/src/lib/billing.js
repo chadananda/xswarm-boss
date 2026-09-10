@@ -354,7 +354,9 @@ export async function getUpcomingInvoice(customerId, env) {
   try {
     const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
-    const upcomingInvoice = await stripe.invoices.retrieveUpcoming({
+    // stripe-node v19 removed invoices.retrieveUpcoming in favour of invoices.createPreview.
+    // Despite the name it creates nothing chargeable — it returns the same preview object.
+    const upcomingInvoice = await stripe.invoices.createPreview({
       customer: customerId,
     });
 

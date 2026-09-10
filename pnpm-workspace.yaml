@@ -1,2 +1,7 @@
 packages:
   - 'packages/*'
+allowBuilds:
+  esbuild: set this to true or false
+  workerd: set this to true or false
+minimumReleaseAgeExclude:
+  - stripe@22.6.2
