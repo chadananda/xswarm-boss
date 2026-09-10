@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-09-10T04:37:25.126Z",
+  "note": "Counts only ever move DOWN. Raising a number here means accepting worse, and should be a deliberate, explained commit.",
+  "checks": {
+    "tests": {
+      "problems": 0,
+      "detail": "47 passed, 0 failed",
+      "was": null
+    },
+    "visual": {
+      "problems": 999,
+      "detail": "audit did not complete",
+      "was": null
+    },
+    "seo": {
+      "problems": 67,
+      "detail": "67 issues",
+      "was": null
+    },
+    "security": {
+      "problems": 3,
+      "detail": "3 findings",
+      "was": null
+    },
+    "performance": {
+      "problems": 999,
+      "detail": "audit did not complete",
+      "was": null
+    },
+    "currency": {
+      "problems": 0,
+      "detail": "0 behind",
+      "was": null
+    },
+    "elegance": {
+      "problems": 618,
+      "detail": "618 findings",
+      "was": null
+    }
+  }
+}
