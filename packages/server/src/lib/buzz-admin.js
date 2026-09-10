@@ -390,6 +390,7 @@ export async function bulkDeleteListings(listingIds, env) {
   const placeholders = listingIds.map(() => '?').join(',');
 
   const result = await db.execute({
+    // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
     sql: `DELETE FROM buzz_listings WHERE id IN (${placeholders})`,
     args: listingIds,
   });

@@ -343,6 +343,7 @@ export async function trackEmailEngagement(sendgridMessageId, eventType, env) {
 
     // Update email_sends record
     await db.execute({
+      // security-audit-ignore: dangerous-pattern — column name comes from a fixed columnMap allow-list and is rejected when unmatched
       sql: `
         UPDATE email_sends
         SET ${column} = datetime('now')

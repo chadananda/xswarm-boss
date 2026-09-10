@@ -609,6 +609,7 @@ export async function handleUpdateSuggestion(request, env, suggestionId) {
 
     // Update suggestion
     params.push(suggestionId);
+    // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
     await env.DB.prepare(`
       UPDATE suggestions
       SET ${updates.join(', ')}

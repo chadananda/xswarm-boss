@@ -317,6 +317,7 @@ export async function updatePersona(personaId, userId, updates, env) {
   // Add WHERE clause
   args.push(personaId);
 
+  // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
   const sql = `UPDATE personas SET ${fields.join(', ')} WHERE id = ?`;
 
   await db.execute({ sql, args });

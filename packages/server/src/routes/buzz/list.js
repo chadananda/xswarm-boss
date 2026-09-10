@@ -111,6 +111,7 @@ export async function handleListListings(request, env) {
     });
 
     const result = await db.execute({
+      // security-audit-ignore: dangerous-pattern — WHERE/ORDER fragments are hardcoded strings; every user value is bound as a parameter
       sql: `
         SELECT * FROM buzz_listings
         ${whereClause}
@@ -122,6 +123,7 @@ export async function handleListListings(request, env) {
 
     // Get total count
     const countResult = await db.execute({
+      // security-audit-ignore: dangerous-pattern — WHERE/ORDER fragments are hardcoded strings; every user value is bound as a parameter
       sql: `
         SELECT COUNT(*) as count FROM buzz_listings
         ${whereClause}

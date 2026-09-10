@@ -191,10 +191,12 @@ async function createDatabaseBackup() {
 
     for (const table of tables.rows) {
       // Get table schema
+      // security-audit-ignore: dangerous-pattern — table identifier read from sqlite_master; SQL cannot bind identifiers as parameters
       const schema = await db.execute(`SELECT sql FROM sqlite_master WHERE name = '${table.name}'`);
       backupSQL += `${schema.rows[0].sql};\n\n`;
 
       // Get table data
+      // security-audit-ignore: dangerous-pattern — table identifier read from sqlite_master; SQL cannot bind identifiers as parameters
       const data = await db.execute(`SELECT * FROM ${table.name}`);
       if (data.rows.length > 0) {
         backupSQL += `-- Data for ${table.name}\n`;
@@ -204,6 +206,7 @@ async function createDatabaseBackup() {
             if (typeof v === 'string') return `'${v.replace(/'/g, "''")}'`;
             return v;
           });
+          // security-audit-ignore: dangerous-pattern — offline backup dump; table name from sqlite_master and string values quote-escaped
           backupSQL += `INSERT INTO ${table.name} VALUES (${values.join(', ')});\n`;
         }
         backupSQL += '\n';

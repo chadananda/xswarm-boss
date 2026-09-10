@@ -324,6 +324,7 @@ async function verifyDatabase(db) {
     for (const row of tables.rows) {
       // Get row count
       try {
+        // security-audit-ignore: dangerous-pattern — table identifier read from sqlite_master; SQL cannot bind identifiers as parameters
         const count = await db.execute(`SELECT COUNT(*) as count FROM ${row.name}`);
         log(`  • ${row.name}: ${count.rows[0].count} rows`, 'green');
       } catch (error) {

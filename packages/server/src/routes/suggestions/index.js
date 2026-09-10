@@ -287,6 +287,7 @@ router.get('/', optionalAuth, async (req, res) => {
     if (req.user) {
       const suggestionIds = suggestions.map(s => s.id);
       if (suggestionIds.length > 0) {
+        // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
         const votes = db.prepare(`
           SELECT suggestion_id
           FROM suggestion_votes
@@ -516,6 +517,7 @@ router.put('/:id', requireAdmin, async (req, res) => {
 
     // Update suggestion
     params.push(id);
+    // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
     db.prepare(`
       UPDATE suggestions
       SET ${updates.join(', ')}

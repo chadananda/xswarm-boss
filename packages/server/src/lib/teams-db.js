@@ -141,6 +141,7 @@ export async function updateTeam(teamId, updates, env) {
   args.push(teamId);
 
   await db.execute({
+    // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
     sql: `UPDATE teams SET ${fields.join(', ')} WHERE id = ?`,
     args,
   });

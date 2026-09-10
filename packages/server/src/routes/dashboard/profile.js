@@ -102,6 +102,7 @@ export async function handleUpdateProfile(request, env) {
     args.push(user.id);
 
     await db.execute({
+      // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
       sql: `UPDATE users SET ${updates.join(', ')} WHERE id = ?`,
       args,
     });

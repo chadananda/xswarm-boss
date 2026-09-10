@@ -327,6 +327,7 @@ export async function updateAppointment(request, env, appointmentId) {
     args.push(now);
     args.push(appointmentId);
 
+    // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
     const sql = `UPDATE appointments SET ${updates.join(', ')} WHERE id = ? RETURNING *`;
 
     const result = await db.execute({ sql, args });
@@ -533,6 +534,7 @@ export async function updateReminder(request, env, reminderId) {
     args.push(now);
     args.push(reminderId);
 
+    // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
     const sql = `UPDATE reminders SET ${updates.join(', ')} WHERE id = ? RETURNING *`;
 
     const result = await db.execute({ sql, args });

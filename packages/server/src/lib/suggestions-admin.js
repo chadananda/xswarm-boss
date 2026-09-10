@@ -68,7 +68,9 @@ export function bulkUpdateStatus(suggestionIds, newStatus, adminNotes = null) {
   const placeholders = suggestionIds.map(() => '?').join(',');
 
   const query = adminNotes
+    // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
     ? `UPDATE suggestions SET status = ?, admin_notes = ? WHERE id IN (${placeholders})`
+    // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
     : `UPDATE suggestions SET status = ? WHERE id IN (${placeholders})`;
 
   const params = adminNotes
@@ -100,6 +102,7 @@ export function bulkUpdatePriority(suggestionIds, newPriority) {
   const db = getDatabase();
   const placeholders = suggestionIds.map(() => '?').join(',');
 
+  // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
   const result = db.prepare(`
     UPDATE suggestions
     SET priority = ?
@@ -296,6 +299,7 @@ export function mergeDuplicateSuggestions(keepId, mergeIds) {
   const placeholders = mergeIds.map(() => '?').join(',');
 
   // Get all votes from duplicates that don't already exist on keep suggestion
+  // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
   db.prepare(`
     INSERT OR IGNORE INTO suggestion_votes (id, suggestion_id, user_id, created_at)
     SELECT
@@ -308,6 +312,7 @@ export function mergeDuplicateSuggestions(keepId, mergeIds) {
   `).run(keepId, ...mergeIds);
 
   // Mark duplicates as rejected with note
+  // security-audit-ignore: dangerous-pattern — IN-list is ?-placeholders generated from array length; every id is bound as a parameter
   db.prepare(`
     UPDATE suggestions
     SET status = 'rejected',

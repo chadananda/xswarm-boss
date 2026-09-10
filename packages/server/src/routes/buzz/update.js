@@ -249,6 +249,7 @@ export async function handleUpdateListing(request, env, listingId) {
     args.push(listingId);
 
     await db.execute({
+      // security-audit-ignore: dangerous-pattern — SET clause assembled from hardcoded column literals; all values are bound parameters
       sql: `
         UPDATE buzz_listings
         SET ${updates.join(', ')}

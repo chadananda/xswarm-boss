@@ -349,6 +349,7 @@ export async function updateProject(request, env, projectId) {
     args.push(new Date().toISOString());
     args.push(projectId);
 
+    // security-audit-ignore: dangerous-pattern — column names come from the allowedFields allow-list; all values are bound parameters
     const sql = `UPDATE projects SET ${updates.join(', ')}, updated_at = ? WHERE id = ? RETURNING *`;
     const result = await db.execute({ sql, args });
 
@@ -529,6 +530,7 @@ export async function updateTask(request, env, projectId, taskId) {
     args.push(taskId);
     args.push(projectId);
 
+    // security-audit-ignore: dangerous-pattern — column names come from the allowedFields allow-list; all values are bound parameters
     const sql = `
       UPDATE project_tasks
       SET ${updates.join(', ')}
@@ -900,6 +902,7 @@ export async function getAnalytics(request, env) {
     }
 
     const result = await db.execute({
+      // security-audit-ignore: dangerous-pattern — WHERE/ORDER fragments are hardcoded strings; every user value is bound as a parameter
       sql: `SELECT * FROM project_summary ${whereClause}`,
       args,
     });
