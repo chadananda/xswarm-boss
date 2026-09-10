@@ -267,11 +267,21 @@ export class MemoryAPI {
       return { deleted: 0 }; // Permanent storage, no cleanup
     }
 
+    // Bound, not interpolated. Today every caller passes a tier constant, but this value is
+    // also read back out of memory_metadata.retention_days and the method is public on the
+    // API object, so an attacker-shaped value must not be able to reach the SQL text.
+    // The parse is a second line of defence: a non-numeric retention deletes nothing
+    // rather than deleting everything.
+    const days = Number.parseInt(retentionDays, 10);
+    if (!Number.isInteger(days) || days <= 0) {
+      return { deleted: 0 };
+    }
+
     const result = await this.db.execute({
       sql: `DELETE FROM memory_sessions
             WHERE user_id = ?
-            AND datetime(created_at) < datetime('now', '-${retentionDays} days')`,
-      args: [userId]
+            AND datetime(created_at) < datetime('now', '-' || ? || ' days')`,
+      args: [userId, days]
     });
 
     // Update last cleanup time
@@ -281,7 +291,7 @@ export class MemoryAPI {
             ON CONFLICT(user_id) DO UPDATE SET
               last_cleanup = datetime('now'),
               retention_days = ?`,
-      args: [userId, retentionDays, retentionDays]
+      args: [userId, days, days]
     });
 
     return { deleted: result.rowsAffected || 0 };
